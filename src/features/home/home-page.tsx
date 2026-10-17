@@ -41,7 +41,7 @@ export default function HomePage() {
       {/* Figma "Buyer Home" hero (photo asset pending export; dark treatment keeps contrast for the headline) */}
       <section className="relative overflow-hidden bg-[radial-gradient(120%_120%_at_80%_0%,#7a4a12_0%,#2a1a0a_45%,#0f0d0a_100%)] text-white">
         <div className="mx-auto max-w-[1336px] px-4 pb-20 pt-16 sm:px-6 sm:pb-28 sm:pt-24">
-          <h1 className="max-w-2xl font-heading text-[40px] font-bold leading-[44px] sm:text-[64px] sm:leading-[68px]">
+          <h1 className="max-w-2xl font-heading text-[40px] font-bold leading-[44px] text-white sm:text-[64px] sm:leading-[68px]">
             Find Surplus Stock
             <br />
             Verified for Reuse
