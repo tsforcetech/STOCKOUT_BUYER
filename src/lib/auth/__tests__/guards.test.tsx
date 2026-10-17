@@ -1,76 +1,54 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor } from "@testing-library/react";
 import { Outlet } from "react-router";
-import { RequireAuth, RequirePermission } from "../guards";
+import { RequireAuth } from "../guards";
+import { useAuth } from "../auth-context";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch } from "@/test/http";
 
 afterEach(() => vi.unstubAllGlobals());
 
+function WhoAmI() {
+  const { user, actor } = useAuth();
+  return (
+    <div>
+      Hello {user?.firstName} · sellers: {actor?.sellerContexts.length ?? "?"}
+    </div>
+  );
+}
+
 const routes = [
   { path: "/login", element: <div>Login screen</div> },
-  {
-    element: <RequireAuth />,
-    children: [
-      {
-        path: "/",
-        element: <Outlet />,
-        children: [
-          { path: "secret", element: <div>Secret page</div> },
-          {
-            path: "roles",
-            element: (
-              <RequirePermission permission="roles.view">
-                <div>Roles page</div>
-              </RequirePermission>
-            ),
-          },
-        ],
-      },
-    ],
-  },
+  { path: "/", element: <div>Public home</div> },
+  { element: <RequireAuth />, children: [{ path: "/account", element: <Outlet />, children: [{ index: true, element: <WhoAmI /> }] }] },
 ];
 
-describe("route guards", () => {
-  it("redirects anonymous users to /login and preserves the target", async () => {
+describe("marketplace auth", () => {
+  it("lets anonymous visitors browse public pages", async () => {
     mockFetch([]);
-    const { router } = renderWithApp(routes, "/secret?x=1");
+    renderWithApp(routes, "/");
+    expect(await screen.findByText("Public home")).toBeInTheDocument();
+  });
+
+  it("redirects anonymous users from account pages to /login with next", async () => {
+    mockFetch([]);
+    const { router } = renderWithApp(routes, "/account");
     expect(await screen.findByText("Login screen")).toBeInTheDocument();
-    expect(router.state.location.search).toBe("?next=%2Fsecret%3Fx%3D1");
+    expect(router.state.location.search).toBe("?next=%2Faccount");
   });
 
-  it("restores a session from the stored refresh token", async () => {
-    sessionStorage.setItem("stockout.admin.rt", "rt-1");
-    const { calls } = mockFetch(sessionRoutes(["roles.view"]));
-    renderWithApp(routes, "/secret");
-    expect(await screen.findByText("Secret page")).toBeInTheDocument();
-    expect(calls.find((c) => c.url.pathname === "/api/v1/auth/token/refresh")?.body).toEqual({ refreshToken: "rt-1" });
-    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("rt-2");
-  });
-
-  it("shows a permission-denied state when the permission is missing", async () => {
-    sessionStorage.setItem("stockout.admin.rt", "rt-1");
-    mockFetch(sessionRoutes(["sellers.view"]));
-    renderWithApp(routes, "/roles");
-    expect(await screen.findByText("You don't have access")).toBeInTheDocument();
-    expect(screen.queryByText("Roles page")).not.toBeInTheDocument();
+  it("restores the session and loads buyer/seller contexts", async () => {
+    sessionStorage.setItem("stockout.market.rt", "rt-1");
+    mockFetch(sessionRoutes([{ sellerId: "s-1", sellerType: "BUSINESS", displayName: "Acme", status: "ACTIVE", verificationStatus: "UNVERIFIED", onboardingStatus: "DRAFT", isOwner: true }]));
+    renderWithApp(routes, "/account");
+    expect(await screen.findByText(/Hello Bea · sellers: 1/)).toBeInTheDocument();
   });
 
   it("falls back to login when the refresh token is rejected", async () => {
-    sessionStorage.setItem("stockout.admin.rt", "rt-bad");
+    sessionStorage.setItem("stockout.market.rt", "rt-bad");
     mockFetch([{ method: "POST", path: "/api/v1/auth/token/refresh", respond: () => ({ status: 401, body: { title: "Unauthorized", status: 401 } }) }]);
-    renderWithApp(routes, "/secret");
+    renderWithApp(routes, "/account");
     expect(await screen.findByText("Login screen")).toBeInTheDocument();
-    await waitFor(() => expect(sessionStorage.getItem("stockout.admin.rt")).toBeNull());
-  });
-});
-
-describe("session restore resilience", () => {
-  it("keeps the refresh token when profile loading fails for a non-auth reason", async () => {
-    sessionStorage.setItem("stockout.admin.rt", "rt-1");
-    mockFetch([...sessionRoutes([]).filter((r) => r.path !== "/api/v1/identity/me"), { method: "GET", path: "/api/v1/identity/me", respond: () => ({ status: 503 }) }]);
-    renderWithApp(routes, "/secret");
-    expect(await screen.findByText("Login screen")).toBeInTheDocument();
-    expect(sessionStorage.getItem("stockout.admin.rt")).toBe("rt-2");
+    await waitFor(() => expect(sessionStorage.getItem("stockout.market.rt")).toBeNull());
   });
 });

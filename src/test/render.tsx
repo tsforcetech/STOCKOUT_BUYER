@@ -5,6 +5,7 @@ import { render } from "@testing-library/react";
 import { TooltipProvider } from "@/components/ui/misc";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { ThemeProvider } from "@/app/providers/theme";
+import { SellerModeProvider } from "@/lib/seller/seller-context";
 import { Toaster } from "sonner";
 
 export function renderWithApp(routes: RouteObject[], initialPath: string, extra?: React.ReactNode) {
@@ -15,7 +16,9 @@ export function renderWithApp(routes: RouteObject[], initialPath: string, extra?
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
           <AuthProvider>
-            <RouterProvider router={router} />
+            <SellerModeProvider>
+              <RouterProvider router={router} />
+            </SellerModeProvider>
           </AuthProvider>
           <Toaster />
           {extra}
@@ -27,15 +30,14 @@ export function renderWithApp(routes: RouteObject[], initialPath: string, extra?
 }
 
 /** Responses needed for an authenticated session restore. */
-export function sessionRoutes(permissions: string[], roles: Array<{ code: string; name: string }> = []) {
+export function sessionRoutes(sellerContexts: Array<Record<string, unknown>> = []) {
   return [
     { method: "POST", path: "/api/v1/auth/token/refresh", respond: () => ({ body: { accessToken: "header.eyJzaWQiOiJzaWQtMSJ9.sig", refreshToken: "rt-2", expiresIn: 900, tokenType: "Bearer" } }) },
     {
       method: "GET",
       path: "/api/v1/identity/me",
-      respond: () => ({ body: { userId: "u-1", email: "admin@stockout.test", emailVerified: true, mobile: "", mobileVerified: false, status: "Active", authTime: "", amr: "pwd", firstName: "Ada", lastName: "Admin", displayName: "Ada Admin" } }),
+      respond: () => ({ body: { userId: "u-1", email: "buyer@stockout.test", emailVerified: true, mobile: "", mobileVerified: false, status: "Active", authTime: "", amr: "pwd", firstName: "Bea", lastName: "Buyer", displayName: "Bea Buyer" } }),
     },
-    { method: "GET", path: "/api/v1/platform/me/permissions", respond: () => ({ body: { success: true, data: { userId: "u-1", permissions } } }) },
-    { method: "GET", path: "/api/v1/platform/me/roles", respond: () => ({ body: { success: true, data: { userId: "u-1", roles } } }) },
+    { method: "GET", path: "/api/v1/marketplace/actors/me", respond: () => ({ body: { success: true, data: { userId: "u-1", buyer: { enabled: true }, sellerContexts } } }) },
   ];
 }

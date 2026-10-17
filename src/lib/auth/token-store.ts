@@ -9,7 +9,7 @@ import { env } from "@/config/env";
  *    localStorage for "remember me" behaviour.
  * If the backend later moves the refresh token to an HttpOnly cookie, only this file changes.
  */
-const REFRESH_KEY = "stockout.admin.rt";
+const REFRESH_KEY = "stockout.market.rt";
 
 export interface TokenSet {
   accessToken: string;

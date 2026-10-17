@@ -1,7 +1,7 @@
 import * as React from "react";
 
 type Theme = "light" | "dark" | "system";
-const KEY = "stockout.admin.theme";
+const KEY = "stockout.market.theme";
 
 interface ThemeContextValue {
   theme: Theme;

@@ -16,6 +16,7 @@ import type {
   SessionDto,
   StandardSuccessResponse,
 } from "@/api/types/identity";
+import type { RegisterRequest, RegisterResponse, VerifyRegistrationResponse } from "@/api/types/registration";
 
 /**
  * identity-access. Responses are plain DTOs (no envelope); errors are ProblemDetails.
@@ -58,4 +59,14 @@ export const authService = {
   mfaRegister: () => http.post<RegisterMfaResponse>("/api/v1/auth/mfa/register", { type: "EMAIL_OTP" }),
 
   mfaConfirm: (body: ConfirmMfaRequest) => http.post<StandardSuccessResponse>("/api/v1/auth/mfa/confirm", body),
+};
+
+/** Self-service registration (identity-access). Contract: docs/contracts/registration.md */
+export const registrationService = {
+  register: (body: RegisterRequest) => http.post<RegisterResponse>("/api/v1/auth/register", body, { auth: false }),
+  /** Confirms the emailed 6-digit code; returns tokens (signs the user in) and activates the account. */
+  confirm: (userId: string, token: string) =>
+    http.post<VerifyRegistrationResponse>("/api/v1/auth/verification/registration/confirm", { userId, channel: "Email", token }, { auth: false }),
+  /** Always 200 (anti-enumeration). Server limits: 1/min, 5 per 15 min. */
+  resendEmail: (email: string) => http.post<{ message: string }>("/api/v1/auth/verification/email/send", { email }, { auth: false }),
 };
