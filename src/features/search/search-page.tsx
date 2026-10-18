@@ -10,7 +10,7 @@ import { searchService } from "@/services/search.service";
 import { useAuth } from "@/lib/auth/auth-context";
 import { formatNumber } from "@/lib/utils/format";
 import { ListingCard, ListingCardSkeleton } from "@/features/listings/components/listing-card";
-import { DEFAULT_PAGE_SIZE, readSearchState, SORT_OPTIONS, writeSearchState, type SearchState } from "./lib/search-params";
+import { DEFAULT_PAGE_SIZE, effectiveCurrency, MAX_QUERY_LENGTH, maxSearchPage, priceOrUndefined, readSearchState, SORT_OPTIONS, writeSearchState, type SearchState } from "./lib/search-params";
 import { SearchFilters } from "./components/filters";
 import { SaveSearchDialog } from "./components/save-search-dialog";
 
@@ -23,20 +23,21 @@ export default function SearchPage() {
   const [saveOpen, setSaveOpen] = React.useState(false);
 
   // Price filters/sorting require a currency (server error 50904 otherwise).
-  const needsCurrency = !!(state.minPrice || state.maxPrice || state.sort.startsWith("price"));
+  const lastPage = maxSearchPage(DEFAULT_PAGE_SIZE);
+  const page = Math.min(state.page, lastPage);
   const query = {
-    q: state.q || undefined,
+    q: state.q.slice(0, MAX_QUERY_LENGTH) || undefined,
     categoryId: state.categoryId || undefined,
     brandId: state.brandId.length ? state.brandId : undefined,
     conditionId: state.conditionId.length ? state.conditionId : undefined,
     gradeId: state.gradeId.length ? state.gradeId : undefined,
     stateOrEmirate: state.stateOrEmirate || undefined,
-    minPrice: state.minPrice ? Number(state.minPrice) : undefined,
-    maxPrice: state.maxPrice ? Number(state.maxPrice) : undefined,
-    currency: needsCurrency ? state.currency || "AED" : state.currency || undefined,
+    minPrice: priceOrUndefined(state.minPrice),
+    maxPrice: priceOrUndefined(state.maxPrice),
+    currency: effectiveCurrency(state),
     inStockOnly: state.inStockOnly || undefined,
     sort: state.sort,
-    page: state.page,
+    page,
     pageSize: DEFAULT_PAGE_SIZE,
   };
 
@@ -130,13 +131,13 @@ export default function SearchPage() {
                 ))}
               </div>
               <nav className="mt-8 flex items-center justify-center gap-3" aria-label="Pagination">
-                <Button variant="secondary" size="sm" disabled={!data.pagination.hasPreviousPage} onClick={() => update({ page: state.page - 1 })}>
+                <Button variant="secondary" size="sm" disabled={!data.pagination.hasPreviousPage} onClick={() => update({ page: page - 1 })}>
                   <CaretLeftIcon /> Previous
                 </Button>
                 <span className="text-sm text-muted-foreground">
-                  Page {data.pagination.page} of {Math.max(1, data.pagination.totalPages)}
+                  Page {data.pagination.page} of {Math.max(1, Math.min(data.pagination.totalPages, lastPage))}
                 </span>
-                <Button variant="secondary" size="sm" disabled={!data.pagination.hasNextPage} onClick={() => update({ page: state.page + 1 })}>
+                <Button variant="secondary" size="sm" disabled={!data.pagination.hasNextPage || page >= lastPage} onClick={() => update({ page: page + 1 })}>
                   Next <CaretRightIcon />
                 </Button>
               </nav>

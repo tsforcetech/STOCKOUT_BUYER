@@ -52,7 +52,8 @@ export default function RegisterPage() {
       const res = await registrationService.register({
         firstName: v.firstName.trim(),
         lastName: v.lastName.trim(),
-        displayName: `${v.firstName.trim()} ${v.lastName.trim()}`,
+        // The server rejects any profile field over 100 chars (Handlers.cs:98-101); first+last can exceed that.
+        displayName: `${v.firstName.trim()} ${v.lastName.trim()}`.slice(0, 100).trim(),
         email: v.email.trim().toLowerCase(),
         mobile: normaliseMobile(v.mobile),
         password: v.password,

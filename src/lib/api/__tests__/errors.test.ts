@@ -11,6 +11,11 @@ describe("parseErrorBody", () => {
     expect(parseErrorBody({ errorCode: "FILE_SIZE_EXCEEDED", message: "Too big" })).toMatchObject({ code: "FILE_SIZE_EXCEEDED", message: "Too big" });
   });
 
+  it("reads search-discovery ProblemDetails (numeric errorCode, symbolic errorSymbol)", () => {
+    const parsed = parseErrorBody({ type: "https://tools.ietf.org/html/rfc7807", title: "MARKETPLACE_SAVED_SEARCH_LIMIT_EXCEEDED", status: 409, detail: "Limit reached.", errorCode: 50908, errorSymbol: "MARKETPLACE_SAVED_SEARCH_LIMIT_EXCEEDED", traceId: null });
+    expect(parsed).toMatchObject({ code: "MARKETPLACE_SAVED_SEARCH_LIMIT_EXCEEDED", message: "Limit reached." });
+  });
+
   it("reads identity ProblemDetails (detail preferred over title)", () => {
     const parsed = parseErrorBody({ type: "https://emcore.platform/errors/403", title: "Account Locked", status: 403, detail: "Account is temporarily locked." });
     expect(parsed.message).toBe("Account is temporarily locked.");

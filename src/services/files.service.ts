@@ -18,19 +18,30 @@ import type {
  * Contract: docs/contracts/files-notifications-search.md §A
  */
 
-/** Per-purpose limits from the inventory-media service (docs/frontend/STAGE_4E_FILE_MEDIA_FRONTEND_INTEGRATION_v1.0.md). */
-export const FILE_LIMITS: Record<FilePurpose, { maxBytes: number; accept: string }> = {
-  USER_PROFILE_PHOTO: { maxBytes: 5 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp" },
-  SELLER_PROFILE_LOGO: { maxBytes: 5 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp" },
-  LISTING_IMAGE: { maxBytes: 10 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp" },
-  SELLER_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png" },
-  LISTING_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png" },
-  INSPECTION_EVIDENCE: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp" },
-  CHAT_ATTACHMENT: { maxBytes: 20 * 1024 * 1024, accept: "*/*" },
-  RETURN_EVIDENCE: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png" },
-  INVOICE_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf" },
-  GENERAL_ATTACHMENT: { maxBytes: 20 * 1024 * 1024, accept: "*/*" },
+/**
+ * Per-purpose policy, mirrored from inventory-media FileAssetService._policies (FileAssetService.cs:30-39).
+ * The server checks size, MIME type AND file-name extension (FileAssetService.cs:55-60).
+ */
+const IMAGE_EXT = [".jpg", ".jpeg", ".png", ".webp"];
+const DOC_EXT = [".pdf", ".jpg", ".jpeg", ".png"];
+const EVIDENCE_EXT = [".pdf", ".jpg", ".jpeg", ".png", ".webp"];
+export const FILE_LIMITS: Record<FilePurpose, { maxBytes: number; accept: string; extensions: readonly string[] }> = {
+  USER_PROFILE_PHOTO: { maxBytes: 5 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp", extensions: IMAGE_EXT },
+  SELLER_PROFILE_LOGO: { maxBytes: 5 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp", extensions: IMAGE_EXT },
+  LISTING_IMAGE: { maxBytes: 10 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp", extensions: IMAGE_EXT },
+  SELLER_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png", extensions: DOC_EXT },
+  LISTING_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png", extensions: DOC_EXT },
+  INSPECTION_EVIDENCE: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },
+  CHAT_ATTACHMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },
+  RETURN_EVIDENCE: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },
+  INVOICE_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf", extensions: [".pdf"] },
+  GENERAL_ATTACHMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },
 };
+
+function fileExtension(name: string): string {
+  const dot = name.lastIndexOf(".");
+  return dot >= 0 ? name.slice(dot).toLowerCase() : "";
+}
 
 /** PUT to the presigned S3 URL with progress. No Authorization header is sent to S3. */
 function putToStorage(upload: CreateUploadResponse, file: File, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<void> {
@@ -76,8 +87,12 @@ export const filesService = {
   /** Validates locally, then runs the full request → S3 PUT → complete flow. Returns the AVAILABLE asset. */
   async upload(file: File, purpose: FilePurpose, options: { onProgress?: (fraction: number) => void; signal?: AbortSignal } = {}): Promise<FileAssetResponse> {
     const limit = FILE_LIMITS[purpose];
-    if (file.size > limit.maxBytes) {
-      throw new ApiError({ kind: "validation", status: 413, code: "FILE_SIZE_EXCEEDED", message: `The file is larger than ${Math.round(limit.maxBytes / 1024 / 1024)} MB.` });
+    if (file.size <= 0 || file.size > limit.maxBytes) {
+      // The server rejects empty files with the same code (FileAssetService.cs:55-56).
+      throw new ApiError({ kind: "validation", status: 413, code: "FILE_SIZE_EXCEEDED", message: file.size <= 0 ? "The file is empty." : `The file is larger than ${Math.round(limit.maxBytes / 1024 / 1024)} MB.` });
+    }
+    if (!limit.accept.split(",").includes(file.type.toLowerCase()) || !limit.extensions.includes(fileExtension(file.name))) {
+      throw new ApiError({ kind: "validation", status: 400, code: "FILE_CONTENT_TYPE_INVALID", message: `This file type isn't allowed. Use ${limit.extensions.join(", ")}.` });
     }
     const upload = await filesService.requestUpload(file, purpose);
     await putToStorage(upload, file, options.onProgress, options.signal);

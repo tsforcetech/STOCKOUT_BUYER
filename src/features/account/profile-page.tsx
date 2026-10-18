@@ -22,12 +22,13 @@ import { AccountTabs } from "./account-tabs";
 import { accountKeys, useMyProfileQuery } from "./queries";
 import { ProfilePhoto } from "./profile-photo";
 
+/** Lengths mirror PR_USER_PROFILE_UPSERT parameters (user-organization 011_UserProfile_ProfileImage.sql:3-7); SQL would silently truncate. */
 const schema = z.object({
-  displayName: z.string().trim().min(1, "Display name is required."),
-  firstName: z.string().trim(),
-  lastName: z.string().trim(),
-  preferredLocale: z.string().trim(),
-  timeZone: z.string().trim(),
+  displayName: z.string().trim().min(1, "Display name is required.").max(200, "Use 200 characters or fewer."),
+  firstName: z.string().trim().max(100, "Use 100 characters or fewer."),
+  lastName: z.string().trim().max(100, "Use 100 characters or fewer."),
+  preferredLocale: z.string().trim().max(20, "Use 20 characters or fewer."),
+  timeZone: z.string().trim().max(100, "Use 100 characters or fewer."),
 });
 type Values = z.infer<typeof schema>;
 const FIELDS = ["displayName", "firstName", "lastName", "preferredLocale", "timeZone"] as const;

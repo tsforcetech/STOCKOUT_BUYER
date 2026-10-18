@@ -122,7 +122,8 @@ export function parseErrorBody(body: unknown): ParsedErrorBody {
     return { ...inner, message: inner.message ?? str(body.message) };
   }
 
-  const code = str(body.code) ?? str(body.errorCode) ?? str(body.error);
+  // search-discovery sends a NUMERIC errorCode plus the symbolic `errorSymbol` (SearchProblemDetailsDto).
+  const code = str(body.code) ?? str(body.errorCode) ?? str(body.errorSymbol) ?? str(body.error);
   const message = str(body.detail) ?? str(body.message) ?? str(body.title);
   const fieldErrors = collectFieldErrors(body.errors) ?? collectFieldErrors(body.validationErrors);
 

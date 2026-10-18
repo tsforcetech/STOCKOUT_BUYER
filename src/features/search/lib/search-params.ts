@@ -28,6 +28,33 @@ export interface SearchState {
 
 export const DEFAULT_PAGE_SIZE = 24;
 
+/**
+ * search-discovery rejects page*pageSize > 1000 with 400 MARKETPLACE_SEARCH_PAGINATION_LIMIT_EXCEEDED
+ * (SearchListingsRequestValidator.cs:38), but its `hasNextPage` only checks page*pageSize < 1000
+ * (SearchListingsService.cs:272), so with 24 per page it offers a page 42 that fails. Cap it here.
+ */
+export const MAX_SEARCH_RESULT_WINDOW = 1000;
+export const maxSearchPage = (pageSize: number) => Math.max(1, Math.floor(MAX_SEARCH_RESULT_WINDOW / pageSize));
+
+/** `q` is limited to 200 chars server-side (SearchListingsRequestValidator.cs:97). */
+export const MAX_QUERY_LENGTH = 200;
+
+/** Parses a price filter; anything that isn't a finite, non-negative number is dropped (server answers 400 otherwise). */
+export function priceOrUndefined(value: string): number | undefined {
+  if (!value) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
+/**
+ * A currency is required whenever a price filter or price sort is active (50904 MARKETPLACE_SEARCH_CURRENCY_REQUIRED,
+ * SearchListingsRequestValidator.cs:71-76). Used by both the search request and the saved-search body.
+ */
+export function effectiveCurrency(state: Pick<SearchState, "minPrice" | "maxPrice" | "sort" | "currency">): string | undefined {
+  const needsCurrency = priceOrUndefined(state.minPrice) !== undefined || priceOrUndefined(state.maxPrice) !== undefined || state.sort.startsWith("price");
+  return needsCurrency ? state.currency || "AED" : state.currency || undefined;
+}
+
 export function readSearchState(params: URLSearchParams): SearchState {
   const sort = params.get("sort");
   const page = Number(params.get("page"));

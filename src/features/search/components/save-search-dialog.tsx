@@ -6,7 +6,7 @@ import { FormError, FormField } from "@/components/forms/form-field";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { searchService } from "@/services/search.service";
 import { getErrorMessage, isApiError } from "@/lib/api/errors";
-import type { SearchState } from "../lib/search-params";
+import { effectiveCurrency, MAX_QUERY_LENGTH, priceOrUndefined, type SearchState } from "../lib/search-params";
 
 const FREQUENCIES = [
   { value: "NONE", label: "No alerts" },
@@ -30,15 +30,16 @@ export function SaveSearchDialog({ open, onOpenChange, state, defaultName }: { o
     mutationFn: () =>
       searchService.createSavedSearch({
         searchName: name.trim(),
-        queryText: state.q || null,
+        queryText: state.q.slice(0, MAX_QUERY_LENGTH) || null,
         categoryId: state.categoryId || null,
         brandIds: state.brandId.length ? state.brandId : null,
         conditionIds: state.conditionId.length ? state.conditionId : null,
         gradeIds: state.gradeId.length ? state.gradeId : null,
         stateOrEmirate: state.stateOrEmirate || null,
-        currency: state.currency || null,
-        minPrice: state.minPrice ? Number(state.minPrice) : null,
-        maxPrice: state.maxPrice ? Number(state.maxPrice) : null,
+        // Same rule as the search request: price filters/sorts need a currency (50904).
+        currency: effectiveCurrency(state) ?? null,
+        minPrice: priceOrUndefined(state.minPrice) ?? null,
+        maxPrice: priceOrUndefined(state.maxPrice) ?? null,
         inStockOnly: state.inStockOnly || null,
         sort: state.sort,
         alertFrequency: frequency,
