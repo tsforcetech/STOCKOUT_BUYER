@@ -6,6 +6,8 @@ import {
   ArrowRightIcon,
   LeafIcon,
   BookmarkSimpleIcon,
+  ReceiptIcon,
+  ShoppingCartSimpleIcon,
   CaretRightIcon,
   CaretDownIcon,
   ListIcon,
@@ -24,6 +26,7 @@ import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useTheme } from "@/app/providers/theme";
+import { useCart } from "@/lib/cart/cart-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { catalogService } from "@/services/catalog.service";
 import { cn } from "@/lib/utils/cn";
@@ -141,6 +144,29 @@ function SellMenu({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
+function CartButton() {
+  const { count } = useCart();
+  return (
+    <NavLink
+      to="/cart"
+      aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}` : "Cart"}
+      className={({ isActive }) =>
+        cn(
+          "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:border-foreground",
+          isActive && "border-foreground",
+        )
+      }
+    >
+      <ShoppingCartSimpleIcon className="size-5" />
+      {count > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-[11px] font-bold text-action-foreground ring-2 ring-cream" aria-hidden>
+          {count > 99 ? "99+" : count}
+        </span>
+      )}
+    </NavLink>
+  );
+}
+
 function LoginButton() {
   return (
     <Button asChild size="sm" className="h-10 px-6">
@@ -242,6 +268,7 @@ function AccountMenu() {
           <div className="my-1 h-px bg-border-strong" />
           {[
             { label: activeSeller ? "Seller portal" : "Start selling", to: activeSeller ? "/seller" : "/seller/onboarding", icon: StorefrontIcon },
+            { label: "My orders", to: "/account/orders", icon: ReceiptIcon },
             { label: "Saved searches", to: "/account/saved-searches", icon: BookmarkSimpleIcon },
             { label: "My account", to: "/account", icon: UserIcon },
           ].map((i) => (
@@ -404,6 +431,7 @@ export function SiteHeader() {
               </span>
             )}
             {status === "anonymous" && <ThemeToggle />}
+            <CartButton />
             {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginButton /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
           </div>
         </div>

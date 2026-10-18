@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/misc";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { SellerModeProvider } from "@/lib/seller/seller-context";
+import { CartProvider } from "@/lib/cart/cart-context";
 import { ThemeProvider, useTheme } from "./providers/theme";
 import { createQueryClient } from "./providers/query-client";
 import { createAppRouter } from "./router/router";
@@ -25,7 +26,9 @@ export function App() {
           <TooltipProvider delayDuration={250}>
             <AuthProvider>
               <SellerModeProvider>
-                <RouterProvider router={router} />
+                <CartProvider>
+                  <RouterProvider router={router} />
+                </CartProvider>
               </SellerModeProvider>
             </AuthProvider>
             <ThemedToaster />

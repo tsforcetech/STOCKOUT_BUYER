@@ -31,6 +31,7 @@ export const routes: RouteObject[] = [
           { path: "categories", lazy: page(() => import("@/features/categories/categories-page")) },
           { path: "listings/:listingId", lazy: page(() => import("@/features/listings/listing-detail-page")) },
           { path: "sell", lazy: page(() => import("@/features/sell/sell-page")) },
+          { path: "cart", lazy: page(() => import("@/features/cart/cart-page")) },
           {
             element: <RequireAuth />,
             children: [
@@ -41,6 +42,7 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, lazy: page(() => import("@/features/account/profile-page")) },
                   { path: "security", lazy: page(() => import("@/features/account/security-page")) },
+                  { path: "orders", lazy: page(() => import("@/features/orders/my-orders-page")) },
                   { path: "saved-searches", lazy: page(() => import("@/features/account/saved-searches-page")) },
                 ],
               },
@@ -62,6 +64,7 @@ export const routes: RouteObject[] = [
                 element: <SellerLayout />,
                 children: [
                   { index: true, lazy: page(() => import("@/features/seller/dashboard-page")) },
+                  { path: "orders", lazy: page(() => import("@/features/orders/seller-orders-page")) },
                   { path: "business", lazy: page(() => import("@/features/seller/business-page")) },
                   { path: "listings", lazy: page(() => import("@/features/seller/listings-page")) },
                   { path: "listings/new", lazy: page(() => import("@/features/seller/listing-new-page")) },

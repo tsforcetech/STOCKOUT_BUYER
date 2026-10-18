@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ArrowLeftIcon, CaretUpDownIcon, IdentificationCardIcon, ListIcon, ListNumbersIcon, PlusIcon, SquaresFourIcon, UserIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CaretUpDownIcon, IdentificationCardIcon, ListIcon, ListNumbersIcon, PlusIcon, ReceiptIcon, SquaresFourIcon, UserIcon, XIcon } from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
@@ -12,6 +12,7 @@ import { ThemeSwitch } from "./site-header";
 const NAV = [
   { label: "Dashboard", to: "/seller", icon: SquaresFourIcon, end: true },
   { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon },
+  { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
   { label: "Business & verification", to: "/seller/business", icon: IdentificationCardIcon },
   { label: "My account", to: "/account", icon: UserIcon },
 ];

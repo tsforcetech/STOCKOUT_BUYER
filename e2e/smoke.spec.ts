@@ -187,3 +187,19 @@ test("leaving the site layout works when scrollTo returns a Promise (newer Chrom
   await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
   await expect(page.getByText("couldn't be displayed")).toHaveCount(0);
 });
+
+test("buyer adds a listing to the cart; checkout waits for online ordering", async ({ page }) => {
+  await mockApi(page);
+  await page.goto(`/listings/${card.listingId}`);
+  await expect(page.getByRole("heading", { name: card.title, level: 1 })).toBeVisible();
+  await page.getByRole("button", { name: "Increase quantity" }).click();
+  await page.getByRole("button", { name: "Add to cart" }).click();
+  await expect(page.getByRole("link", { name: "Cart, 1 item" })).toBeVisible();
+  await page.getByRole("link", { name: "Cart, 1 item" }).click();
+  await expect(page.getByRole("heading", { name: "Cart", level: 1 })).toBeVisible();
+  await expect(page.getByRole("link", { name: card.title }).last()).toBeVisible();
+  await expect(page.getByText("Subtotal (AED)")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Checkout" })).toBeDisabled();
+  await page.reload();
+  await expect(page.getByRole("link", { name: "Cart, 1 item" })).toBeVisible();
+});

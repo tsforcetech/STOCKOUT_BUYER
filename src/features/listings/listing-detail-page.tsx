@@ -10,6 +10,7 @@ import { isApiError } from "@/lib/api/errors";
 import { formatDate, formatMoney, formatNumber, humanize } from "@/lib/utils/format";
 import { searchHref } from "@/features/search/lib/search-params";
 import { ListingRail } from "./components/listing-rail";
+import { AddToCart } from "@/features/cart/add-to-cart";
 
 function Gallery({ images, title }: { images: Array<{ fileAssetId: string; cdnUrl: string }>; title: string }) {
   const [index, setIndex] = React.useState(0);
@@ -164,9 +165,20 @@ export default function ListingDetailPage() {
               </div>
             </div>
 
-            <div className="mt-6 rounded-lg bg-cream p-4 text-sm text-body" role="note">
-              <p className="font-medium text-foreground">Online ordering is coming soon</p>
-              <p className="mt-1">Checkout, payments and messaging aren't available on StockOut yet. Save a search to be notified about similar stock.</p>
+            <div className="mt-6">
+              <AddToCart
+                listing={{
+                  listingId: l.listingId,
+                  title: l.title,
+                  sellerName: l.seller.displayName,
+                  basePrice: l.basePrice,
+                  currency: l.currency,
+                  unitSymbol: unit || null,
+                  imageUrl: images[0]?.cdnUrl ?? null,
+                  sellableQuantity: l.sellableQuantity,
+                  isAvailable: l.isAvailable,
+                }}
+              />
             </div>
 
             {specs.length > 0 && (

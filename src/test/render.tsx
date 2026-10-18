@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/misc";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { ThemeProvider } from "@/app/providers/theme";
 import { SellerModeProvider } from "@/lib/seller/seller-context";
+import { CartProvider } from "@/lib/cart/cart-context";
 import { Toaster } from "sonner";
 
 export function renderWithApp(routes: RouteObject[], initialPath: string, extra?: React.ReactNode) {
@@ -17,7 +18,9 @@ export function renderWithApp(routes: RouteObject[], initialPath: string, extra?
         <TooltipProvider>
           <AuthProvider>
             <SellerModeProvider>
-              <RouterProvider router={router} />
+              <CartProvider>
+                <RouterProvider router={router} />
+              </CartProvider>
             </SellerModeProvider>
           </AuthProvider>
           <Toaster />
