@@ -94,7 +94,7 @@ export function CategoryPicker({ value, onSelect }: { value: string | null; onSe
                     type="button"
                     onClick={() => onSelect(c.categoryId)}
                     aria-pressed={value === c.categoryId}
-                    className={cn("flex min-h-9 w-full cursor-pointer flex-col justify-center rounded-md px-2 py-1 text-left text-sm", value === c.categoryId ? "bg-action ring-1 ring-action-border" : "hover:bg-surface-muted")}
+                    className={cn("flex min-h-9 w-full cursor-pointer flex-col justify-center rounded-md px-2 py-1 text-left text-sm", value === c.categoryId ? "bg-action text-action-foreground ring-1 ring-action-border" : "hover:bg-surface-muted")}
                   >
                     <span className="font-medium text-foreground">{c.name}</span>
                     {c.path.length > 1 && <span className="text-xs text-muted-foreground">{c.path.slice(0, -1).join(" › ")}</span>}

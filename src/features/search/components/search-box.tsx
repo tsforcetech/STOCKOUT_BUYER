@@ -109,7 +109,7 @@ export function SearchBox({
         </div>
         {addons}
         {variant === "hero" && (
-          <button type="submit" className="flex h-14 cursor-pointer items-center justify-center gap-2 bg-action px-8 font-heading text-lg font-bold text-foreground hover:bg-action-hover lg:h-auto">
+          <button type="submit" className="flex h-14 cursor-pointer items-center justify-center gap-2 bg-action px-8 font-heading text-lg font-bold text-action-foreground hover:bg-action-hover lg:h-auto">
             Search <ArrowRightIcon className="size-5" />
           </button>
         )}

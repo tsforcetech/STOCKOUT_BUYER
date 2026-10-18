@@ -70,7 +70,7 @@ function MarketplaceMenu({ onNavigate, onClose }: { onNavigate: () => void; onCl
                   aria-pressed={r.categoryId === selected.categoryId}
                   className={cn(
                     "cursor-pointer rounded-full border px-3 py-1 text-sm",
-                    r.categoryId === selected.categoryId ? "border-action bg-action text-foreground" : "border-white/25 text-white/85 hover:border-white",
+                    r.categoryId === selected.categoryId ? "border-action bg-action text-action-foreground" : "border-white/25 text-white/85 hover:border-white",
                   )}
                 >
                   {r.name}

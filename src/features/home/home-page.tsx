@@ -50,18 +50,18 @@ export default function HomePage() {
               <div className="absolute inset-y-0 right-0 hidden w-[45%] bg-[repeating-linear-gradient(180deg,#2a2a27_0_46px,#1c1c1a_46px_52px)] opacity-70 [mask-image:linear-gradient(to_left,black,transparent)] lg:block" />
             </div>
           )}
-          <div className="relative px-6 pb-10 pt-12 sm:px-12 sm:pb-12 sm:pt-16">
+          <div className="relative px-5 pb-6 pt-8 sm:px-10 sm:pb-8 sm:pt-10">
             <p className="flex items-center gap-2 text-eyebrow font-bold tracking-[0.18em] text-action">
               <SparkleIcon className="size-5" weight="bold" /> Smarter material sourcing
             </p>
-            <h1 className="mt-4 font-heading text-[44px] font-bold leading-[46px] tracking-tight text-white sm:text-[72px] sm:leading-[76px]">
+            <h1 className="mt-3 font-heading text-[36px] font-bold leading-[40px] tracking-tight text-white sm:text-[56px] sm:leading-[60px]">
               Find surplus stock.
               <br />
               <span className="text-action">Verified for reuse.</span>
             </h1>
-            <p className="mt-4 max-w-xl text-base text-white/85 sm:text-lg">Search inspected industrial materials from trusted UAE sellers.</p>
+            <p className="mt-3 max-w-xl text-sm text-white/85 sm:text-base">Search inspected industrial materials from trusted UAE sellers.</p>
 
-            <div className="mt-8 max-w-[1100px] rounded-2xl bg-white/10 p-1.5 ring-1 ring-white/15 backdrop-blur">
+            <div className="mt-6 max-w-[1100px] rounded-2xl bg-white/10 p-1.5 ring-1 ring-white/15 backdrop-blur">
               <SearchBox
                 variant="hero"
                 emirate={emirate}
@@ -88,12 +88,12 @@ export default function HomePage() {
               />
             </div>
 
-            <div className="mt-6 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+            <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               {(tree.data?.length ?? 0) > 0 ? (
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-white/75">Popular:</span>
                   {tree.data!.slice(0, 4).map((c) => (
-                    <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="rounded-full border border-white/30 px-3 py-1 text-white/90 hover:border-white hover:text-white">
+                    <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="max-w-[220px] truncate rounded-full border border-white/30 px-3 py-1 text-white/90 hover:border-white hover:text-white">
                       {c.name}
                     </Link>
                   ))}
@@ -101,13 +101,13 @@ export default function HomePage() {
               ) : (
                 <span />
               )}
-              <div className="flex max-w-xs items-center gap-3 rounded-xl bg-black/55 p-4 ring-1 ring-white/10 backdrop-blur">
-                <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-action text-foreground">
-                  <SealCheckIcon className="size-6" />
+              <div className="flex max-w-xs shrink-0 items-center gap-3 rounded-xl bg-black/55 px-3 py-2.5 ring-1 ring-white/10 backdrop-blur">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-action text-action-foreground">
+                  <SealCheckIcon className="size-5" />
                 </span>
                 <span>
-                  <span className="block font-heading text-base font-bold">Verified inventory</span>
-                  <span className="block text-sm text-white/75">Inspection-backed stock from trusted sellers</span>
+                  <span className="block font-heading text-sm font-bold">Verified inventory</span>
+                  <span className="block text-xs text-white/75">Inspection-backed stock from trusted sellers</span>
                 </span>
               </div>
             </div>
@@ -120,11 +120,11 @@ export default function HomePage() {
 
         {(tree.data?.length ?? 0) > 0 && (
           <section className="mx-auto max-w-[1336px] px-4 py-6 sm:px-6" aria-label="Shop by category">
-            <h2 className="mb-5 font-heading text-2xl font-bold text-foreground sm:text-[32px] sm:leading-10">Shop by category</h2>
+            <h2 className="mb-4 font-heading text-xl font-bold text-foreground sm:text-[28px] sm:leading-9">Shop by category</h2>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {tree.data!.slice(0, 12).map((c) => (
-                <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="group flex h-24 flex-col justify-between rounded-lg bg-cream p-4 transition-colors hover:bg-action-soft">
-                  <span className="text-sm font-medium text-foreground">{c.name}</span>
+                <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="group flex h-20 flex-col justify-between rounded-lg border border-border bg-cream p-3 transition-colors hover:bg-action-soft">
+                  <span className="line-clamp-2 text-sm font-medium leading-5 text-foreground">{c.name}</span>
                   <ArrowRightIcon className="size-4 self-end text-foreground transition-transform group-hover:translate-x-1" />
                 </Link>
               ))}
@@ -140,9 +140,9 @@ export default function HomePage() {
         />
 
         {/* Figma "Someone needs what you don't." seller call-to-action */}
-        <section className="mx-auto max-w-[1336px] px-4 pb-16 pt-6 sm:px-6">
-          <div className="rounded-2xl bg-cream px-6 py-16 text-center">
-            <h2 className="font-heading text-[32px] font-bold leading-10 text-foreground sm:text-[48px] sm:leading-[52px]">
+        <section className="mx-auto max-w-[1336px] px-4 pb-12 pt-6 sm:px-6">
+          <div className="rounded-2xl bg-cream px-6 py-10 text-center">
+            <h2 className="font-heading text-[28px] font-bold leading-9 text-foreground sm:text-[40px] sm:leading-[44px]">
               Someone needs
               <br />
               what you don't.

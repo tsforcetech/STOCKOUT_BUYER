@@ -57,7 +57,7 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               className={({ isActive }) =>
                 cn(
                   "flex h-[34px] items-center gap-2 rounded-md border px-3 text-sm transition-colors",
-                  isActive ? "border-action-border bg-action text-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                  isActive ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-action-foreground",
                 )
               }
             >
@@ -66,7 +66,7 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
           </li>
         ))}
       </ul>
-      <Link to="/seller/listings/new" onClick={onNavigate} className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md border border-action-border bg-action text-sm font-medium text-foreground hover:bg-action-hover">
+      <Link to="/seller/listings/new" onClick={onNavigate} className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md border border-action-border bg-action text-sm font-medium text-action-foreground hover:bg-action-hover">
         <PlusIcon className="size-4" /> New listing
       </Link>
     </nav>

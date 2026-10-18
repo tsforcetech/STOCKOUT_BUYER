@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ImageIcon } from "@phosphor-icons/react";
+import { PackageIcon } from "@phosphor-icons/react";
 import { env } from "@/config/env";
 import { cn } from "@/lib/utils/cn";
 
@@ -21,8 +21,14 @@ export function ListingImage({ src, alt, className }: { src: string | null | und
   React.useEffect(() => setFailed(false), [url]);
   if (!url || failed) {
     return (
-      <div className={cn("flex items-center justify-center bg-surface-muted text-muted-foreground", className)} role="img" aria-label={`${alt} — image unavailable`}>
-        <ImageIcon className="size-10 opacity-50" aria-hidden />
+      <div
+        className={cn("flex items-center justify-center bg-cream-strong bg-[radial-gradient(circle_at_1px_1px,var(--color-border-strong)_1px,transparent_0)] bg-[length:14px_14px] text-muted-foreground", className)}
+        role="img"
+        aria-label={`${alt} — image unavailable`}
+      >
+        <span className="flex size-12 items-center justify-center rounded-full bg-surface shadow-raised">
+          <PackageIcon className="size-6" aria-hidden />
+        </span>
       </div>
     );
   }
