@@ -159,14 +159,11 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
     <Link
       to={target.to}
       className={cn(
-        "inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full border border-border-strong bg-surface py-1 pl-1 pr-4 font-heading text-sm font-bold text-foreground transition-colors hover:border-foreground",
+        "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-cream-strong",
         compact && "w-full justify-center border border-foreground",
       )}
     >
-      <span className="flex size-8 items-center justify-center rounded-full bg-action text-action-foreground">
-        <StorefrontIcon className="size-[18px]" />
-      </span>
-      {target.label}
+      <StorefrontIcon className="size-5" /> {target.label}
     </Link>
   );
 }
