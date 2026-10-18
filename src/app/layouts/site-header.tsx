@@ -3,7 +3,9 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import {
+  ArrowRightIcon,
   BookmarkSimpleIcon,
+  CaretRightIcon,
   CaretDownIcon,
   ListIcon,
   MagnifyingGlassIcon,
@@ -19,6 +21,8 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { catalogService } from "@/services/catalog.service";
 import { cn } from "@/lib/utils/cn";
+import { initials } from "@/lib/utils/format";
+import { searchHref } from "@/features/search/lib/search-params";
 import { SearchBox } from "@/features/search/components/search-box";
 import { EMIRATES } from "@/features/search/lib/search-params";
 
@@ -27,40 +31,87 @@ function useCategoryTree() {
 }
 
 /** Figma "Buyer Nav Marketplace" mega menu: top-level categories + promo card. */
-function MarketplaceMenu({ onNavigate }: { onNavigate: () => void }) {
+/**
+ * Category mega menu (reference design): dark panel with the selected top-level category on the left,
+ * its subcategories as a two-column grid on the right. Driven by the live category tree.
+ */
+function MarketplaceMenu({ onNavigate, onClose }: { onNavigate: () => void; onClose: () => void }) {
   const tree = useCategoryTree();
   const roots = tree.data ?? [];
+  const [selectedId, setSelectedId] = React.useState<string | null>(null);
+  const selected = roots.find((r) => r.categoryId === selectedId) ?? roots[0];
+
+  if (tree.isLoading || tree.error || !selected) {
+    return (
+      <div className="mx-auto max-w-[1336px] px-6 py-10 text-sm text-muted-foreground">
+        {tree.isLoading ? "Loading categories…" : tree.error ? "Categories are unavailable right now." : "No categories yet."}
+      </div>
+    );
+  }
+
+  const subs = selected.children ?? [];
   return (
-    <div className="mx-auto grid max-w-[1336px] grid-cols-1 gap-8 px-6 py-8 lg:grid-cols-[1fr_auto]">
-      <div className="flex min-h-[260px] flex-col">
-        {tree.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading categories…</p>
-        ) : tree.error ? (
-          <p className="text-sm text-muted-foreground">Categories are unavailable right now.</p>
-        ) : (
-          <ul className="grid grid-cols-1 gap-x-10 gap-y-2 sm:grid-cols-2">
-            {roots.map((c) => (
-              <li key={c.categoryId}>
-                <Link to={`/search?categoryId=${c.categoryId}`} onClick={onNavigate} className="text-lg text-foreground hover:underline">
-                  {c.name}
-                </Link>
+    <div className="mx-auto max-w-[1336px] px-4 py-5 sm:px-6">
+      <div className="grid overflow-hidden rounded-xl border border-border bg-surface lg:grid-cols-[400px_1fr]">
+        <div className="bg-[#1a1a19] p-8 text-white">
+          <p className="text-eyebrow font-bold tracking-[0.18em] text-action">Category</p>
+          <p className="mt-3 font-heading text-[40px] font-bold leading-[44px] text-white">{selected.name}</p>
+          <p className="mt-3 text-base leading-6 text-white/75">Browse available surplus inventory by material type.</p>
+          <Link to={searchHref({ categoryId: selected.categoryId })} onClick={onNavigate} className="mt-6 inline-flex items-center gap-2 font-heading text-lg font-bold text-action hover:underline">
+            View all {selected.name.toLowerCase()} <ArrowRightIcon className="size-5" />
+          </Link>
+          <ul className="mt-8 flex flex-wrap gap-2" aria-label="Categories">
+            {roots.map((r) => (
+              <li key={r.categoryId}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(r.categoryId)}
+                  onMouseEnter={() => setSelectedId(r.categoryId)}
+                  aria-pressed={r.categoryId === selected.categoryId}
+                  className={cn(
+                    "cursor-pointer rounded-full border px-3 py-1 text-sm",
+                    r.categoryId === selected.categoryId ? "border-action bg-action text-foreground" : "border-white/25 text-white/85 hover:border-white",
+                  )}
+                >
+                  {r.name}
+                </button>
               </li>
             ))}
           </ul>
-        )}
-        <div className="mt-auto border-t border-border-strong pt-4">
-          <Link to="/categories" onClick={onNavigate} className="font-heading text-3xl text-foreground hover:underline">
-            Browse all categories
-          </Link>
+        </div>
+        <div className="p-6 sm:p-8">
+          <div className="flex items-center justify-between border-b border-border pb-5">
+            <p className="font-heading text-xl font-bold text-foreground">{subs.length ? `${selected.name} subcategories` : selected.name}</p>
+            <button type="button" onClick={onClose} aria-label="Close menu" className="cursor-pointer rounded-md p-1 hover:bg-surface-muted">
+              <XIcon className="size-6" />
+            </button>
+          </div>
+          {subs.length ? (
+            <ul className="mt-2 grid grid-cols-1 gap-x-10 sm:grid-cols-2">
+              {subs.map((c) => (
+                <li key={c.categoryId}>
+                  <Link to={searchHref({ categoryId: c.categoryId })} onClick={onNavigate} className="group flex items-center justify-between gap-4 rounded-lg px-3 py-4 hover:bg-surface-muted">
+                    <span>
+                      <span className="block font-heading text-lg font-bold text-foreground">{c.name}</span>
+                      <span className="block text-sm text-muted-foreground">Browse available stock</span>
+                    </span>
+                    <CaretRightIcon className="size-5 shrink-0 transition-transform group-hover:translate-x-1" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <Link to={searchHref({ categoryId: selected.categoryId })} onClick={onNavigate} className="mt-6 inline-flex items-center gap-2 text-sm text-foreground underline">
+              Browse all {selected.name} stock <ArrowRightIcon className="size-4" />
+            </Link>
+          )}
+          <div className="mt-4 border-t border-border pt-4 text-sm">
+            <Link to="/categories" onClick={onNavigate} className="text-foreground underline underline-offset-4">
+              Browse all categories
+            </Link>
+          </div>
         </div>
       </div>
-      <Link to="/search" onClick={onNavigate} className="group flex w-full flex-col justify-between rounded-lg bg-cream-strong p-5 lg:w-[208px]">
-        <div>
-          <p className="text-xl leading-6 text-foreground">Looking for something specific?</p>
-          <p className="mt-2 text-xs text-body">Go through our entire product list and find what you need.</p>
-        </div>
-        <span className="mt-8 border-t border-border-strong pt-3 text-base font-medium text-foreground group-hover:underline">Explore</span>
-      </Link>
     </div>
   );
 }
@@ -162,11 +213,11 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
     <Link
       to={target.to}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-full border border-foreground px-3 text-sm text-foreground transition-colors hover:bg-foreground hover:text-surface",
-        compact && "w-full justify-center",
+        "inline-flex h-9 items-center gap-2 rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-cream-strong",
+        compact && "w-full justify-center border border-foreground",
       )}
     >
-      <StorefrontIcon className="size-4" /> {target.label}
+      <StorefrontIcon className="size-5" /> {target.label}
     </Link>
   );
 }
@@ -179,8 +230,15 @@ function AccountMenu() {
   return (
     <PopoverPrimitive.Root>
       <PopoverPrimitive.Trigger asChild>
-        <button type="button" className="flex h-8 cursor-pointer items-center gap-1.5 rounded-full bg-primary px-3 text-sm text-primary-foreground" aria-label="Account menu">
-          <UserIcon className="size-4" /> <span className="max-w-28 truncate">{name}</span> <CaretDownIcon className="size-3.5" />
+        <button type="button" className="flex cursor-pointer items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-2 text-left hover:bg-cream-strong" aria-label="Account menu">
+          <span className="flex size-10 items-center justify-center rounded-full bg-[#1a1a19] font-heading text-sm font-bold text-action" aria-hidden>
+            {initials(user?.displayName || name)}
+          </span>
+          <span className="hidden leading-tight md:block">
+            <span className="block text-xs text-muted-foreground">Welcome back</span>
+            <span className="block max-w-32 truncate font-heading text-base font-bold text-foreground">{name}</span>
+          </span>
+          <CaretDownIcon className="size-4 text-foreground" />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -267,7 +325,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40">
       <div className="border-b border-border-strong bg-cream">
-        <div className="mx-auto flex h-[62px] max-w-[1336px] items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-[72px] max-w-[1336px] items-center gap-4 px-4 sm:px-6">
           <button type="button" className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
           </button>
@@ -282,11 +340,16 @@ export function SiteHeader() {
             {navItem("sell", "Sell a Product")}
           </nav>
           <div className="ml-auto flex items-center gap-3">
+            {status !== "initializing" && (
+              <Link to={status === "authenticated" ? "/seller" : "/login?as=seller&next=%2Fseller"} className="flex size-8 items-center justify-center rounded-sm border border-foreground md:hidden" aria-label="Seller login">
+                <StorefrontIcon className="size-4" />
+              </Link>
+            )}
             <NavLink to="/search" className="flex size-8 items-center justify-center rounded-sm border border-foreground lg:hidden" aria-label="Search">
               <MagnifyingGlassIcon className="size-4" />
             </NavLink>
             {status !== "initializing" && (
-              <span className="hidden sm:inline-flex">
+              <span className="hidden md:inline-flex">
                 <SellerEntry />
               </span>
             )}
@@ -296,8 +359,8 @@ export function SiteHeader() {
       </div>
       {menu && (
         <>
-          <div className="absolute inset-x-0 top-full z-10 border-b border-border-strong bg-cream shadow-raised">{menu === "market" ? <MarketplaceMenu onNavigate={() => setMenu(null)} /> : <SellMenu onNavigate={() => setMenu(null)} />}</div>
-          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[62px] -z-10 cursor-default" onClick={() => setMenu(null)} />
+          <div className="absolute inset-x-0 top-full z-10 border-b border-border-strong bg-cream shadow-raised">{menu === "market" ? <MarketplaceMenu onNavigate={() => setMenu(null)} onClose={() => setMenu(null)} /> : <SellMenu onNavigate={() => setMenu(null)} />}</div>
+          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[72px] -z-10 cursor-default" onClick={() => setMenu(null)} />
         </>
       )}
       {mobileOpen && (

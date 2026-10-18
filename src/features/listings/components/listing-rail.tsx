@@ -19,7 +19,7 @@ export function ListingRail({ title, query, viewAllHref, action }: { title: stri
   return (
     <section className="mx-auto max-w-[1336px] px-4 py-10 sm:px-6" aria-label={title}>
       <div className="mb-5 flex items-end justify-between gap-3">
-        <h2 className="font-heading text-xl text-foreground sm:text-2xl">{title}</h2>
+        <h2 className="font-heading text-2xl font-bold text-foreground sm:text-[32px] sm:leading-10">{title}</h2>
         <div className="flex items-center gap-3">
           {action}
           <Link to={viewAllHref} className="text-sm text-foreground underline underline-offset-4">
@@ -45,7 +45,7 @@ export function ListingRail({ title, query, viewAllHref, action }: { title: stri
       ) : (
         <div ref={scroller} className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 [scrollbar-width:thin]">
           {(q.isLoading ? Array.from({ length: 4 }) : items).map((item, i) => (
-            <div key={q.isLoading ? i : (item as (typeof items)[number]).listingId} className="w-[260px] shrink-0 snap-start sm:w-[280px]">
+            <div key={q.isLoading ? i : (item as (typeof items)[number]).listingId} className="w-[280px] shrink-0 snap-start sm:w-[320px]">
               {q.isLoading ? <ListingCardSkeleton /> : <ListingCard item={item as (typeof items)[number]} />}
             </div>
           ))}

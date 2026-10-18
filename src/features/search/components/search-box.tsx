@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useNavigate, useSearchParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { searchService } from "@/services/search.service";
 import { cn } from "@/lib/utils/cn";
@@ -11,7 +11,20 @@ import { searchHref } from "../lib/search-params";
  * Header / hero search with type-ahead suggestions (GET /api/v1/search/suggest).
  * Submitting navigates to /search?q=…, preserving the selected emirate.
  */
-export function SearchBox({ variant = "header", emirate, autoFocus }: { variant?: "header" | "hero"; emirate?: string; autoFocus?: boolean }) {
+export function SearchBox({
+  variant = "header",
+  emirate,
+  categoryId,
+  autoFocus,
+  addons,
+}: {
+  variant?: "header" | "hero";
+  emirate?: string;
+  categoryId?: string;
+  autoFocus?: boolean;
+  /** Extra controls rendered between the input and the submit button (hero: category + location). */
+  addons?: React.ReactNode;
+}) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const [text, setText] = React.useState(params.get("q") ?? "");
@@ -33,7 +46,7 @@ export function SearchBox({ variant = "header", emirate, autoFocus }: { variant?
 
   const go = (q: string, extra?: { categoryId?: string; brandId?: string[] }) => {
     setOpen(false);
-    navigate(searchHref({ q, stateOrEmirate: emirate ?? params.get("stateOrEmirate") ?? "", ...extra }));
+    navigate(searchHref({ q, stateOrEmirate: emirate ?? params.get("stateOrEmirate") ?? "", categoryId: categoryId || undefined, ...extra }));
   };
 
   const pick = (i: number) => {
@@ -57,8 +70,14 @@ export function SearchBox({ variant = "header", emirate, autoFocus }: { variant?
         else go(text);
       }}
     >
-      <div className={cn("flex items-center gap-2 rounded-full border bg-surface", variant === "hero" ? "h-14 border-transparent pl-5 pr-2" : "h-9 border-secondary-border pl-3 pr-2")}>
-        <MagnifyingGlassIcon className="size-[18px] shrink-0 text-foreground" aria-hidden />
+      <div
+        className={cn(
+          "flex bg-surface",
+          variant === "hero" ? "flex-col gap-0 overflow-hidden rounded-xl lg:h-[76px] lg:flex-row lg:items-stretch" : "h-9 items-center gap-2 rounded-full border border-secondary-border pl-3 pr-2",
+        )}
+      >
+        <div className={cn("flex min-w-0 items-center gap-3", variant === "hero" ? "h-16 flex-1 px-5 lg:h-auto" : "contents")}>
+        <MagnifyingGlassIcon className={cn("shrink-0 text-foreground", variant === "hero" ? "size-6" : "size-[18px]")} aria-hidden />
         <input
           value={text}
           autoFocus={autoFocus}
@@ -78,18 +97,20 @@ export function SearchBox({ variant = "header", emirate, autoFocus }: { variant?
               setActive((a) => Math.max(-1, a - 1));
             } else if (e.key === "Escape") setOpen(false);
           }}
-          placeholder={variant === "hero" ? "Enter the material you need…" : "Search for anything…"}
+          placeholder={variant === "hero" ? "What material are you looking for?" : "Search for anything…"}
           aria-label="Search materials"
           role="combobox"
           aria-expanded={open && items.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"
           maxLength={200}
-          className="h-full min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+          className={cn("h-full min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground", variant === "hero" ? "text-lg" : "text-sm")}
         />
+        </div>
+        {addons}
         {variant === "hero" && (
-          <button type="submit" className="h-10 cursor-pointer rounded-full bg-action px-6 text-sm font-medium text-foreground hover:bg-action-hover">
-            Search
+          <button type="submit" className="flex h-14 cursor-pointer items-center justify-center gap-2 bg-action px-8 font-heading text-lg font-bold text-foreground hover:bg-action-hover lg:h-auto">
+            Search <ArrowRightIcon className="size-5" />
           </button>
         )}
       </div>

@@ -92,7 +92,7 @@ async function mockApi(page: Page, opts: { sellerContexts?: unknown[] } = {}) {
 test("anonymous visitor browses home → search → listing detail", async ({ page }) => {
   await mockApi(page);
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: /Find Surplus Stock/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Find surplus stock/i })).toBeVisible();
   await expect(page.getByText(card.title).first()).toBeVisible();
   await page.goto("/search?q=steel");
   await expect(page.getByText("1 listings")).toBeVisible();
