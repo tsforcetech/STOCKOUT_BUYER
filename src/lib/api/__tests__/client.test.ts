@@ -26,6 +26,11 @@ describe("http client", () => {
     expect(calls[0].headers.get("X-Correlation-Id")).toMatch(/[0-9a-f-]{36}/);
   });
 
+  it("rejects a 2xx HTML page instead of returning it as data", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<!doctype html><html></html>", { status: 200, headers: { "content-type": "text/html" } })));
+    await expect(http.get("/api/v1/catalog/categories", { auth: false })).rejects.toMatchObject({ kind: "server", status: 200 });
+  });
+
   it("does not attach a token for auth:false requests", async () => {
     tokenStore.set("access-1", "refresh-1", 900);
     const { calls } = mockFetch([{ method: "POST", path: "/api/v1/auth/login", respond: () => ({ body: {} }) }]);

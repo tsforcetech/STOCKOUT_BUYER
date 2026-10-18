@@ -1,5 +1,6 @@
 import { http } from "@/lib/api/client";
-import { unwrapData, type Envelope } from "@/lib/api/envelope";
+import { ApiError } from "@/lib/api/errors";
+import { expectArray, unwrapData, type Envelope } from "@/lib/api/envelope";
 import type {
   CreateSellerDocumentRequest,
   CreateSellerRequest,
@@ -20,7 +21,12 @@ const get = async <T>(path: string, signal?: AbortSignal) => unwrapData<T>(await
 const post = async <T>(path: string, body?: unknown) => unwrapData<T>(await http.post<Envelope<T>>(path, body));
 
 export const marketplaceService = {
-  actorsMe: (signal?: AbortSignal) => get<MarketplaceCurrentActorResponse>("/api/v1/marketplace/actors/me", signal),
+  /** Read by the always-mounted header: normalised so a malformed body becomes actorError, not a render crash. */
+  actorsMe: async (signal?: AbortSignal): Promise<MarketplaceCurrentActorResponse> => {
+    const actor = await get<MarketplaceCurrentActorResponse | null>("/api/v1/marketplace/actors/me", signal);
+    if (!actor || typeof actor !== "object") throw new ApiError({ kind: "server", status: 200, message: "The server returned an unexpected response.", body: actor });
+    return { ...actor, sellerContexts: expectArray(actor.sellerContexts) };
+  },
 
   createSeller: (body: CreateSellerRequest) => post<MarketplaceSellerDto>("/api/v1/marketplace/sellers", body),
   seller: (sellerId: string, signal?: AbortSignal) => get<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}`, signal),

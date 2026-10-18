@@ -144,3 +144,34 @@ test("visitors can switch between light and dark theme", async ({ page }) => {
   await page.reload();
   await expect(page.locator("html")).toHaveClass(/dark/);
 });
+
+test("shell and pages survive edge-case API data (wrapped envelopes, null lists, HTML bodies)", async ({ page }) => {
+  await mockApi(page);
+  // Signed-in visitor restoring a session from a previous page load.
+  await page.addInitScript(() => sessionStorage.setItem("stockout.market.rt", "rt-old"));
+  // Envelope with extra keys must still be unwrapped (otherwise an object reaches `.map`/`.find`).
+  await page.route("**/api/v1/catalog/categories", (r) =>
+    json(r, { success: true, data: [{ categoryId: "c1", slug: "steel", parentCategoryId: null, name: "Steel", children: null }], message: null, errors: null }),
+  );
+  // C# `#nullable disable` collection left unset.
+  await page.route("**/api/v1/marketplace/actors/me", (r) => json(r, { success: true, data: { userId: "u1", buyer: { enabled: true }, sellerContexts: null } }));
+  // A proxy/CDN answering 200 with an HTML page instead of JSON.
+  await page.route("**/api/v1/search/listings**", (r) => r.fulfill({ status: 200, contentType: "text/html", body: "<!doctype html><html><body>Please wait…</body></html>" }));
+
+  const crashed = page.getByText(/This page couldn't be displayed|Something went wrong on this page/);
+
+  await page.goto("/");
+  await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
+  await expect(page.getByText(/Listings couldn't be loaded/).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Steel" }).first()).toBeVisible();
+  await expect(crashed).toHaveCount(0);
+
+  await page.goto("/search?q=steel");
+  await expect(page.getByText("Couldn't load this data")).toBeVisible();
+  await expect(crashed).toHaveCount(0);
+
+  await page.goto("/categories");
+  await expect(page.getByRole("heading", { name: "Browse all categories" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Steel" }).first()).toBeVisible();
+  await expect(crashed).toHaveCount(0);
+});

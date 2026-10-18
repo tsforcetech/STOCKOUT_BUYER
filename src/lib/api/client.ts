@@ -176,6 +176,11 @@ async function send(method: string, path: string, options: RequestOptions, isRet
       retryAfter: response.headers.get("Retry-After"),
     });
   }
+  // A 2xx HTML page (proxy/CDN interstitial, SPA fallback of a misconfigured base URL) is never an API
+  // reply. Returning it would hand a string to screens that call `.map`/`.find` on the data during render.
+  if ((options.responseType ?? "json") === "json" && typeof parsed === "string" && /^\s*</.test(parsed)) {
+    throw new ApiError({ kind: "server", status: response.status, message: defaultMessageFor("server"), body: parsed });
+  }
   return parsed;
 }
 
