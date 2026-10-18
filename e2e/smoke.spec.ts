@@ -175,3 +175,15 @@ test("shell and pages survive edge-case API data (wrapped envelopes, null lists,
   await expect(page.getByRole("link", { name: "Steel" }).first()).toBeVisible();
   await expect(crashed).toHaveCount(0);
 });
+
+test("leaving the site layout works when scrollTo returns a Promise (newer Chrome)", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.scrollTo = (() => Promise.resolve()) as unknown as typeof window.scrollTo;
+  });
+  await mockApi(page);
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: /Find surplus stock/i })).toBeVisible();
+  await page.getByRole("link", { name: "Login", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
+  await expect(page.getByText("couldn't be displayed")).toHaveCount(0);
+});

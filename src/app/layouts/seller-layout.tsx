@@ -78,7 +78,9 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
 export function SellerLayout() {
   const [open, setOpen] = React.useState(false);
   const location = useLocation();
-  React.useEffect(() => setOpen(false), [location.pathname]);
+  React.useEffect(() => {
+    setOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">

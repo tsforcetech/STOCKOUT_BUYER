@@ -33,7 +33,9 @@ export function SearchBox({
   const debounced = useDebouncedValue(text.trim(), 250);
   const listId = React.useId();
 
-  React.useEffect(() => setText(params.get("q") ?? ""), [params]);
+  React.useEffect(() => {
+    setText(params.get("q") ?? "");
+  }, [params]);
 
   const suggest = useQuery({
     queryKey: ["search", "suggest", debounced],

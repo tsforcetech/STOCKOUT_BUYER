@@ -8,7 +8,9 @@ import { SiteFooter } from "./site-footer";
 /** Public marketplace layout (Figma Buyer Screens): cream header with mega menus, dark footer. */
 export function SiteLayout() {
   const location = useLocation();
-  React.useEffect(() => window.scrollTo?.({ top: 0 }), [location.pathname]);
+  React.useEffect(() => {
+    window.scrollTo?.({ top: 0 });
+  }, [location.pathname]);
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-action-foreground">

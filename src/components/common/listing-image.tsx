@@ -18,7 +18,9 @@ export function assetUrl(path: string | null | undefined): string | null {
 export function ListingImage({ src, alt, className }: { src: string | null | undefined; alt: string; className?: string }) {
   const url = assetUrl(src);
   const [failed, setFailed] = React.useState(false);
-  React.useEffect(() => setFailed(false), [url]);
+  React.useEffect(() => {
+    setFailed(false);
+  }, [url]);
   if (!url || failed) {
     return (
       <div
