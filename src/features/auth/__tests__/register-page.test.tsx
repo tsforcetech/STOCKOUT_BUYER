@@ -58,7 +58,7 @@ describe("RegisterPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "Verify and continue" }));
     expect(await screen.findByText("Seller portal")).toBeInTheDocument();
     expect(calls.find((c) => c.url.pathname.endsWith("/registration/confirm"))?.body).toEqual({ userId: "u-9", channel: "Email", token: "654321" });
-    expect(sessionStorage.getItem("stockout.market.rt")).toBe("rt-9");
+    expect(localStorage.getItem("stockout.market.rt")).toBe("rt-9");
   });
 
   it("shows a field error when the email is already registered", async () => {

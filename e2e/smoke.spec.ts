@@ -211,3 +211,18 @@ test("buyer adds a listing to the cart; checkout waits for online ordering", asy
   await page.reload();
   await expect(page.getByRole("button", { name: "Cart, 1 item" })).toBeVisible();
 });
+
+test("signed-in session survives a reload and a new tab", async ({ page, context }) => {
+  await mockApi(page);
+  await page.goto("/login");
+  await page.getByLabel("Email", { exact: true }).fill("bea@stockout.test");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Account menu" })).toBeVisible();
+  const second = await context.newPage();
+  await mockApi(second);
+  await second.goto("/");
+  await expect(second.getByRole("button", { name: "Account menu" })).toBeVisible();
+});

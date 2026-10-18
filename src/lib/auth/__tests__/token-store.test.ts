@@ -10,8 +10,8 @@ describe("tokenStore", () => {
   it("keeps the access token in memory and persists only the refresh token", () => {
     tokenStore.set("access", "refresh", 900);
     expect(tokenStore.getAccessToken()).toBe("access");
-    expect(sessionStorage.getItem("stockout.market.rt")).toBe("refresh");
-    expect(JSON.stringify(sessionStorage)).not.toContain("access");
+    expect(localStorage.getItem("stockout.market.rt")).toBe("refresh");
+    expect(JSON.stringify(localStorage)).not.toContain("access");
     tokenStore.clear();
     expect(tokenStore.getAccessToken()).toBeNull();
     expect(tokenStore.getPersistedRefreshToken()).toBeNull();
