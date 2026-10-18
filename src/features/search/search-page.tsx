@@ -95,7 +95,7 @@ export default function SearchPage() {
       </div>
 
       <div className="mt-4 grid grid-cols-1 gap-8 lg:mt-6 lg:grid-cols-[260px_minmax(0,1fr)]">
-        <aside className="hidden self-start lg:sticky lg:top-[124px] lg:block lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto lg:pb-4 lg:pr-1" aria-label="Filters">
+        <aside className="hidden self-start lg:sticky lg:top-[168px] lg:block lg:max-h-[calc(100vh-184px)] lg:overflow-y-auto lg:pb-4 lg:pr-1" aria-label="Filters">
           {filters}
         </aside>
 

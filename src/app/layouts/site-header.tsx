@@ -128,24 +128,6 @@ function MarketplaceMenu({ onNavigate, onClose }: { onNavigate: () => void; onCl
 }
 
 /** Figma "Buyer Nav Sell" mega menu: seller entry points that exist in the product. */
-function SellMenu({ onNavigate }: { onNavigate: () => void }) {
-  const cards = [
-    { title: "List an item", cta: "Start listing", to: "/seller/listings/new" },
-    { title: "Get verified", cta: "Open seller account", to: "/seller/onboarding" },
-    { title: "How selling works", cta: "Learn more", to: "/sell" },
-  ];
-  return (
-    <div className="mx-auto grid max-w-[1336px] grid-cols-1 gap-4 px-6 py-8 sm:grid-cols-3">
-      {cards.map((c) => (
-        <Link key={c.title} to={c.to} onClick={onNavigate} className="group flex h-[220px] flex-col justify-between rounded-lg bg-[linear-gradient(160deg,#2d2d2b,#111110)] p-5 text-white">
-          <span className="font-heading text-2xl leading-7">{c.title}</span>
-          <span className="border-t border-white/30 pt-3 text-base group-hover:underline">{c.cta}</span>
-        </Link>
-      ))}
-    </div>
-  );
-}
-
 /** dubizzle-style "Place your ad": always-visible lime call to action for selling. */
 export function sellHref(status: string, hasSeller: boolean): string {
   if (status !== "authenticated") return "/login?next=%2Fseller%2Fonboarding";
@@ -275,9 +257,9 @@ function ThemeToggle() {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={`Switch to ${next} theme`}
-      className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-border-strong bg-surface text-foreground hover:border-foreground"
+      className="flex size-6 cursor-pointer items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/15 hover:text-white"
     >
-      {resolved === "dark" ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+      {resolved === "dark" ? <SunIcon className="size-3.5" /> : <MoonIcon className="size-3.5" />}
     </button>
   );
 }
@@ -366,13 +348,11 @@ function GreenPoints() {
       <PopoverPrimitive.Trigger asChild>
         <button
           type="button"
-          className="inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full bg-success-soft py-1 pl-1 pr-3 text-sm font-bold text-success-soft-foreground transition-colors hover:brightness-95"
+          className="inline-flex h-6 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full bg-white/10 px-2.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
         >
-          <span className="flex size-8 items-center justify-center rounded-full bg-success text-white">
-            <LeafIcon className="size-[18px]" weight="fill" />
-          </span>
-          <span className="font-heading">Green Points</span>
-          <span className="hidden rounded-full bg-surface px-1.5 py-0.5 text-[10px] 2xl:inline font-semibold uppercase tracking-wide text-muted-foreground">Soon</span>
+          <LeafIcon className="size-3.5 text-[#4ade80]" weight="fill" />
+          Green Points
+          <span className="rounded-full bg-white/15 px-1.5 text-[9px] font-semibold uppercase tracking-wide text-white/80">Soon</span>
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -390,40 +370,28 @@ function GreenPoints() {
 
 export function SiteHeader() {
   const { status } = useAuth();
-  const [menu, setMenu] = React.useState<"market" | "sell" | null>(null);
+  const tree = useCategoryTree();
+  const [menuOpen, setMenuOpen] = React.useState(false);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const location = useLocation();
 
   React.useEffect(() => {
-    setMenu(null);
+    setMenuOpen(false);
     setMobileOpen(false);
   }, [location.pathname, location.search]);
 
   React.useEffect(() => {
-    if (!menu) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(null);
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [menu]);
+  }, [menuOpen]);
 
-  const navItem = (key: "market" | "sell", label: string) => (
-    <button
-      type="button"
-      aria-expanded={menu === key}
-      aria-haspopup="true"
-      onClick={() => setMenu((m) => (m === key ? null : key))}
-      className={cn(
-        "inline-flex h-10 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-3 text-sm font-medium text-foreground transition-colors hover:bg-cream-strong",
-        menu === key && "bg-foreground text-surface hover:bg-foreground",
-      )}
-    >
-      {label}
-      <CaretDownIcon className={cn("size-3.5 transition-transform", menu === key && "rotate-180")} />
-    </button>
-  );
+  const roots = tree.data ?? [];
 
   return (
     <header className="sticky top-0 z-40">
+      {/* Slim strip: trust message + secondary utilities (Green Points, theme). */}
       <div className="bg-[#141413] text-white">
         <div className="mx-auto flex h-9 max-w-[1336px] items-center justify-between gap-4 px-4 text-xs sm:px-6">
           <p className="flex min-w-0 items-center gap-2 truncate">
@@ -433,62 +401,93 @@ export function SiteHeader() {
               <span className="hidden text-white/70 sm:inline"> · Inspection-backed industrial stock across the UAE</span>
             </span>
           </p>
-          <Link to="/sell" className="hidden shrink-0 items-center gap-1 font-medium text-white/85 hover:text-action sm:inline-flex">
-            Sell your surplus <ArrowRightIcon className="size-3.5" />
-          </Link>
+          <div className="flex shrink-0 items-center gap-3">
+            {status === "authenticated" && <GreenPoints />}
+            <ThemeToggle />
+          </div>
         </div>
       </div>
+
+      {/* Main row: logo · big search · saved · cart · account · one Sell button. */}
       <div className="border-b border-border-strong bg-cream">
-        <div className="mx-auto flex h-[72px] max-w-[1336px] items-center gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-[72px] max-w-[1336px] items-center gap-3 px-4 sm:gap-4 sm:px-6">
           <button type="button" className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
           </button>
           <Link to="/" aria-label="StockOut home" className="shrink-0">
             <Logo className="text-2xl" />
           </Link>
-          <div className="ml-2 hidden min-w-0 max-w-[400px] flex-1 lg:block">
+          <div className="mx-2 hidden min-w-0 flex-1 lg:block xl:mx-6">
             <SearchBox variant="header" />
           </div>
-          <nav aria-label="Primary" className="ml-1 hidden items-center gap-1 lg:flex">
-            {navItem("market", "Marketplace")}
-            {navItem("sell", "Sell a Product")}
-          </nav>
-          <div className="ml-auto flex shrink-0 items-center gap-2.5">
-            {status === "authenticated" && (
-              <span className="hidden xl:inline-flex">
-                <GreenPoints />
-              </span>
-            )}
-            {status !== "initializing" && (
-              <span className="hidden md:inline-flex">
-                <SellerEntry />
-              </span>
-            )}
-            <span className="hidden md:inline-flex">
-              <SellButton />
-            </span>
-            {status === "anonymous" && <ThemeToggle />}
+          <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             <span className="hidden sm:inline-flex">
               <SavedButton />
             </span>
             <CartButton />
-            {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginButton /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
+            {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginButton /> : <span className="h-10 w-20 animate-pulse rounded-full bg-cream-strong" />}
+            <span className="hidden md:inline-flex">
+              <SellButton />
+            </span>
           </div>
         </div>
+
+        {/* Category bar (desktop): mega menu + quick links to top-level categories. */}
+        <nav aria-label="Categories" className="hidden border-t border-border lg:block">
+          <div className="mx-auto flex h-11 max-w-[1336px] items-center gap-1 px-6">
+            <button
+              type="button"
+              aria-expanded={menuOpen}
+              aria-haspopup="true"
+              onClick={() => setMenuOpen((o) => !o)}
+              className={cn(
+                "inline-flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-bold text-foreground transition-colors hover:bg-cream-strong",
+                menuOpen && "bg-foreground text-surface hover:bg-foreground",
+              )}
+            >
+              <ListIcon className="size-4" /> All categories
+              <CaretDownIcon className={cn("size-3.5 transition-transform", menuOpen && "rotate-180")} />
+            </button>
+            <span className="mx-2 h-4 w-px bg-border-strong" aria-hidden />
+            <div className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden pr-6 [mask-image:linear-gradient(to_right,black_calc(100%-48px),transparent)]">
+              {roots.slice(0, 8).map((c) => (
+                <NavLink
+                  key={c.categoryId}
+                  to={searchHref({ categoryId: c.categoryId })}
+                  className="shrink-0 whitespace-nowrap rounded-full px-3 py-1 text-sm text-body transition-colors hover:bg-cream-strong hover:text-foreground"
+                >
+                  {c.name}
+                </NavLink>
+              ))}
+            </div>
+            <Link to="/categories" className="ml-auto inline-flex shrink-0 items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline">
+              Browse all <ArrowRightIcon className="size-3.5" />
+            </Link>
+          </div>
+        </nav>
       </div>
-      {menu && (
+
+      {menuOpen && (
         <>
-          <div className="absolute inset-x-0 top-full z-10 border-b border-border-strong bg-cream shadow-raised">{menu === "market" ? <MarketplaceMenu onNavigate={() => setMenu(null)} onClose={() => setMenu(null)} /> : <SellMenu onNavigate={() => setMenu(null)} />}</div>
-          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[108px] -z-10 cursor-default" onClick={() => setMenu(null)} />
+          <div className="absolute inset-x-0 top-full z-10 border-b border-border-strong bg-cream shadow-raised">
+            <MarketplaceMenu onNavigate={() => setMenuOpen(false)} onClose={() => setMenuOpen(false)} />
+          </div>
+          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[152px] -z-10 cursor-default" onClick={() => setMenuOpen(false)} />
         </>
       )}
       {mobileOpen && (
         <div className="border-b border-border-strong bg-cream px-4 py-4 lg:hidden">
           <SearchBox variant="header" />
           <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1 text-base">
-            <Link to="/categories" className="rounded-md px-2 py-2 hover:bg-cream-strong">Marketplace</Link>
-            <Link to="/sell" className="rounded-md px-2 py-2 hover:bg-cream-strong">Sell a Product</Link>
-            <div className="mt-2 sm:hidden">
+            <Link to="/categories" className="rounded-md px-2 py-2 hover:bg-cream-strong">
+              All categories
+            </Link>
+            {roots.slice(0, 6).map((c) => (
+              <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="rounded-md px-2 py-2 text-body hover:bg-cream-strong">
+                {c.name}
+              </Link>
+            ))}
+            <div className="mt-2">
               <SellerEntry compact />
             </div>
           </nav>

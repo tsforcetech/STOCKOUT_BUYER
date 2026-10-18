@@ -92,7 +92,7 @@ export default function CartPage() {
           ))}
         </div>
 
-        <aside className="h-fit rounded-xl border border-border p-5 lg:sticky lg:top-32">
+        <aside className="h-fit rounded-xl border border-border p-5 lg:sticky lg:top-[168px]">
           <h2 className="font-heading text-lg font-bold text-foreground">Order summary</h2>
           <dl className="mt-4 space-y-2 text-sm">
             {[...totals.entries()].map(([currency, total]) => (
