@@ -7,6 +7,7 @@ import { PageSkeleton } from "@/components/feedback/states";
 import { StatusBadge } from "@/components/common/status-badge";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { cn } from "@/lib/utils/cn";
+import { ThemeSwitch } from "./site-header";
 
 const NAV = [
   { label: "Dashboard", to: "/seller", icon: SquaresFourIcon, end: true },
@@ -57,11 +58,11 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               className={({ isActive }) =>
                 cn(
                   "flex h-[34px] items-center gap-2 rounded-md border px-3 text-sm transition-colors",
-                  isActive ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-action-foreground",
+                  isActive ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
                 )
               }
             >
-              <item.icon className="size-5 text-foreground" /> {item.label}
+              <item.icon className="size-5" /> {item.label}
             </NavLink>
           </li>
         ))}
@@ -97,6 +98,10 @@ export function SellerLayout() {
         <aside className={cn("w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)]", open ? "fixed inset-y-[64px] left-0 z-30 flex shadow-raised" : "hidden")}>
           <SellerSwitcher />
           <SellerNav onNavigate={() => setOpen(false)} />
+          <div className="mt-auto border-t border-border p-4">
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Theme</p>
+            <ThemeSwitch />
+          </div>
         </aside>
         <main id="main" className="min-w-0 flex-1 bg-surface-muted px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
           <div className="mx-auto w-full max-w-[1200px]">

@@ -10,14 +10,18 @@ import {
   ListIcon,
   MagnifyingGlassIcon,
   MapPinIcon,
+  MonitorIcon,
+  MoonIcon,
   SignOutIcon,
   StorefrontIcon,
+  SunIcon,
   UserIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useTheme } from "@/app/providers/theme";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { catalogService } from "@/services/catalog.service";
 import { cn } from "@/lib/utils/cn";
@@ -222,6 +226,52 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
   );
 }
 
+const THEMES = [
+  ["light", "Light", SunIcon],
+  ["dark", "Dark", MoonIcon],
+  ["system", "System", MonitorIcon],
+] as const;
+
+/** Light / Dark / System segmented control, used in the account menu and the seller sidebar. */
+export function ThemeSwitch({ className }: { className?: string }) {
+  const { theme, setTheme } = useTheme();
+  return (
+    <div role="radiogroup" aria-label="Theme" className={cn("grid grid-cols-3 gap-1 rounded-md bg-cream-strong p-1", className)}>
+      {THEMES.map(([value, label, Icon]) => (
+        <button
+          key={value}
+          type="button"
+          role="radio"
+          aria-checked={theme === value}
+          onClick={() => setTheme(value)}
+          className={cn(
+            "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm text-xs font-medium transition-colors",
+            theme === value ? "bg-action text-action-foreground shadow-raised" : "text-muted-foreground hover:text-foreground",
+          )}
+        >
+          <Icon className="size-4" /> {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** Compact light/dark toggle for signed-out visitors (signed-in users get the full switch in the account menu). */
+function ThemeToggle() {
+  const { resolved, setTheme } = useTheme();
+  const next = resolved === "dark" ? "light" : "dark";
+  return (
+    <button
+      type="button"
+      onClick={() => setTheme(next)}
+      aria-label={`Switch to ${next} theme`}
+      className="flex size-8 cursor-pointer items-center justify-center rounded-sm border border-foreground text-foreground hover:bg-cream-strong"
+    >
+      {resolved === "dark" ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
+    </button>
+  );
+}
+
 function AccountMenu() {
   const { user, signOut } = useAuth();
   const { activeSeller } = useSellerMode();
@@ -259,6 +309,9 @@ function AccountMenu() {
               </button>
             </PopoverPrimitive.Close>
           ))}
+          <div className="my-1 h-px bg-border-strong" />
+          <p className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">Theme</p>
+          <ThemeSwitch className="mx-1 mb-1" />
           <div className="my-1 h-px bg-border-strong" />
           <button type="button" onClick={() => void signOut()} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-danger-soft-foreground hover:bg-danger-soft">
             <SignOutIcon className="size-[18px]" /> Sign out
@@ -353,6 +406,7 @@ export function SiteHeader() {
                 <SellerEntry />
               </span>
             )}
+            {status === "anonymous" && <ThemeToggle />}
             {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginPopover /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
           </div>
         </div>

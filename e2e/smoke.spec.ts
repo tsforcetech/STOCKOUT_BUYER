@@ -134,3 +134,13 @@ test("no horizontal overflow on home and search", async ({ page }) => {
     expect(overflow, path).toBeLessThanOrEqual(1);
   }
 });
+
+test("visitors can switch between light and dark theme", async ({ page }) => {
+  await mockApi(page);
+  await page.emulateMedia({ colorScheme: "light" });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Switch to dark theme" }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  await page.reload();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+});
