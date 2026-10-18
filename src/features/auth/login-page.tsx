@@ -33,23 +33,9 @@ export default function LoginPage() {
   const [challenge, setChallenge] = React.useState<MfaChallenge | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
   const navigate = useNavigate();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
 
   const form = useForm<Credentials>({ resolver: zodResolver(credentialsSchema), defaultValues: { emailOrMobile: "", password: "" } });
-
-  // Buyer | Seller switch: seller mode lands in the seller portal after sign-in.
-  const asSeller = params.get("as") === "seller" || (params.get("next") ?? "").startsWith("/seller");
-  const setMode = (mode: "buyer" | "seller") => {
-    const next = new URLSearchParams(params);
-    if (mode === "seller") {
-      next.set("as", "seller");
-      next.set("next", "/seller");
-    } else {
-      next.delete("as");
-      if ((next.get("next") ?? "").startsWith("/seller")) next.delete("next");
-    }
-    setParams(next, { replace: true });
-  };
 
   const goNext = () => {
     const next = params.get("next");
@@ -74,30 +60,8 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <AuthCard title={asSeller ? "Seller login" : "Welcome to StockOut"} subtitle={asSeller ? "Manage your listings, stock and verification" : "Login to your account"}>
+      <AuthCard title="Welcome to StockOut" subtitle="Login to your account">
         <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
-          <div role="tablist" aria-label="Log in as" className="grid grid-cols-2 rounded-full bg-surface-muted p-1 text-sm">
-            {(
-              [
-                ["buyer", "Buyer"],
-                ["seller", "Seller"],
-              ] as const
-            ).map(([mode, label]) => {
-              const active = (mode === "seller") === asSeller;
-              return (
-                <button
-                  key={mode}
-                  type="button"
-                  role="tab"
-                  aria-selected={active}
-                  onClick={() => setMode(mode)}
-                  className={`h-9 cursor-pointer rounded-full transition-colors ${active ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-border"}`}
-                >
-                  {label}
-                </button>
-              );
-            })}
-          </div>
           {params.get("reason") === "password-changed" && !formError && (
             <div role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-success-soft-foreground">
               Your password was changed and all sessions were signed out. Sign in with your new password.
@@ -126,9 +90,9 @@ export default function LoginPage() {
             Continue
           </Button>
           <p className="text-center text-sm text-muted-foreground">
-            {asSeller ? "New seller?" : "New to StockOut?"}{" "}
+            New to StockOut?{" "}
             <Link to={params.get("next") ? `/register?next=${encodeURIComponent(params.get("next") ?? "")}` : "/register"} className="text-foreground underline underline-offset-4">
-              {asSeller ? "Create an account and start selling" : "Create an account"}
+              Create an account
             </Link>
           </p>
         </form>

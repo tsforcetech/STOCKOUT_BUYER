@@ -63,16 +63,15 @@ describe("LoginPage", () => {
   });
 });
 
-describe("seller login mode", () => {
-  it("switches to seller mode and lands in the seller portal after sign-in", async () => {
+describe("returning to the seller portal", () => {
+  it("has a single login form and returns to the requested page after sign-in", async () => {
     mockFetch([
       { method: "POST", path: "/api/v1/auth/login", respond: () => ({ body: { accessToken: "a.eyJzaWQiOiJzMSJ9.c", refreshToken: "rt", expiresIn: 900, tokenType: "Bearer", mfaRequired: false, mfaChallengeToken: null } }) },
       ...sessionRoutes().slice(1),
     ]);
-    const { router } = renderWithApp([...routes, { path: "/seller", element: <div>Seller portal home</div> }], "/login");
-    await userEvent.click(await screen.findByRole("tab", { name: "Seller" }));
-    expect(await screen.findByRole("heading", { name: "Seller login" })).toBeInTheDocument();
-    expect(router.state.location.search).toContain("next=%2Fseller");
+    renderWithApp([...routes, { path: "/seller", element: <div>Seller portal home</div> }], "/login?next=%2Fseller");
+    expect(await screen.findByRole("heading", { name: "Welcome to StockOut" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("Email"), "seller@stockout.test");
     await userEvent.type(screen.getByLabelText("Password"), "correct-horse-battery");
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));

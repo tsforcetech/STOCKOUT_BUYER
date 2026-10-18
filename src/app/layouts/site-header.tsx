@@ -139,80 +139,20 @@ function SellMenu({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
-/** Figma "Buyer Login" popover: Shop (buyer) / C2C Portal (seller) tabs. */
-function LoginPopover() {
-  const [tab, setTab] = React.useState<"shop" | "c2c">("shop");
+function LoginButton() {
   return (
-    <PopoverPrimitive.Root>
-      <PopoverPrimitive.Trigger asChild>
-        <Button size="sm" className="h-8 gap-1 px-3">
-          Login <CaretDownIcon />
-        </Button>
-      </PopoverPrimitive.Trigger>
-      <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content align="end" sideOffset={10} className="z-50 w-[250px] rounded-lg bg-cream p-5 shadow-raised focus:outline-none">
-          <div className="mb-3 grid grid-cols-2 border-b border-border-strong text-sm" role="tablist">
-            {(
-              [
-                ["shop", "Shop"],
-                ["c2c", "C2C Portal"],
-              ] as const
-            ).map(([key, label]) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={tab === key}
-                type="button"
-                onClick={() => setTab(key)}
-                className={cn("-mb-px cursor-pointer border-b-2 pb-1.5", tab === key ? "border-foreground text-foreground" : "border-transparent text-muted-foreground")}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          {tab === "shop" ? (
-            <>
-              <p className="text-sm text-foreground">Log in to search, save searches and contact verified sellers.</p>
-              <Button asChild className="mt-3 h-9 w-full">
-                <Link to="/login">Login</Link>
-              </Button>
-              <p className="mt-2 text-xs text-foreground">
-                Don't have an account?{" "}
-                <Link to="/register" className="underline">
-                  Register here
-                </Link>
-              </p>
-            </>
-          ) : (
-            <>
-              <p className="text-sm text-foreground">Sell your surplus materials by getting a verified seller account.</p>
-              <Button asChild className="mt-3 h-9 w-full">
-                <Link to="/login?as=seller&next=%2Fseller">Seller login</Link>
-              </Button>
-              <p className="mt-2 text-xs text-foreground">
-                Want to find out more?{" "}
-                <Link to="/sell" className="underline">
-                  Click here
-                </Link>
-              </p>
-            </>
-          )}
-        </PopoverPrimitive.Content>
-      </PopoverPrimitive.Portal>
-    </PopoverPrimitive.Root>
+    <Button asChild size="sm" className="h-8 px-4">
+      <Link to="/login">Login</Link>
+    </Button>
   );
 }
 
-/** Always-visible seller entry point in the header (easy seller login). */
 function SellerEntry({ compact = false }: { compact?: boolean }) {
   const { status, actor } = useAuth();
   const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
-  const target =
-    status === "authenticated"
-      ? hasSeller
-        ? { to: "/seller", label: "Seller portal" }
-        : { to: "/seller/onboarding", label: "Start selling" }
-      : { to: "/login?as=seller&next=%2Fseller", label: "Seller login" };
+  // Selling is a mode of the signed-in account: visitors just log in first.
+  if (status !== "authenticated") return null;
+  const target = hasSeller ? { to: "/seller", label: "Seller portal" } : { to: "/seller/onboarding", label: "Start selling" };
   return (
     <Link
       to={target.to}
@@ -393,8 +333,8 @@ export function SiteHeader() {
             {navItem("sell", "Sell a Product")}
           </nav>
           <div className="ml-auto flex items-center gap-3">
-            {status !== "initializing" && (
-              <Link to={status === "authenticated" ? "/seller" : "/login?as=seller&next=%2Fseller"} className="flex size-8 items-center justify-center rounded-sm border border-foreground md:hidden" aria-label="Seller login">
+            {status === "authenticated" && (
+              <Link to="/seller" className="flex size-8 items-center justify-center rounded-sm border border-foreground md:hidden" aria-label="Seller portal">
                 <StorefrontIcon className="size-4" />
               </Link>
             )}
@@ -407,7 +347,7 @@ export function SiteHeader() {
               </span>
             )}
             {status === "anonymous" && <ThemeToggle />}
-            {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginPopover /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
+            {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginButton /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
           </div>
         </div>
       </div>
