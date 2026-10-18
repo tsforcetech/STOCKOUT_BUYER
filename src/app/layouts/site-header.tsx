@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import {
   ArrowRightIcon,
+  LeafIcon,
   BookmarkSimpleIcon,
   CaretRightIcon,
   CaretDownIcon,
@@ -12,6 +13,7 @@ import {
   MapPinIcon,
   MonitorIcon,
   MoonIcon,
+  SealCheckIcon,
   SignOutIcon,
   StorefrontIcon,
   SunIcon,
@@ -62,7 +64,7 @@ function MarketplaceMenu({ onNavigate, onClose }: { onNavigate: () => void; onCl
           <p className="mt-3 font-heading text-[40px] font-bold leading-[44px] text-white">{selected.name}</p>
           <p className="mt-3 text-base leading-6 text-white/75">Browse available surplus inventory by material type.</p>
           <Link to={searchHref({ categoryId: selected.categoryId })} onClick={onNavigate} className="mt-6 inline-flex items-center gap-2 font-heading text-lg font-bold text-action hover:underline">
-            View all {selected.name.toLowerCase()} <ArrowRightIcon className="size-5" />
+            View all {(selected.name ?? "").toLowerCase()} <ArrowRightIcon className="size-5" />
           </Link>
           <ul className="mt-8 flex flex-wrap gap-2" aria-label="Categories">
             {roots.map((r) => (
@@ -141,7 +143,7 @@ function SellMenu({ onNavigate }: { onNavigate: () => void }) {
 
 function LoginButton() {
   return (
-    <Button asChild size="sm" className="h-8 px-4">
+    <Button asChild size="sm" className="h-10 px-6">
       <Link to="/login">Login</Link>
     </Button>
   );
@@ -157,11 +159,14 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
     <Link
       to={target.to}
       className={cn(
-        "inline-flex h-9 items-center gap-2 rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-cream-strong",
+        "inline-flex h-10 items-center gap-2 whitespace-nowrap rounded-full border border-border-strong bg-surface py-1 pl-1 pr-4 font-heading text-sm font-bold text-foreground transition-colors hover:border-foreground",
         compact && "w-full justify-center border border-foreground",
       )}
     >
-      <StorefrontIcon className="size-5" /> {target.label}
+      <span className="flex size-8 items-center justify-center rounded-full bg-action text-action-foreground">
+        <StorefrontIcon className="size-[18px]" />
+      </span>
+      {target.label}
     </Link>
   );
 }
@@ -205,7 +210,7 @@ function ThemeToggle() {
       type="button"
       onClick={() => setTheme(next)}
       aria-label={`Switch to ${next} theme`}
-      className="flex size-8 cursor-pointer items-center justify-center rounded-sm border border-foreground text-foreground hover:bg-cream-strong"
+      className="flex size-10 cursor-pointer items-center justify-center rounded-full border border-border-strong bg-surface text-foreground hover:border-foreground"
     >
       {resolved === "dark" ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
     </button>
@@ -221,7 +226,7 @@ function AccountMenu() {
     <PopoverPrimitive.Root>
       <PopoverPrimitive.Trigger asChild>
         <button type="button" className="flex cursor-pointer items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-2 text-left hover:bg-cream-strong" aria-label="Account menu">
-          <span className="flex size-10 items-center justify-center rounded-full bg-[#1a1a19] font-heading text-sm font-bold text-action" aria-hidden>
+          <span className="flex size-10 items-center justify-center rounded-full bg-[#1a1a19] font-heading text-sm font-bold text-action ring-2 ring-action ring-offset-2 ring-offset-cream" aria-hidden>
             {initials(user?.displayName || name)}
           </span>
           <span className="hidden leading-tight md:block">
@@ -285,6 +290,38 @@ export function LocationPicker({ value, onChange, className }: { value: string; 
   );
 }
 
+/**
+ * Green Points (sustainability rewards). The backend has no Green Points API yet (planned in
+ * stockout docs/planning), so this shows what it is and that it's coming — never a made-up balance.
+ */
+function GreenPoints() {
+  return (
+    <PopoverPrimitive.Root>
+      <PopoverPrimitive.Trigger asChild>
+        <button
+          type="button"
+          className="inline-flex h-10 cursor-pointer items-center gap-2 whitespace-nowrap rounded-full bg-success-soft py-1 pl-1 pr-3 text-sm font-bold text-success-soft-foreground transition-colors hover:brightness-95"
+        >
+          <span className="flex size-8 items-center justify-center rounded-full bg-success text-white">
+            <LeafIcon className="size-[18px]" weight="fill" />
+          </span>
+          <span className="font-heading">Green Points</span>
+          <span className="hidden rounded-full bg-surface px-1.5 py-0.5 text-[10px] 2xl:inline font-semibold uppercase tracking-wide text-muted-foreground">Soon</span>
+        </button>
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content align="end" sideOffset={10} className="z-50 w-72 rounded-lg bg-cream p-4 text-sm shadow-raised focus:outline-none">
+          <p className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
+            <LeafIcon className="size-5 text-success" weight="fill" /> Green Points
+          </p>
+          <p className="mt-2 text-body">Earn points for every material you buy or sell instead of sending it to landfill, and see the impact of your reuse.</p>
+          <p className="mt-3 rounded-md bg-surface px-3 py-2 text-xs text-muted-foreground">Coming soon. Your balance will appear here once Green Points is live.</p>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
+
 export function SiteHeader() {
   const { status } = useAuth();
   const [menu, setMenu] = React.useState<"market" | "sell" | null>(null);
@@ -309,30 +346,48 @@ export function SiteHeader() {
       aria-expanded={menu === key}
       aria-haspopup="true"
       onClick={() => setMenu((m) => (m === key ? null : key))}
-      className={cn("relative h-full cursor-pointer px-2.5 text-sm text-foreground", menu === key && "after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:bg-foreground")}
+      className={cn(
+        "inline-flex h-10 cursor-pointer items-center gap-1 whitespace-nowrap rounded-full px-3 text-sm font-medium text-foreground transition-colors hover:bg-cream-strong",
+        menu === key && "bg-foreground text-surface hover:bg-foreground",
+      )}
     >
       {label}
+      <CaretDownIcon className={cn("size-3.5 transition-transform", menu === key && "rotate-180")} />
     </button>
   );
 
   return (
     <header className="sticky top-0 z-40">
+      <div className="bg-[#141413] text-white">
+        <div className="mx-auto flex h-9 max-w-[1336px] items-center justify-between gap-4 px-4 text-xs sm:px-6">
+          <p className="flex min-w-0 items-center gap-2 truncate">
+            <SealCheckIcon className="size-4 shrink-0 text-action" weight="fill" />
+            <span className="truncate">
+              <span className="font-semibold text-action">Verified surplus marketplace</span>
+              <span className="hidden text-white/70 sm:inline"> · Inspection-backed industrial stock across the UAE</span>
+            </span>
+          </p>
+          <Link to="/sell" className="hidden shrink-0 items-center gap-1 font-medium text-white/85 hover:text-action sm:inline-flex">
+            Sell your surplus <ArrowRightIcon className="size-3.5" />
+          </Link>
+        </div>
+      </div>
       <div className="border-b border-border-strong bg-cream">
         <div className="mx-auto flex h-[72px] max-w-[1336px] items-center gap-4 px-4 sm:px-6">
           <button type="button" className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden" onClick={() => setMobileOpen((o) => !o)} aria-label="Menu" aria-expanded={mobileOpen}>
             {mobileOpen ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
           </button>
           <Link to="/" aria-label="StockOut home" className="shrink-0">
-            <Logo />
+            <Logo className="text-2xl" />
           </Link>
-          <div className="ml-4 hidden w-[400px] lg:block">
+          <div className="ml-2 hidden min-w-0 max-w-[400px] flex-1 lg:block">
             <SearchBox variant="header" />
           </div>
-          <nav aria-label="Primary" className="ml-2 hidden h-full items-stretch lg:flex">
+          <nav aria-label="Primary" className="ml-1 hidden items-center gap-1 lg:flex">
             {navItem("market", "Marketplace")}
             {navItem("sell", "Sell a Product")}
           </nav>
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex shrink-0 items-center gap-2.5">
             {status === "authenticated" && (
               <Link to="/seller" className="flex size-8 items-center justify-center rounded-sm border border-foreground md:hidden" aria-label="Seller portal">
                 <StorefrontIcon className="size-4" />
@@ -341,6 +396,11 @@ export function SiteHeader() {
             <NavLink to="/search" className="flex size-8 items-center justify-center rounded-sm border border-foreground lg:hidden" aria-label="Search">
               <MagnifyingGlassIcon className="size-4" />
             </NavLink>
+            {status === "authenticated" && (
+              <span className="hidden xl:inline-flex">
+                <GreenPoints />
+              </span>
+            )}
             {status !== "initializing" && (
               <span className="hidden md:inline-flex">
                 <SellerEntry />
@@ -354,7 +414,7 @@ export function SiteHeader() {
       {menu && (
         <>
           <div className="absolute inset-x-0 top-full z-10 border-b border-border-strong bg-cream shadow-raised">{menu === "market" ? <MarketplaceMenu onNavigate={() => setMenu(null)} onClose={() => setMenu(null)} /> : <SellMenu onNavigate={() => setMenu(null)} />}</div>
-          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[72px] -z-10 cursor-default" onClick={() => setMenu(null)} />
+          <button type="button" aria-label="Close menu" className="fixed inset-0 top-[108px] -z-10 cursor-default" onClick={() => setMenu(null)} />
         </>
       )}
       {mobileOpen && (
