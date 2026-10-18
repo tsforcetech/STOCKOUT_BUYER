@@ -32,6 +32,7 @@ export const routes: RouteObject[] = [
           { path: "listings/:listingId", lazy: page(() => import("@/features/listings/listing-detail-page")) },
           { path: "sell", lazy: page(() => import("@/features/sell/sell-page")) },
           { path: "cart", lazy: page(() => import("@/features/cart/cart-page")) },
+          { path: "saved", lazy: page(() => import("@/features/favorites/saved-page")) },
           {
             element: <RequireAuth />,
             children: [

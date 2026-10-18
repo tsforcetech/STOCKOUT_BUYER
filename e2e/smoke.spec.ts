@@ -183,7 +183,7 @@ test("leaving the site layout works when scrollTo returns a Promise (newer Chrom
   await mockApi(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Find surplus stock/i })).toBeVisible();
-  await page.getByRole("link", { name: "Login", exact: true }).click();
+  await page.getByRole("banner").getByRole("link", { name: "Login", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
   await expect(page.getByText("couldn't be displayed")).toHaveCount(0);
 });

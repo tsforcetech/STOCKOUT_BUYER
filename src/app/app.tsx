@@ -7,6 +7,7 @@ import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { SellerModeProvider } from "@/lib/seller/seller-context";
 import { CartProvider } from "@/lib/cart/cart-context";
+import { FavoritesProvider } from "@/lib/favorites/favorites-context";
 import { ThemeProvider, useTheme } from "./providers/theme";
 import { createQueryClient } from "./providers/query-client";
 import { createAppRouter } from "./router/router";
@@ -27,7 +28,9 @@ export function App() {
             <AuthProvider>
               <SellerModeProvider>
                 <CartProvider>
-                  <RouterProvider router={router} />
+                  <FavoritesProvider>
+                    <RouterProvider router={router} />
+                  </FavoritesProvider>
                 </CartProvider>
               </SellerModeProvider>
             </AuthProvider>

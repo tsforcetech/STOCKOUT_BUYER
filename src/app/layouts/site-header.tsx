@@ -8,10 +8,11 @@ import {
   BookmarkSimpleIcon,
   ReceiptIcon,
   ShoppingCartSimpleIcon,
+  HeartIcon,
+  PlusIcon,
   CaretRightIcon,
   CaretDownIcon,
   ListIcon,
-  MagnifyingGlassIcon,
   MapPinIcon,
   MonitorIcon,
   MoonIcon,
@@ -27,6 +28,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useTheme } from "@/app/providers/theme";
 import { useCart } from "@/lib/cart/cart-context";
+import { useFavorites } from "@/lib/favorites/favorites-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { catalogService } from "@/services/catalog.service";
 import { cn } from "@/lib/utils/cn";
@@ -144,6 +146,49 @@ function SellMenu({ onNavigate }: { onNavigate: () => void }) {
   );
 }
 
+/** dubizzle-style "Place your ad": always-visible lime call to action for selling. */
+export function sellHref(status: string, hasSeller: boolean): string {
+  if (status !== "authenticated") return "/login?next=%2Fseller%2Fonboarding";
+  return hasSeller ? "/seller/listings/new" : "/seller/onboarding";
+}
+
+function SellButton() {
+  const { status, actor } = useAuth();
+  const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
+  return (
+    <Link
+      to={sellHref(status, hasSeller)}
+      className="inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full bg-action px-4 font-heading text-sm font-bold text-action-foreground transition-colors hover:bg-action-hover"
+    >
+      <PlusIcon className="size-4" weight="bold" /> Sell
+    </Link>
+  );
+}
+
+function SavedButton() {
+  const { favorites } = useFavorites();
+  const n = favorites.length;
+  return (
+    <NavLink
+      to="/saved"
+      aria-label={n ? `Saved listings, ${n}` : "Saved listings"}
+      className={({ isActive }) =>
+        cn(
+          "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:border-foreground",
+          isActive && "border-foreground",
+        )
+      }
+    >
+      <HeartIcon className="size-5" />
+      {n > 0 && (
+        <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e0245e] px-1 text-[11px] font-bold text-white ring-2 ring-cream" aria-hidden>
+          {n > 99 ? "99+" : n}
+        </span>
+      )}
+    </NavLink>
+  );
+}
+
 function CartButton() {
   const { count, setOpen } = useCart();
   return (
@@ -175,7 +220,8 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
   const { status, actor } = useAuth();
   const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
   // Selling is a mode of the signed-in account: visitors just log in first.
-  if (status !== "authenticated") return null;
+  // Non-sellers use the "+ Sell" button; this link is the way back into an existing seller portal.
+  if (status !== "authenticated" || (!hasSeller && !compact)) return null;
   const target = hasSeller ? { to: "/seller", label: "Seller portal" } : { to: "/seller/onboarding", label: "Start selling" };
   return (
     <Link
@@ -409,14 +455,6 @@ export function SiteHeader() {
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-2.5">
             {status === "authenticated" && (
-              <Link to="/seller" className="flex size-8 items-center justify-center rounded-sm border border-foreground md:hidden" aria-label="Seller portal">
-                <StorefrontIcon className="size-4" />
-              </Link>
-            )}
-            <NavLink to="/search" className="flex size-8 items-center justify-center rounded-sm border border-foreground lg:hidden" aria-label="Search">
-              <MagnifyingGlassIcon className="size-4" />
-            </NavLink>
-            {status === "authenticated" && (
               <span className="hidden xl:inline-flex">
                 <GreenPoints />
               </span>
@@ -426,7 +464,13 @@ export function SiteHeader() {
                 <SellerEntry />
               </span>
             )}
+            <span className="hidden md:inline-flex">
+              <SellButton />
+            </span>
             {status === "anonymous" && <ThemeToggle />}
+            <span className="hidden sm:inline-flex">
+              <SavedButton />
+            </span>
             <CartButton />
             {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginButton /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
           </div>

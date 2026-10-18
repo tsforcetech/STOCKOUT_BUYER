@@ -5,6 +5,7 @@ import { PageSkeleton } from "@/components/feedback/states";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
 import { CartDrawer } from "@/features/cart/cart-drawer";
+import { MobileTabBar } from "./mobile-tab-bar";
 
 /** Public marketplace layout (Figma Buyer Screens): cream header with mega menus, dark footer. */
 export function SiteLayout() {
@@ -13,7 +14,7 @@ export function SiteLayout() {
     window.scrollTo?.({ top: 0 });
   }, [location.pathname]);
   return (
-    <div className="flex min-h-dvh flex-col bg-surface">
+    <div className="flex min-h-dvh flex-col bg-surface pb-16 md:pb-0">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-action focus:px-3 focus:py-2 focus:text-action-foreground">
         Skip to content
       </a>
@@ -27,6 +28,7 @@ export function SiteLayout() {
       </main>
       <SiteFooter />
       <CartDrawer />
+      <MobileTabBar />
     </div>
   );
 }

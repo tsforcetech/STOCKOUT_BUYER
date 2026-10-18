@@ -1,41 +1,84 @@
 import * as React from "react";
 import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { CaretRightIcon, InfoIcon, MapPinIcon, PackageIcon, SealCheckIcon, StorefrontIcon } from "@phosphor-icons/react";
-import { ListingImage } from "@/components/common/listing-image";
+import {
+  CalendarBlankIcon,
+  CaretRightIcon,
+  CurrencyCircleDollarIcon,
+  HashIcon,
+  HourglassMediumIcon,
+  InfoIcon,
+  MapPinIcon,
+  MedalIcon,
+  PackageIcon,
+  SealCheckIcon,
+  SparkleIcon,
+  SquaresFourIcon,
+  StorefrontIcon,
+  TagIcon,
+  type Icon,
+} from "@phosphor-icons/react";
 import { ErrorState } from "@/components/feedback/states";
 import { Skeleton } from "@/components/ui/misc";
 import { listingsService } from "@/services/listings.service";
 import { isApiError } from "@/lib/api/errors";
 import { formatDate, formatMoney, formatNumber, humanize } from "@/lib/utils/format";
 import { searchHref } from "@/features/search/lib/search-params";
+import { useFavorites, type ListingSnapshot } from "@/lib/favorites/favorites-context";
+import { FavoriteButton } from "@/features/favorites/favorite-button";
+import { AddToCart, type AddToCartListing } from "@/features/cart/add-to-cart";
+import type { PublicListingDetailResponse } from "@/api/types/seller-listings";
 import { ListingRail } from "./components/listing-rail";
-import { AddToCart } from "@/features/cart/add-to-cart";
+import { ListingGallery } from "./components/listing-gallery";
+import { ListingShareButton } from "./components/listing-share-button";
+import { ListingSafetyTips } from "./components/listing-safety-tips";
+import { ListingMobileBar } from "./components/listing-mobile-bar";
 
-function Gallery({ images, title }: { images: Array<{ fileAssetId: string; cdnUrl: string }>; title: string }) {
-  const [index, setIndex] = React.useState(0);
-  const current = images[index];
+function sortedImages(l: PublicListingDetailResponse) {
+  if (l.galleryImages.length) return [...l.galleryImages].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.displayOrder - b.displayOrder);
+  return l.primaryImage ? [l.primaryImage] : [];
+}
+
+function placeOf(l: PublicListingDetailResponse) {
+  return [l.location.city, l.location.stateOrEmirate].filter(Boolean).join(", ");
+}
+
+function unitOf(l: PublicListingDetailResponse) {
+  return l.quantityUnitSymbol ?? l.unitOfMeasure ?? "";
+}
+
+function snapshotOf(l: PublicListingDetailResponse): ListingSnapshot {
+  return {
+    listingId: l.listingId,
+    title: l.title,
+    price: l.basePrice,
+    currency: l.currency,
+    unitSymbol: unitOf(l) || null,
+    imageUrl: sortedImages(l)[0]?.cdnUrl ?? null,
+    sellerName: l.seller.displayName,
+    place: placeOf(l) || null,
+  };
+}
+
+type Spec = { label: string; value: string; icon?: Icon };
+
+function DefinitionGrid({ items }: { items: Spec[] }) {
   return (
-    <div>
-      <ListingImage src={current?.cdnUrl} alt={title} className="aspect-[4/3] w-full rounded-xl" />
-      {images.length > 1 && (
-        <div className="mt-3 flex gap-2 overflow-x-auto" role="tablist" aria-label="Images">
-          {images.map((img, i) => (
-            <button
-              key={img.fileAssetId}
-              type="button"
-              role="tab"
-              aria-selected={i === index}
-              aria-label={`Image ${i + 1}`}
-              onClick={() => setIndex(i)}
-              className={`shrink-0 cursor-pointer overflow-hidden rounded-md border-2 ${i === index ? "border-foreground" : "border-transparent"}`}
-            >
-              <ListingImage src={img.cdnUrl} alt="" className="size-16" />
-            </button>
-          ))}
+    <dl className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
+      {items.map(({ label, value, icon: ItemIcon }) => (
+        <div key={label} className="flex min-w-0 items-start gap-3 border-b border-border py-3">
+          {ItemIcon && (
+            <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-cream-strong text-foreground">
+              <ItemIcon className="size-4" aria-hidden />
+            </span>
+          )}
+          <div className="min-w-0">
+            <dt className="text-xs text-muted-foreground">{label}</dt>
+            <dd className="mt-0.5 break-words text-sm font-medium text-foreground">{value}</dd>
+          </div>
         </div>
-      )}
-    </div>
+      ))}
+    </dl>
   );
 }
 
@@ -46,6 +89,19 @@ export default function ListingDetailPage() {
     queryFn: ({ signal }) => listingsService.publicDetail(listingId, signal),
     retry: (count, error) => !(isApiError(error) && [404, 410].includes(error.status)) && count < 1,
   });
+  const { recordView } = useFavorites();
+  const recordedFor = React.useRef<string | null>(null);
+  const panelRef = React.useRef<HTMLDivElement>(null);
+  const endRef = React.useRef<HTMLDivElement>(null);
+  const data = q.data;
+  const snapshot = React.useMemo(() => (data ? snapshotOf(data) : null), [data]);
+
+  // Recently viewed: record once per listing after a successful load.
+  React.useEffect(() => {
+    if (!snapshot || recordedFor.current === snapshot.listingId) return;
+    recordedFor.current = snapshot.listingId;
+    recordView(snapshot);
+  }, [snapshot, recordView]);
 
   if (q.isLoading) {
     return (
@@ -81,24 +137,43 @@ export default function ListingDetailPage() {
   }
 
   const l = q.data!;
-  const images = l.galleryImages.length ? [...l.galleryImages].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.displayOrder - b.displayOrder) : l.primaryImage ? [l.primaryImage] : [];
-  const place = [l.location.city, l.location.stateOrEmirate].filter(Boolean).join(", ");
-  const unit = l.quantityUnitSymbol ?? l.unitOfMeasure ?? "";
-  const specs = [
-    ["Category", l.categoryName],
-    ["Brand", l.brandName],
-    ["Condition", l.conditionName],
-    ["Grade", l.gradeName],
-    ["Pricing", humanize(l.pricingMode)],
-    ["Listing no.", l.listingNumber],
-    ["Listed", formatDate(l.publishedAtUtc)],
-    ["Available until", l.expiresAtUtc ? formatDate(l.expiresAtUtc) : null],
-  ].filter((r): r is [string, string] => !!r[1]);
+  const images = sortedImages(l);
+  const place = placeOf(l);
+  const unit = unitOf(l);
+  // BASE_URL keeps the deploy sub-path (e.g. /STOCKOUT_BUYER/) so shared links resolve.
+  const url = new URL(`${import.meta.env.BASE_URL}listings/${encodeURIComponent(l.listingId)}`, window.location.origin).toString();
+  const cartListing: AddToCartListing = {
+    listingId: l.listingId,
+    title: l.title,
+    sellerName: l.seller.displayName,
+    basePrice: l.basePrice,
+    currency: l.currency,
+    unitSymbol: unit || null,
+    imageUrl: images[0]?.cdnUrl ?? null,
+    sellableQuantity: l.sellableQuantity,
+    isAvailable: l.isAvailable,
+  };
+  const specs = (
+    [
+      { label: "Category", value: l.categoryName, icon: SquaresFourIcon },
+      { label: "Brand", value: l.brandName, icon: TagIcon },
+      { label: "Condition", value: l.conditionName, icon: SparkleIcon },
+      { label: "Grade", value: l.gradeName, icon: MedalIcon },
+      { label: "Pricing", value: humanize(l.pricingMode), icon: CurrencyCircleDollarIcon },
+      { label: "Listing no.", value: l.listingNumber, icon: HashIcon },
+      { label: "Listed", value: formatDate(l.publishedAtUtc), icon: CalendarBlankIcon },
+      { label: "Available until", value: l.expiresAtUtc ? formatDate(l.expiresAtUtc) : null, icon: HourglassMediumIcon },
+    ] as Array<{ label: string; value: string | null; icon: Icon }>
+  ).filter((s): s is { label: string; value: string; icon: Icon } => !!s.value);
+  const attributes: Spec[] = l.attributes.map((a) => ({
+    label: a.name,
+    value: a.textValue ?? (a.numValue !== null ? formatNumber(a.numValue) : "—"),
+  }));
 
   return (
     <>
-      <div className="mx-auto max-w-[1336px] px-4 py-8 sm:px-6">
-        <nav aria-label="Breadcrumb" className="mb-6">
+      <div className="mx-auto max-w-[1336px] px-4 py-6 sm:px-6 sm:py-8">
+        <nav aria-label="Breadcrumb" className="mb-5">
           <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             <li>
               <Link to="/search" className="hover:text-foreground">
@@ -120,10 +195,12 @@ export default function ListingDetailPage() {
           </ol>
         </nav>
 
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.2fr_1fr]">
-          <Gallery images={images} title={l.title} />
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)] lg:gap-10">
+          <div className="min-w-0 lg:col-start-1 lg:row-start-1">
+            <ListingGallery key={l.listingId} images={images} title={l.title} />
+          </div>
 
-          <div>
+          <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <div className="flex flex-wrap gap-2">
               {l.seller.isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-sm bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground">
@@ -131,97 +208,90 @@ export default function ListingDetailPage() {
                 </span>
               )}
               {l.conditionName && <span className="rounded-sm bg-surface-muted px-2 py-0.5 text-xs text-foreground">{l.conditionName}</span>}
+              {!l.isAvailable && <span className="rounded-sm bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger-soft-foreground">Out of stock</span>}
             </div>
-            <h1 className="mt-3 font-heading text-[28px] font-bold leading-9 text-foreground sm:text-[32px] sm:leading-10">{l.title}</h1>
-            <p className="mt-4 font-heading text-3xl font-bold text-foreground">
+
+            <div className="mt-3 flex items-start justify-between gap-3">
+              <h1 className="min-w-0 break-words font-heading text-[26px] font-bold leading-8 text-foreground sm:text-[32px] sm:leading-10">{l.title}</h1>
+              <div className="flex shrink-0 gap-2">
+                {snapshot && <FavoriteButton listing={snapshot} variant="outline" />}
+                <ListingShareButton title={l.title} url={url} />
+              </div>
+            </div>
+
+            <p className="mt-3 font-heading text-3xl font-bold text-foreground">
               {formatMoney(l.basePrice, l.currency)}
               {unit && <span className="ml-1 font-sans text-base font-normal text-muted-foreground">per {unit}</span>}
             </p>
 
-            <dl className="mt-6 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-lg bg-surface-muted p-3">
+            <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+              <div className="min-w-0 rounded-xl bg-cream-strong p-3">
                 <dt className="flex items-center gap-1 text-xs text-muted-foreground">
                   <PackageIcon className="size-4" /> Available
                 </dt>
-                <dd className="mt-1 font-medium text-foreground">{l.isAvailable ? `${formatNumber(l.sellableQuantity)} ${unit}` : "Out of stock"}</dd>
+                <dd className="mt-1 truncate font-medium text-foreground">{l.isAvailable ? `${formatNumber(l.sellableQuantity)} ${unit}` : "Out of stock"}</dd>
               </div>
-              <div className="rounded-lg bg-surface-muted p-3">
+              <div className="min-w-0 rounded-xl bg-cream-strong p-3">
                 <dt className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPinIcon className="size-4" /> Location
                 </dt>
-                <dd className="mt-1 font-medium text-foreground">{place || "—"}</dd>
+                <dd className="mt-1 truncate font-medium text-foreground">{place || "—"}</dd>
               </div>
             </dl>
 
-            <div className="mt-6 rounded-lg border border-border p-4">
+            <div ref={panelRef} className="mt-5 scroll-mt-28">
+              <AddToCart listing={cartListing} />
+            </div>
+
+            <section aria-label="Seller" className="mt-5 rounded-xl border border-border p-4">
               <div className="flex items-center gap-3">
-                <span className="flex size-10 items-center justify-center rounded-full bg-cream">
-                  <StorefrontIcon className="size-5" />
+                <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-cream-strong text-foreground">
+                  <StorefrontIcon className="size-6" />
+                  {l.seller.isVerified && (
+                    <SealCheckIcon className="absolute -bottom-0.5 -right-0.5 size-5 rounded-full bg-surface text-success" weight="fill" aria-hidden />
+                  )}
                 </span>
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-foreground">{l.seller.displayName}</p>
-                  <p className="text-xs text-muted-foreground">{humanize(l.seller.entityType)} seller{l.seller.isVerified ? " · KYC verified" : ""}</p>
+                  <p className="flex items-center gap-1 text-sm font-medium text-foreground">
+                    <span className="truncate">{l.seller.displayName}</span>
+                    {l.seller.isVerified && <SealCheckIcon className="size-4 shrink-0 text-success" weight="fill" aria-label="Verified" />}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {humanize(l.seller.entityType)} seller
+                    {l.seller.isVerified ? " · KYC verified" : ""}
+                  </p>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div className="mt-6">
-              <AddToCart
-                listing={{
-                  listingId: l.listingId,
-                  title: l.title,
-                  sellerName: l.seller.displayName,
-                  basePrice: l.basePrice,
-                  currency: l.currency,
-                  unitSymbol: unit || null,
-                  imageUrl: images[0]?.cdnUrl ?? null,
-                  sellableQuantity: l.sellableQuantity,
-                  isAvailable: l.isAvailable,
-                }}
-              />
-            </div>
+            <ListingSafetyTips className="mt-5" />
+          </div>
 
+          <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-2">
             {specs.length > 0 && (
-              <section className="mt-8">
-                <h2 className="mb-3 font-heading text-lg font-bold text-foreground">Details</h2>
-                <dl className="divide-y divide-border rounded-lg border border-border text-sm">
-                  {specs.map(([k, v]) => (
-                    <div key={k} className="flex justify-between gap-4 px-4 py-2.5">
-                      <dt className="text-muted-foreground">{k}</dt>
-                      <dd className="text-right text-foreground">{v}</dd>
-                    </div>
-                  ))}
-                </dl>
+              <section>
+                <h2 className="mb-2 font-heading text-xl font-bold text-foreground">Details</h2>
+                <DefinitionGrid items={specs} />
+              </section>
+            )}
+            {l.description && (
+              <section>
+                <h2 className="mb-3 font-heading text-xl font-bold text-foreground">Description</h2>
+                <p className="whitespace-pre-line break-words text-sm leading-6 text-body">{l.description}</p>
+              </section>
+            )}
+            {attributes.length > 0 && (
+              <section>
+                <h2 className="mb-2 font-heading text-xl font-bold text-foreground">Specifications</h2>
+                <DefinitionGrid items={attributes} />
               </section>
             )}
           </div>
         </div>
-
-        {(l.description || l.attributes.length > 0) && (
-          <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[1.2fr_1fr]">
-            {l.description && (
-              <section>
-                <h2 className="mb-3 font-heading text-xl font-bold text-foreground">Description</h2>
-                <p className="whitespace-pre-line text-sm leading-6 text-body">{l.description}</p>
-              </section>
-            )}
-            {l.attributes.length > 0 && (
-              <section>
-                <h2 className="mb-3 font-heading text-xl font-bold text-foreground">Specifications</h2>
-                <dl className="divide-y divide-border rounded-lg border border-border text-sm">
-                  {l.attributes.map((a) => (
-                    <div key={a.code} className="flex justify-between gap-4 px-4 py-2.5">
-                      <dt className="text-muted-foreground">{a.name}</dt>
-                      <dd className="text-right text-foreground">{a.textValue ?? (a.numValue !== null ? formatNumber(a.numValue) : "—")}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </section>
-            )}
-          </div>
-        )}
       </div>
+      <div ref={endRef} aria-hidden />
       <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={searchHref({ categoryId: l.categoryId })} />
+      <ListingMobileBar listing={cartListing} panelRef={panelRef} endRef={endRef} />
     </>
   );
 }

@@ -103,4 +103,46 @@ describe("SearchPage", () => {
     expect(await screen.findByText("Login")).toBeInTheDocument();
     expect(router.state.location.search).toContain("next=");
   });
+
+  it("shows a removable chip per applied filter, resolving names from facets", async () => {
+    mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([card("1", "Copper cable")]) }) }]);
+    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?q=copper&categoryId=c-1&brandId=b-1&stateOrEmirate=Dubai&inStockOnly=true&sort=date_desc");
+    await screen.findByText("Copper cable");
+    const chips = screen.getByRole("group", { name: "Applied filters" });
+    expect(within(chips).getByText("Emirates Steel")).toBeInTheDocument();
+    expect(within(chips).getByText("Steel")).toBeInTheDocument();
+
+    await userEvent.click(within(chips).getByRole("button", { name: "Remove filter: Emirates Steel" }));
+    expect(router.state.location.search).not.toContain("brandId");
+    expect(router.state.location.search).toContain("categoryId=c-1");
+
+    await userEvent.click(within(screen.getByRole("group", { name: "Applied filters" })).getByRole("button", { name: "Clear all" }));
+    expect(router.state.location.search).toBe("?sort=date_desc");
+  });
+
+  it("switches to list view and remembers the choice", async () => {
+    localStorage.removeItem("stockout.market.searchView");
+    mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([card("1", "Copper cable")]) }) }]);
+    renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search");
+    await screen.findByText("Copper cable");
+    const listBtn = screen.getByRole("button", { name: "List view" });
+    expect(listBtn).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(listBtn);
+    expect(listBtn).toHaveAttribute("aria-pressed", "true");
+    expect(localStorage.getItem("stockout.market.searchView")).toBe("list");
+    expect(screen.getByRole("button", { name: "Save Copper cable" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Copper cable" })).toHaveAttribute("href", "/listings/1");
+    localStorage.removeItem("stockout.market.searchView");
+  });
+
+  it("opens the mobile filters sheet with a live result count", async () => {
+    mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([card("1", "Copper cable")]) }) }]);
+    renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search");
+    await screen.findByText("Copper cable");
+    await userEvent.click(screen.getByRole("button", { name: /^Filters/ }));
+    const sheet = await screen.findByRole("dialog", { name: /Filters/ });
+    expect(within(sheet).getByLabelText(/Emirates Steel/)).toBeInTheDocument();
+    await userEvent.click(within(sheet).getByRole("button", { name: "Show 30 results" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
 });

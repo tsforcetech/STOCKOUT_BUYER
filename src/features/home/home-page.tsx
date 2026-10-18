@@ -1,12 +1,53 @@
 import * as React from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon, SealCheckIcon, SparkleIcon } from "@phosphor-icons/react";
+import { SealCheckIcon, SparkleIcon } from "@phosphor-icons/react";
 import { homeHeroUrl } from "@/assets/brand";
 import { SearchBox } from "@/features/search/components/search-box";
 import { searchHref } from "@/features/search/lib/search-params";
 import { LocationPicker } from "@/app/layouts/site-header";
 import { ListingRail } from "@/features/listings/components/listing-rail";
+import { SnapshotCard } from "@/features/favorites/snapshot-card";
+import { useFavorites } from "@/lib/favorites/favorites-context";
+import { CubeIcon, DropIcon, FireIcon, GearSixIcon, HardHatIcon, LightningIcon, PackageIcon, PipeIcon, PlugIcon, StackIcon, type Icon } from "@phosphor-icons/react";
+
+/** Picks a category icon from its name (the category API has no icon field). */
+const CATEGORY_ICONS: Array<[RegExp, Icon]> = [
+  [/electr|cable|switch|wire/i, LightningIcon],
+  [/plug|socket|contactor/i, PlugIcon],
+  [/pipe|plumb|ppr|hdpe|upvc|drain/i, PipeIcon],
+  [/valve|water|fluid/i, DropIcon],
+  [/fitting|flange|coupling|steel|metal/i, GearSixIcon],
+  [/safety|ppe|helmet/i, HardHatIcon],
+  [/fire/i, FireIcon],
+  [/tile|brick|block|stone|board|panel/i, StackIcon],
+  [/box|enclosure|pack/i, PackageIcon],
+];
+function categoryIcon(name: string): Icon {
+  return CATEGORY_ICONS.find(([re]) => re.test(name))?.[1] ?? CubeIcon;
+}
+
+function RecentlyViewed() {
+  const { recent } = useFavorites();
+  if (recent.length === 0) return null;
+  return (
+    <section className="mx-auto max-w-[1336px] px-4 py-6 sm:px-6" aria-label="Recently viewed">
+      <div className="mb-4 flex items-end justify-between gap-3">
+        <h2 className="font-heading text-xl font-bold text-foreground sm:text-[28px] sm:leading-9">Recently viewed</h2>
+        <Link to="/saved" className="text-sm text-foreground underline underline-offset-4">
+          See all
+        </Link>
+      </div>
+      <ul className="-mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2 sm:mx-0 sm:px-0 [scrollbar-width:thin]">
+        {recent.slice(0, 10).map((r) => (
+          <li key={r.listingId} className="w-[200px] shrink-0 snap-start sm:w-[220px]">
+            <SnapshotCard listing={r} />
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
 import { catalogService } from "@/services/catalog.service";
 import { useAuth } from "@/lib/auth/auth-context";
 
@@ -121,16 +162,23 @@ export default function HomePage() {
         {(tree.data?.length ?? 0) > 0 && (
           <section className="mx-auto max-w-[1336px] px-4 py-6 sm:px-6" aria-label="Shop by category">
             <h2 className="mb-4 font-heading text-xl font-bold text-foreground sm:text-[28px] sm:leading-9">Shop by category</h2>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              {tree.data!.slice(0, 12).map((c) => (
-                <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="group flex h-20 flex-col justify-between rounded-lg border border-border bg-cream p-3 transition-colors hover:bg-action-soft">
-                  <span className="line-clamp-2 text-sm font-medium leading-5 text-foreground">{c.name}</span>
-                  <ArrowRightIcon className="size-4 self-end text-foreground transition-transform group-hover:translate-x-1" />
-                </Link>
-              ))}
+            <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+              {tree.data!.slice(0, 16).map((c) => {
+                const CatIcon = categoryIcon(c.name);
+                return (
+                  <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="group flex flex-col items-center gap-2 rounded-xl p-2 text-center transition-colors hover:bg-cream">
+                    <span className="flex size-16 items-center justify-center rounded-full bg-cream ring-1 ring-border transition-all group-hover:bg-action group-hover:text-action-foreground group-hover:ring-action-border sm:size-[72px]">
+                      <CatIcon className="size-7 text-foreground group-hover:text-action-foreground sm:size-8" />
+                    </span>
+                    <span className="line-clamp-2 text-xs font-medium leading-4 text-foreground sm:text-sm sm:leading-5">{c.name}</span>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}
+
+        <RecentlyViewed />
 
         <ListingRail title="Newly Added" query={{ sort: "date_desc" }} viewAllHref={searchHref({ sort: "date_desc" })} />
         <ListingRail

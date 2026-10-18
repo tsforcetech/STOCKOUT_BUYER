@@ -7,6 +7,7 @@ import { AuthProvider } from "@/lib/auth/auth-context";
 import { ThemeProvider } from "@/app/providers/theme";
 import { SellerModeProvider } from "@/lib/seller/seller-context";
 import { CartProvider } from "@/lib/cart/cart-context";
+import { FavoritesProvider } from "@/lib/favorites/favorites-context";
 import { Toaster } from "sonner";
 
 export function renderWithApp(routes: RouteObject[], initialPath: string, extra?: React.ReactNode) {
@@ -19,7 +20,9 @@ export function renderWithApp(routes: RouteObject[], initialPath: string, extra?
           <AuthProvider>
             <SellerModeProvider>
               <CartProvider>
-                <RouterProvider router={router} />
+                <FavoritesProvider>
+                  <RouterProvider router={router} />
+                </FavoritesProvider>
               </CartProvider>
             </SellerModeProvider>
           </AuthProvider>

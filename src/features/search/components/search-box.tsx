@@ -78,7 +78,7 @@ export function SearchBox({
           variant === "hero" ? "flex-col gap-0 overflow-hidden rounded-xl lg:h-[76px] lg:flex-row lg:items-stretch" : "h-9 items-center gap-2 rounded-full border border-secondary-border pl-3 pr-2",
         )}
       >
-        <div className={cn("flex min-w-0 items-center gap-3", variant === "hero" ? "h-16 flex-1 px-5 lg:h-auto" : "contents")}>
+        <div className={cn("flex min-w-0 items-center gap-3", variant === "hero" ? "h-16 shrink-0 px-5 lg:h-auto lg:flex-1" : "contents")}>
         <MagnifyingGlassIcon className={cn("shrink-0 text-foreground", variant === "hero" ? "size-6" : "size-[18px]")} aria-hidden />
         <input
           value={text}
