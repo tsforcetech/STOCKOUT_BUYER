@@ -132,7 +132,7 @@ function LoginPopover() {
             <>
               <p className="text-sm text-foreground">Sell your surplus materials by getting a verified seller account.</p>
               <Button asChild className="mt-3 h-9 w-full">
-                <Link to="/login?next=%2Fseller">Login</Link>
+                <Link to="/login?as=seller&next=%2Fseller">Seller login</Link>
               </Button>
               <p className="mt-2 text-xs text-foreground">
                 Want to find out more?{" "}
@@ -145,6 +145,29 @@ function LoginPopover() {
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
+  );
+}
+
+/** Always-visible seller entry point in the header (easy seller login). */
+function SellerEntry({ compact = false }: { compact?: boolean }) {
+  const { status, actor } = useAuth();
+  const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
+  const target =
+    status === "authenticated"
+      ? hasSeller
+        ? { to: "/seller", label: "Seller portal" }
+        : { to: "/seller/onboarding", label: "Start selling" }
+      : { to: "/login?as=seller&next=%2Fseller", label: "Seller login" };
+  return (
+    <Link
+      to={target.to}
+      className={cn(
+        "inline-flex h-8 items-center gap-1.5 rounded-full border border-foreground px-3 text-sm text-foreground transition-colors hover:bg-foreground hover:text-surface",
+        compact && "w-full justify-center",
+      )}
+    >
+      <StorefrontIcon className="size-4" /> {target.label}
+    </Link>
   );
 }
 
@@ -262,6 +285,11 @@ export function SiteHeader() {
             <NavLink to="/search" className="flex size-8 items-center justify-center rounded-sm border border-foreground lg:hidden" aria-label="Search">
               <MagnifyingGlassIcon className="size-4" />
             </NavLink>
+            {status !== "initializing" && (
+              <span className="hidden sm:inline-flex">
+                <SellerEntry />
+              </span>
+            )}
             {status === "authenticated" ? <AccountMenu /> : status === "anonymous" ? <LoginPopover /> : <span className="h-8 w-20 animate-pulse rounded-full bg-cream-strong" />}
           </div>
         </div>
@@ -278,6 +306,9 @@ export function SiteHeader() {
           <nav aria-label="Mobile" className="mt-4 flex flex-col gap-1 text-base">
             <Link to="/categories" className="rounded-md px-2 py-2 hover:bg-cream-strong">Marketplace</Link>
             <Link to="/sell" className="rounded-md px-2 py-2 hover:bg-cream-strong">Sell a Product</Link>
+            <div className="mt-2 sm:hidden">
+              <SellerEntry compact />
+            </div>
           </nav>
         </div>
       )}
