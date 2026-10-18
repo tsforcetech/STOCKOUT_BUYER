@@ -1,6 +1,4 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router";
-import { toast } from "sonner";
 import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { useCart, clampQuantity } from "@/lib/cart/cart-context";
@@ -21,7 +19,6 @@ export interface AddToCartListing {
 /** Quantity stepper + "Add to cart" on the listing page. */
 export function AddToCart({ listing }: { listing: AddToCartListing }) {
   const cart = useCart();
-  const navigate = useNavigate();
   const [qty, setQty] = React.useState(1);
   const inCart = cart.items.find((i) => i.listingId === listing.listingId);
   const max = listing.sellableQuantity;
@@ -44,7 +41,7 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
       quantity: qty,
       maxQuantity: max,
     });
-    toast.success("Added to cart", { action: { label: "View cart", onClick: () => navigate("/cart") } });
+    cart.setOpen(true);
   };
 
   return (
@@ -82,9 +79,9 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
       {inCart && (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-success-soft-foreground">
           <CheckIcon className="size-4" /> {formatNumber(inCart.quantity)} {listing.unitSymbol ?? ""} in your cart ·{" "}
-          <Link to="/cart" className="underline underline-offset-4">
+          <button type="button" onClick={() => cart.setOpen(true)} className="cursor-pointer underline underline-offset-4">
             View cart
-          </Link>
+          </button>
         </p>
       )}
     </div>

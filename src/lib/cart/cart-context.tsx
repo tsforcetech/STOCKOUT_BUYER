@@ -28,6 +28,9 @@ interface CartContextValue {
   remove: (listingId: string) => void;
   clear: () => void;
   has: (listingId: string) => boolean;
+  /** Side drawer (mini cart) state. */
+  isOpen: boolean;
+  setOpen: (open: boolean) => void;
 }
 
 const KEY = "stockout.market.cart";
@@ -63,6 +66,7 @@ export function clampQuantity(quantity: number, max: number): number {
 
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = React.useState<CartItem[]>(read);
+  const [isOpen, setOpen] = React.useState(false);
 
   // Keep tabs in sync.
   React.useEffect(() => {
@@ -97,8 +101,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       remove: (listingId) => update((prev) => prev.filter((i) => i.listingId !== listingId)),
       clear: () => update(() => []),
       has: (listingId) => items.some((i) => i.listingId === listingId),
+      isOpen,
+      setOpen,
     }),
-    [items, update],
+    [items, update, isOpen],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

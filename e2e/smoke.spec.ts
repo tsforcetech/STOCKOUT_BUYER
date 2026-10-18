@@ -194,12 +194,20 @@ test("buyer adds a listing to the cart; checkout waits for online ordering", asy
   await expect(page.getByRole("heading", { name: card.title, level: 1 })).toBeVisible();
   await page.getByRole("button", { name: "Increase quantity" }).click();
   await page.getByRole("button", { name: "Add to cart" }).click();
-  await expect(page.getByRole("link", { name: "Cart, 1 item" })).toBeVisible();
-  await page.getByRole("link", { name: "Cart, 1 item" }).click();
+  // Adding opens the side cart; the shopper stays on the listing page.
+  const drawer = page.getByRole("dialog", { name: /Your cart/ });
+  await expect(drawer).toBeVisible();
+  await expect(drawer.getByText(card.title)).toBeVisible();
+  await expect(page).toHaveURL(new RegExp(`/listings/${card.listingId}$`));
+  await drawer.getByRole("button", { name: "Keep shopping" }).click();
+  await expect(drawer).toBeHidden();
+  // Header icon re-opens it; only "Continue" goes to the next page.
+  await page.getByRole("button", { name: "Cart, 1 item" }).click();
+  await page.getByRole("dialog", { name: /Your cart/ }).getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/cart$/);
   await expect(page.getByRole("heading", { name: "Cart", level: 1 })).toBeVisible();
-  await expect(page.getByRole("link", { name: card.title }).last()).toBeVisible();
   await expect(page.getByText("Subtotal (AED)")).toBeVisible();
   await expect(page.getByRole("button", { name: "Checkout" })).toBeDisabled();
   await page.reload();
-  await expect(page.getByRole("link", { name: "Cart, 1 item" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Cart, 1 item" })).toBeVisible();
 });

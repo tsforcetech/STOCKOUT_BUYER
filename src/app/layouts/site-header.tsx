@@ -145,17 +145,13 @@ function SellMenu({ onNavigate }: { onNavigate: () => void }) {
 }
 
 function CartButton() {
-  const { count } = useCart();
+  const { count, setOpen } = useCart();
   return (
-    <NavLink
-      to="/cart"
+    <button
+      type="button"
+      onClick={() => setOpen(true)}
       aria-label={count ? `Cart, ${count} item${count === 1 ? "" : "s"}` : "Cart"}
-      className={({ isActive }) =>
-        cn(
-          "relative flex size-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:border-foreground",
-          isActive && "border-foreground",
-        )
-      }
+      className="relative flex size-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-border-strong bg-surface text-foreground transition-colors hover:border-foreground"
     >
       <ShoppingCartSimpleIcon className="size-5" />
       {count > 0 && (
@@ -163,7 +159,7 @@ function CartButton() {
           {count > 99 ? "99+" : count}
         </span>
       )}
-    </NavLink>
+    </button>
   );
 }
 

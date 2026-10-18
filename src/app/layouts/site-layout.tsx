@@ -4,6 +4,7 @@ import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
+import { CartDrawer } from "@/features/cart/cart-drawer";
 
 /** Public marketplace layout (Figma Buyer Screens): cream header with mega menus, dark footer. */
 export function SiteLayout() {
@@ -25,6 +26,7 @@ export function SiteLayout() {
         </ErrorBoundary>
       </main>
       <SiteFooter />
+      <CartDrawer />
     </div>
   );
 }
