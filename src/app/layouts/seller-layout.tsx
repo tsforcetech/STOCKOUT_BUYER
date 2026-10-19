@@ -1,6 +1,18 @@
 import * as React from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ArrowLeftIcon, CaretUpDownIcon, IdentificationCardIcon, ListIcon, ListNumbersIcon, PlusIcon, ReceiptIcon, SquaresFourIcon, UploadSimpleIcon, UserIcon, XIcon } from "@phosphor-icons/react";
+import {
+  ArrowLeftIcon,
+  CaretUpDownIcon,
+  IdentificationCardIcon,
+  ListIcon,
+  ListNumbersIcon,
+  PlusIcon,
+  ReceiptIcon,
+  SquaresFourIcon,
+  UploadSimpleIcon,
+  UserIcon,
+  XIcon,
+} from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
@@ -11,10 +23,19 @@ import { ThemeSwitch } from "./site-header";
 
 const NAV = [
   { label: "Dashboard", to: "/seller", icon: SquaresFourIcon, end: true },
-  { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon, notUnder: "/seller/listings/bulk" },
+  {
+    label: "Listings",
+    to: "/seller/listings",
+    icon: ListNumbersIcon,
+    notUnder: "/seller/listings/bulk",
+  },
   { label: "Bulk upload", to: "/seller/listings/bulk", icon: UploadSimpleIcon },
   { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
-  { label: "Business & verification", to: "/seller/business", icon: IdentificationCardIcon },
+  {
+    label: "Business & verification",
+    to: "/seller/business",
+    icon: IdentificationCardIcon,
+  },
   { label: "My account", to: "/account", icon: UserIcon },
 ];
 
@@ -37,11 +58,15 @@ function SellerSwitcher() {
             </option>
           ))}
         </select>
-        {sellers.length > 1 && <CaretUpDownIcon className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" />}
+        {sellers.length > 1 && (
+          <CaretUpDownIcon className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" />
+        )}
       </label>
       <div className="mt-2 flex flex-wrap gap-1">
         <StatusBadge value={activeSeller.verificationStatus} />
-        {activeSeller.status !== "ACTIVE" && <StatusBadge value={activeSeller.status} />}
+        {activeSeller.status !== "ACTIVE" && (
+          <StatusBadge value={activeSeller.status} />
+        )}
       </div>
     </div>
   );
@@ -61,10 +86,13 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               className={({ isActive: matched }) => {
                 // "Listings" covers its editor pages but not the separate Bulk upload page.
                 const notUnder = "notUnder" in item ? item.notUnder : undefined;
-                const isActive = matched && !(notUnder && pathname.startsWith(notUnder));
+                const isActive =
+                  matched && !(notUnder && pathname.startsWith(notUnder));
                 return cn(
                   "flex h-[34px] items-center gap-2 rounded-md border px-3 text-sm transition-colors",
-                  isActive ? "border-transparent bg-ink font-medium text-ink-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                  isActive
+                    ? "border-transparent bg-ink font-medium text-ink-foreground"
+                    : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
                 );
               }}
             >
@@ -73,7 +101,11 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
           </li>
         ))}
       </ul>
-      <Link to="/seller/listings/new" onClick={onNavigate} className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover">
+      <Link
+        to="/seller/listings/new"
+        onClick={onNavigate}
+        className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover"
+      >
         <PlusIcon className="size-4" /> New listing
       </Link>
     </nav>
@@ -91,27 +123,56 @@ export function SellerLayout() {
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
       <header className="sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-border bg-surface px-4 sm:px-6">
-        <button type="button" onClick={() => setOpen((o) => !o)} className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden" aria-label="Seller menu" aria-expanded={open}>
-          {open ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden"
+          aria-label="Seller menu"
+          aria-expanded={open}
+        >
+          {open ? (
+            <XIcon className="size-6" />
+          ) : (
+            <ListIcon className="size-6" />
+          )}
         </button>
         <Link to="/seller" className="flex items-center gap-2">
           <Logo />
-          <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-action">Seller</span>
+          <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-action">
+            Seller
+          </span>
         </Link>
-        <Link to="/" className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-secondary-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-muted">
-          <ArrowLeftIcon className="size-4" /> <span className="hidden sm:inline">Back to marketplace</span><span className="sm:hidden">Shop</span>
+        <Link
+          to="/"
+          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-secondary-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-muted"
+        >
+          <ArrowLeftIcon className="size-4" />{" "}
+          <span className="hidden sm:inline">Back to marketplace</span>
+          <span className="sm:hidden">Shop</span>
         </Link>
       </header>
       <div className="flex flex-1">
-        <aside className={cn("w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)]", open ? "fixed inset-y-[64px] left-0 z-30 flex shadow-raised" : "hidden")}>
+        <aside
+          className={cn(
+            "w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)]",
+            open
+              ? "fixed inset-y-[64px] left-0 z-30 flex shadow-raised"
+              : "hidden",
+          )}
+        >
           <SellerSwitcher />
           <SellerNav onNavigate={() => setOpen(false)} />
           <div className="mt-auto border-t border-border p-4">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">Theme</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+              Theme
+            </p>
             <ThemeSwitch />
           </div>
         </aside>
-        <main id="main" className="min-w-0 flex-1 bg-surface-muted px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+        <main
+          id="main"
+          className="min-w-0 flex-1 bg-surface-muted px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+        >
           <div className="mx-auto w-full max-w-[1200px]">
             <ErrorBoundary resetKey={location.pathname}>
               <React.Suspense fallback={<PageSkeleton />}>

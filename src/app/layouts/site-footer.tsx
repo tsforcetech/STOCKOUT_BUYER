@@ -4,9 +4,29 @@ import { Logo } from "@/components/common/logo";
 /** Figma home footer (dark band with link columns and oversized wordmark). Only links to pages that exist. */
 export function SiteFooter() {
   const cols = [
-    { title: "Marketplace", links: [["Browse stock", "/search"], ["All categories", "/categories"]] },
-    { title: "For Businesses", links: [["Sell surplus", "/sell"], ["Open seller account", "/seller/onboarding"], ["Seller portal", "/seller"]] },
-    { title: "Account", links: [["Log in", "/login"], ["Register", "/register"], ["Saved searches", "/account/saved-searches"]] },
+    {
+      title: "Marketplace",
+      links: [
+        ["Browse stock", "/search"],
+        ["All categories", "/categories"],
+      ],
+    },
+    {
+      title: "For Businesses",
+      links: [
+        ["Sell surplus", "/sell"],
+        ["Open seller account", "/seller/onboarding"],
+        ["Seller portal", "/seller"],
+      ],
+    },
+    {
+      title: "Account",
+      links: [
+        ["Log in", "/login"],
+        ["Register", "/register"],
+        ["Saved searches", "/account/saved-searches"],
+      ],
+    },
   ] as const;
   return (
     <footer className="bg-[#111110] text-white">
@@ -15,7 +35,9 @@ export function SiteFooter() {
           <div>
             <p className="text-sm font-medium text-action">Our Mission</p>
             <p className="mt-3 max-w-xs text-xs leading-5 text-white/70">
-              Usable materials shouldn't end up in landfill. StockOut connects the businesses that have surplus stock with the people who need it.
+              Usable materials shouldn't end up in landfill. StockOut connects
+              the businesses that have surplus stock with the people who need
+              it.
             </p>
           </div>
           {cols.map((c) => (
@@ -33,12 +55,17 @@ export function SiteFooter() {
             </div>
           ))}
         </div>
-        <div className="mt-16 select-none font-heading text-[clamp(64px,16vw,220px)] font-bold leading-none tracking-tight text-white" aria-hidden>
+        <div
+          className="mt-16 select-none font-heading text-[clamp(64px,16vw,220px)] font-bold leading-none tracking-tight text-white"
+          aria-hidden
+        >
           <span className="[&_*]:!text-white">
             <Logo className="!h-auto !text-[length:inherit] !text-white" />
           </span>
         </div>
-        <p className="mt-6 text-xs text-white/50">© {new Date().getFullYear()} StockOut. All rights reserved.</p>
+        <p className="mt-6 text-xs text-white/50">
+          © {new Date().getFullYear()} StockOut. All rights reserved.
+        </p>
       </div>
     </footer>
   );

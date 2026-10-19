@@ -4,7 +4,10 @@ import { configureAuthHandlers, refreshSession } from "@/lib/api/client";
 import { isApiError } from "@/lib/api/errors";
 import { authService } from "@/services/auth.service";
 import { marketplaceService } from "@/services/marketplace.service";
-import type { CurrentIdentityResponse, LoginResponse } from "@/api/types/identity";
+import type {
+  CurrentIdentityResponse,
+  LoginResponse,
+} from "@/api/types/identity";
 import type { MarketplaceCurrentActorResponse } from "@/api/types/user-organization";
 import { decodeJwtPayload, REFRESH_KEY, tokenStore } from "./token-store";
 
@@ -16,7 +19,9 @@ export interface MfaChallenge {
   emailOrMobile: string;
 }
 
-export type SignInResult = { kind: "signed-in" } | { kind: "mfa-required"; challenge: MfaChallenge };
+export type SignInResult =
+  | { kind: "signed-in" }
+  | { kind: "mfa-required"; challenge: MfaChallenge };
 
 interface AuthContextValue {
   status: AuthStatus;
@@ -35,7 +40,11 @@ interface AuthContextValue {
   endSessionLocally: (reason: "expired" | "signed-out") => void;
   reloadActor: () => Promise<void>;
   /** Signs in with tokens issued by another flow (registration confirmation, invitation). */
-  signInWithTokens: (tokens: { accessToken: string; refreshToken: string; expiresIn: number }) => Promise<void>;
+  signInWithTokens: (tokens: {
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+  }) => Promise<void>;
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null);
@@ -47,21 +56,35 @@ const AuthContext = React.createContext<AuthContextValue | null>(null);
  */
 async function exchangeRefreshToken(): Promise<boolean> {
   const locks = typeof navigator !== "undefined" ? navigator.locks : undefined;
-  if (locks?.request) return locks.request("stockout.market.refresh", () => doExchangeRefreshToken());
+  if (locks?.request)
+    return locks.request("stockout.market.refresh", () =>
+      doExchangeRefreshToken(),
+    );
   return doExchangeRefreshToken();
 }
 
 async function doExchangeRefreshToken(): Promise<boolean> {
-  const refreshToken = tokenStore.getPersistedRefreshToken();
-  if (!refreshToken) return false;
-  try {
-    const res = await authService.refresh(refreshToken);
-    tokenStore.set(res.accessToken, res.refreshToken, res.expiresIn);
-    return true;
-  } catch (error) {
-    // 401 = invalid/expired/reused refresh token. Network errors keep the token for a later retry.
-    if (isApiError(error) && (error.status === 401 || error.status === 400)) tokenStore.clear();
-    return false;
+  for (let attempt = 0; ; attempt++) {
+    const refreshToken = tokenStore.getPersistedRefreshToken();
+    if (!refreshToken) return false;
+    try {
+      const res = await authService.refresh(refreshToken);
+      tokenStore.set(res.accessToken, res.refreshToken, res.expiresIn);
+      return true;
+    } catch (error) {
+      // Gateway limits token refresh to 10/min per IP (shared by everyone behind one office IP). A 429 is
+      // temporary: wait as told and retry instead of treating the user as signed out.
+      if (isApiError(error) && error.status === 429 && attempt < 2) {
+        await new Promise((r) =>
+          setTimeout(r, Math.min(30, error.retryAfterSeconds ?? 10) * 1000),
+        );
+        continue;
+      }
+      // 401 = invalid/expired/reused refresh token. Network errors keep the token for a later retry.
+      if (isApiError(error) && (error.status === 401 || error.status === 400))
+        tokenStore.clear();
+      return false;
+    }
   }
 }
 
@@ -69,9 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const [status, setStatus] = React.useState<AuthStatus>("initializing");
   const [user, setUser] = React.useState<CurrentIdentityResponse | null>(null);
-  const [actor, setActor] = React.useState<MarketplaceCurrentActorResponse | null>(null);
+  const [actor, setActor] =
+    React.useState<MarketplaceCurrentActorResponse | null>(null);
   const [actorError, setActorError] = React.useState<unknown>(null);
-  const [endReason, setEndReason] = React.useState<"expired" | "signed-out" | null>(null);
+  const [endReason, setEndReason] = React.useState<
+    "expired" | "signed-out" | null
+  >(null);
 
   const endSessionLocally = React.useCallback(
     (reason: "expired" | "signed-out") => {
@@ -123,7 +149,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Another tab signed out (shared refresh token removed): end this tab's session too.
   React.useEffect(() => {
     const onStorage = (e: StorageEvent) => {
-      if (e.key === REFRESH_KEY && e.newValue === null && tokenStore.get()) endSessionLocally("signed-out");
+      if (e.key === REFRESH_KEY && e.newValue === null && tokenStore.get())
+        endSessionLocally("signed-out");
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -147,10 +174,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await loadAccess();
         if (!cancelled) setStatus("authenticated");
       } catch (error) {
-        if (cancelled || (isApiError(error) && error.kind === "aborted")) return;
+        if (cancelled || (isApiError(error) && error.kind === "aborted"))
+          return;
         // Only an explicit auth rejection ends the session. Network/server failures keep the refresh
         // token so the next load can restore it (e.g. a reload while this request was in flight).
-        if (isApiError(error) && (error.kind === "unauthorized" || error.kind === "forbidden")) endSessionLocally("expired");
+        if (
+          isApiError(error) &&
+          (error.kind === "unauthorized" || error.kind === "forbidden")
+        )
+          endSessionLocally("expired");
         else setStatus("anonymous");
       }
     })();
@@ -163,8 +195,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async (emailOrMobile: string, password: string): Promise<SignInResult> => {
       const res = await authService.login({ emailOrMobile, password });
       if (res.mfaRequired) {
-        if (!res.userId || !res.mfaChallengeToken) throw new Error("The server requested verification but did not return a challenge.");
-        return { kind: "mfa-required", challenge: { userId: res.userId, challengeToken: res.mfaChallengeToken, emailOrMobile } };
+        if (!res.userId || !res.mfaChallengeToken)
+          throw new Error(
+            "The server requested verification but did not return a challenge.",
+          );
+        return {
+          kind: "mfa-required",
+          challenge: {
+            userId: res.userId,
+            challengeToken: res.mfaChallengeToken,
+            emailOrMobile,
+          },
+        };
       }
       await completeSignIn(res);
       return { kind: "signed-in" };
@@ -174,18 +216,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifyMfa = React.useCallback(
     async (challenge: MfaChallenge, code: string) => {
-      const res = await authService.verifyMfa({ userId: challenge.userId, challengeToken: challenge.challengeToken, code, recoveryCode: null });
+      const res = await authService.verifyMfa({
+        userId: challenge.userId,
+        challengeToken: challenge.challengeToken,
+        code,
+        recoveryCode: null,
+      });
       await completeSignIn(res);
     },
     [completeSignIn],
   );
 
-  const resendMfa = React.useCallback(async (challenge: MfaChallenge): Promise<MfaChallenge> => {
-    const res = await authService.resendMfa(challenge.userId, challenge.challengeToken);
-    // The old challenge is cancelled; verification must use the new id.
-    if (!res.challengeId) throw new Error("A new code could not be issued. Please sign in again.");
-    return { ...challenge, challengeToken: res.challengeId };
-  }, []);
+  const resendMfa = React.useCallback(
+    async (challenge: MfaChallenge): Promise<MfaChallenge> => {
+      const res = await authService.resendMfa(
+        challenge.userId,
+        challenge.challengeToken,
+      );
+      // The old challenge is cancelled; verification must use the new id.
+      if (!res.challengeId)
+        throw new Error(
+          "A new code could not be issued. Please sign in again.",
+        );
+      return { ...challenge, challengeToken: res.challengeId };
+    },
+    [],
+  );
 
   const signOut = React.useCallback(async () => {
     // POST /auth/logout does not revoke the session (backend defect), so revoke the current
@@ -203,7 +259,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [endSessionLocally]);
 
   const signInWithTokens = React.useCallback(
-    async (tokens: { accessToken: string; refreshToken: string; expiresIn: number }) => {
+    async (tokens: {
+      accessToken: string;
+      refreshToken: string;
+      expiresIn: number;
+    }) => {
       tokenStore.set(tokens.accessToken, tokens.refreshToken, tokens.expiresIn);
       await loadAccess();
       setEndReason(null);
@@ -213,8 +273,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = React.useMemo<AuthContextValue>(
-    () => ({ status, user, actor, endReason, actorError, signIn, verifyMfa, resendMfa, signOut, endSessionLocally, reloadActor: loadActor, signInWithTokens }),
-    [status, user, actor, endReason, actorError, signIn, verifyMfa, resendMfa, signOut, endSessionLocally, loadActor, signInWithTokens],
+    () => ({
+      status,
+      user,
+      actor,
+      endReason,
+      actorError,
+      signIn,
+      verifyMfa,
+      resendMfa,
+      signOut,
+      endSessionLocally,
+      reloadActor: loadActor,
+      signInWithTokens,
+    }),
+    [
+      status,
+      user,
+      actor,
+      endReason,
+      actorError,
+      signIn,
+      verifyMfa,
+      resendMfa,
+      signOut,
+      endSessionLocally,
+      loadActor,
+      signInWithTokens,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
