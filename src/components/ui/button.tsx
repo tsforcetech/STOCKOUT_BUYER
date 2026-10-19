@@ -15,7 +15,8 @@ export const buttonVariants = cva(
   {
     variants: {
       variant: {
-        primary: "rounded-full bg-primary text-primary-foreground hover:bg-primary-hover",
+        // Disabled: a quiet grey pill instead of a half-transparent one (lime-on-grey text was hard to read).
+        primary: "rounded-full bg-primary text-primary-foreground hover:bg-primary-hover disabled:not-aria-busy:bg-border-strong disabled:not-aria-busy:text-muted-foreground disabled:not-aria-busy:opacity-100",
         action: "rounded-md border border-transparent bg-ink text-ink-foreground hover:bg-ink-hover",
         secondary: "rounded-md border border-secondary-border bg-surface text-foreground hover:bg-surface-muted",
         ghost: "rounded-md text-foreground hover:bg-surface-muted",

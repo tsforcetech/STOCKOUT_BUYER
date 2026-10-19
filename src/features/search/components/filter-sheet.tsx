@@ -30,12 +30,12 @@ export function FilterSheet({
           className="fixed inset-0 z-50 flex flex-col bg-surface focus:outline-none data-[state=open]:animate-[fade-in_150ms_ease-out]"
           aria-describedby={undefined}
         >
-          <header className="flex items-center justify-between gap-3 border-b border-border bg-cream px-4 py-3">
+          <header className="flex items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
             <DialogPrimitive.Title className="flex items-center gap-2 font-heading text-xl font-bold text-foreground">
               Filters
               {activeCount > 0 && <span className="rounded-full bg-action px-2 py-0.5 text-xs text-action-foreground">{activeCount}</span>}
             </DialogPrimitive.Title>
-            <DialogPrimitive.Close className="flex size-10 cursor-pointer items-center justify-center rounded-full text-foreground hover:bg-cream-strong" aria-label="Close filters">
+            <DialogPrimitive.Close className="flex size-10 cursor-pointer items-center justify-center rounded-full text-foreground hover:bg-surface-muted" aria-label="Close filters">
               <XIcon className="size-5" />
             </DialogPrimitive.Close>
           </header>

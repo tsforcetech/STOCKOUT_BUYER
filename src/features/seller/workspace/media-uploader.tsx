@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ArrowClockwiseIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, FileTextIcon, ImagesIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/forms/form-field";
@@ -8,6 +8,8 @@ import { formatBytes } from "@/lib/utils/format";
 import { newId } from "@/lib/utils/id";
 import { filesService } from "@/services/files.service";
 import { LISTING_MEDIA_FILE_PURPOSE, LISTING_MEDIA_LIMITS as M, type ListingMediaType } from "@/api/types/seller-listings";
+import { DropZone } from "../bulk/drop-zone";
+import { FilePicker } from "../components/file-picker";
 import { UploadProgress } from "../components/upload-progress";
 import { sellerErrorMessage } from "../lib/errors";
 
@@ -96,53 +98,55 @@ export function MediaUploader({ disabled, attach, imageSlots, documentSlots }: P
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-lg border border-dashed border-secondary-border p-4">
-          <p className="font-medium text-foreground">Add photos</p>
-          <p className="mb-3 text-xs text-muted-foreground">JPG, PNG or WebP · up to {formatBytes(M.IMAGE_MAX_BYTES)} each · {Math.max(0, imageSlots)} slot{imageSlots === 1 ? "" : "s"} left</p>
-          <Button asChild variant="secondary" size="sm" className={disabled || imageSlots <= 0 ? "pointer-events-none opacity-50" : undefined}>
-            <label>
-              <UploadSimpleIcon /> Choose images
-              <input
-                type="file"
-                className="sr-only"
-                multiple
-                accept={M.IMAGE_MIME_TYPES.join(",")}
-                disabled={disabled || imageSlots <= 0}
-                onChange={(e) => {
-                  enqueue(Array.from(e.target.files ?? []), "IMAGE", null);
-                  e.target.value = "";
-                }}
-              />
-            </label>
-          </Button>
-        </div>
-        <div className="space-y-3 rounded-lg border border-dashed border-secondary-border p-4">
-          <div>
-            <p className="font-medium text-foreground">Add a document</p>
-            <p className="text-xs text-muted-foreground">Spec sheet, certificate, invoice… PDF, JPG or PNG · up to {formatBytes(M.DOCUMENT_MAX_BYTES)}</p>
+        <DropZone
+          id="listing-photos"
+          label="Add photos"
+          hint={`Drag photos here or choose them. JPG, PNG or WebP · up to ${formatBytes(M.IMAGE_MAX_BYTES)} each · ${Math.max(0, imageSlots)} slot${imageSlots === 1 ? "" : "s"} left`}
+          accept={M.IMAGE_MIME_TYPES.join(",")}
+          multiple
+          disabled={disabled || imageSlots <= 0}
+          icon={ImagesIcon}
+          buttonLabel="Choose photos"
+          onFiles={(files) => enqueue(files, "IMAGE", null)}
+        />
+        <div className="flex min-w-0 flex-col gap-3 rounded-xl border border-border p-4">
+          <div className="flex items-start gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-foreground ring-1 ring-border" aria-hidden>
+              <FileTextIcon className="size-5" />
+            </span>
+            <div className="min-w-0">
+              <p className="text-sm font-medium text-foreground">Add a document</p>
+              <p className="text-xs text-muted-foreground">Spec sheet, certificate, invoice… PDF, JPG or PNG · up to {formatBytes(M.DOCUMENT_MAX_BYTES)}</p>
+            </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Document type" htmlFor="listingDocType" hint="Optional, e.g. Spec sheet">
-              <Input value={docType} maxLength={M.DOCUMENT_TYPE_MAX_LENGTH} disabled={disabled} onChange={(e) => setDocType(e.target.value)} />
+          <FormField label="File" htmlFor="listingDocFile">
+            <FilePicker
+              ref={docInput}
+              file={docFile}
+              accept={M.DOCUMENT_MIME_TYPES.join(",")}
+              disabled={disabled || documentSlots <= 0}
+              placeholder={documentSlots <= 0 ? "Document limit reached" : "Choose a document"}
+              onChange={setDocFile}
+            />
+          </FormField>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+            <FormField label="Document type (optional)" htmlFor="listingDocType" className="min-w-0 flex-1">
+              <Input placeholder="e.g. Spec sheet" value={docType} maxLength={M.DOCUMENT_TYPE_MAX_LENGTH} disabled={disabled} onChange={(e) => setDocType(e.target.value)} />
             </FormField>
-            <FormField label="File" htmlFor="listingDocFile">
-              <Input ref={docInput} type="file" accept={M.DOCUMENT_MIME_TYPES.join(",")} disabled={disabled || documentSlots <= 0} onChange={(e) => setDocFile(e.target.files?.[0] ?? null)} />
-            </FormField>
+            <Button
+              variant="secondary"
+              disabled={disabled || !docFile || documentSlots <= 0}
+              onClick={() => {
+                if (!docFile) return;
+                enqueue([docFile], "DOCUMENT", docType.trim() || null);
+                setDocFile(null);
+                setDocType("");
+                if (docInput.current) docInput.current.value = "";
+              }}
+            >
+              <UploadSimpleIcon /> Upload
+            </Button>
           </div>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={disabled || !docFile || documentSlots <= 0}
-            onClick={() => {
-              if (!docFile) return;
-              enqueue([docFile], "DOCUMENT", docType.trim() || null);
-              setDocFile(null);
-              setDocType("");
-              if (docInput.current) docInput.current.value = "";
-            }}
-          >
-            <UploadSimpleIcon /> Upload document
-          </Button>
         </div>
       </div>
       {localError && (

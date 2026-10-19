@@ -2,7 +2,6 @@ import * as React from "react";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
 import { LockIcon, PackageIcon, ShoppingCartIcon } from "@phosphor-icons/react";
-import { SectionCard } from "@/components/common/section-card";
 import { StatCards } from "@/components/common/stat-cards";
 import { ErrorState, PageSkeleton } from "@/components/feedback/states";
 import { DataTable } from "@/components/tables/data-table";
@@ -10,6 +9,7 @@ import { formatDateTime, formatNumber, humanize } from "@/lib/utils/format";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { getSellerListingActions, type ListingDetailResponse, type ListingInventoryMovementItemDto } from "@/api/types/seller-listings";
 import { Notice } from "../components/notice";
+import { Panel } from "../components/panel";
 import { sellerKeys, useListingRequirements } from "../lib/queries";
 import { AdjustStockForm, SetStockForm } from "./inventory-forms";
 
@@ -55,7 +55,7 @@ export function InventoryTab({ sellerId, listing }: { sellerId: string; listing:
       {readOnly && <Notice>Archived listings' stock can't be changed.</Notice>}
       {data.sellableQuantity <= 0 && !readOnly && <Notice tone="warning">Sellable stock is 0. A listing needs stock above 0 to go live or be resumed.</Notice>}
       <StatCards
-        className="xl:grid-cols-3"
+        className="border border-border sm:grid-cols-3 xl:grid-cols-3"
         items={[
           { label: "On hand", value: `${formatNumber(data.onHandQuantity)}${unitLabel}`, hint: data.rowVersion === null ? "No stock recorded yet" : "Physical stock you hold", icon: <PackageIcon /> },
           { label: "Reserved", value: `${formatNumber(data.reservedQuantity)}${unitLabel}`, hint: "Held for buyers' checkouts", icon: <LockIcon /> },
@@ -64,16 +64,15 @@ export function InventoryTab({ sellerId, listing }: { sellerId: string; listing:
       />
       {!readOnly && (
         <div className="grid gap-4 md:grid-cols-2">
-          <SectionCard>
+          <Panel>
             <SetStockForm sellerId={sellerId} listingId={id} inventory={data} disabled={readOnly} />
-          </SectionCard>
-          <SectionCard>
+          </Panel>
+          <Panel>
             <AdjustStockForm sellerId={sellerId} listingId={id} inventory={data} disabled={readOnly} />
-          </SectionCard>
+          </Panel>
         </div>
       )}
-      <SectionCard>
-        <h3 className="mb-3 font-heading text-base font-bold text-foreground">Stock movements</h3>
+      <Panel title="Stock movements" description="Every change to on-hand and reserved stock for this listing.">
         <DataTable
           caption="Stock movements"
           columns={columns}
@@ -92,7 +91,7 @@ export function InventoryTab({ sellerId, listing }: { sellerId: string; listing:
           emptyTitle="No stock movements yet"
           emptyDescription="Movements appear when you set or adjust stock and when buyers reserve items."
         />
-      </SectionCard>
+      </Panel>
     </div>
   );
 }

@@ -10,7 +10,7 @@ export function OrdersComingSoon({ title, intro, features, action }: { title: st
   return (
     <div>
       <h1 className="font-heading text-2xl font-bold text-foreground">{title}</h1>
-      <div className="mt-5 rounded-xl border border-border p-8 text-center">
+      <div className="mt-5 rounded-2xl border border-border bg-surface p-8 text-center sm:p-12">
         <span className="mx-auto flex size-14 items-center justify-center rounded-full bg-cream">
           <ReceiptIcon className="size-7 text-foreground" />
         </span>
@@ -18,7 +18,7 @@ export function OrdersComingSoon({ title, intro, features, action }: { title: st
         <p className="mx-auto mt-1 max-w-md text-sm text-body">{intro}</p>
         {action && <div className="mt-5">{action}</div>}
       </div>
-      <section className="mt-6 rounded-xl bg-cream p-5">
+      <section className="mt-4 rounded-2xl border border-border bg-cream p-5">
         <p className="text-sm font-medium text-foreground">Coming with online ordering</p>
         <ul className="mt-2 grid gap-1.5 text-sm text-body sm:grid-cols-2">
           {features.map((f) => (

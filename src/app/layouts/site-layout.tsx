@@ -7,7 +7,7 @@ import { SiteFooter } from "./site-footer";
 import { CartDrawer } from "@/features/cart/cart-drawer";
 import { MobileTabBar } from "./mobile-tab-bar";
 
-/** Public marketplace layout (Figma Buyer Screens): cream header with mega menus, dark footer. */
+/** Public marketplace layout (Figma Buyer Screens): white header with category dropdowns, dark footer. */
 export function SiteLayout() {
   const location = useLocation();
   React.useEffect(() => {

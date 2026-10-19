@@ -2,7 +2,6 @@ import * as React from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
 import {
   ArrowLeftIcon,
-  CaretUpDownIcon,
   IdentificationCardIcon,
   ListIcon,
   ListNumbersIcon,
@@ -17,6 +16,9 @@ import { Logo } from "@/components/common/logo";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
 import { StatusBadge } from "@/components/common/status-badge";
+import { NativeSelect } from "@/components/ui/input";
+import { Avatar } from "@/components/ui/misc";
+import { humanize } from "@/lib/utils/format";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { cn } from "@/lib/utils/cn";
 import { ThemeSwitch } from "./site-header";
@@ -42,32 +44,43 @@ const NAV = [
 function SellerSwitcher() {
   const { sellers, activeSeller, setActiveSellerId } = useSellerMode();
   if (!activeSeller) return null;
+  const name = activeSeller.displayName || "Unnamed seller";
   return (
-    <div className="px-5 pb-3">
-      <label className="relative block">
-        <span className="sr-only">Seller account</span>
-        <select
-          value={activeSeller.sellerId}
-          onChange={(e) => setActiveSellerId(e.target.value)}
-          disabled={sellers.length < 2}
-          className="h-12 w-full cursor-pointer appearance-none rounded-md border border-border bg-surface-muted pl-3 pr-8 text-left text-sm font-medium text-foreground disabled:cursor-default"
-        >
-          {sellers.map((s) => (
-            <option key={s.sellerId} value={s.sellerId}>
-              {s.displayName}
-            </option>
-          ))}
-        </select>
-        {sellers.length > 1 && (
-          <CaretUpDownIcon className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2" />
-        )}
-      </label>
-      <div className="mt-2 flex flex-wrap gap-1">
-        <StatusBadge value={activeSeller.verificationStatus} />
-        {activeSeller.status !== "ACTIVE" && (
-          <StatusBadge value={activeSeller.status} />
-        )}
+    <div className="mx-5 mb-4 rounded-lg border border-border bg-surface-muted p-3">
+      <div className="flex items-center gap-3">
+        <Avatar name={name} className="size-9 rounded-md" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-medium text-foreground" title={name}>
+            {name}
+          </p>
+          <p className="truncate text-xs text-muted-foreground">
+            {humanize(activeSeller.sellerType)} · {activeSeller.isOwner ? "Owner" : "Member"}
+          </p>
+        </div>
       </div>
+      <div className="mt-2.5 flex flex-wrap gap-1">
+        <StatusBadge value={activeSeller.verificationStatus} />
+        {activeSeller.status !== "ACTIVE" && <StatusBadge value={activeSeller.status} />}
+      </div>
+      {sellers.length > 1 && (
+        <div className="mt-3 border-t border-border pt-3">
+          <label htmlFor="seller-switcher" className="mb-1 block text-xs text-muted-foreground">
+            Switch seller account
+          </label>
+          <NativeSelect
+            id="seller-switcher"
+            className="h-9 bg-surface text-sm"
+            value={activeSeller.sellerId}
+            onChange={(e) => setActiveSellerId(e.target.value)}
+          >
+            {sellers.map((s) => (
+              <option key={s.sellerId} value={s.sellerId}>
+                {s.displayName || "Unnamed seller"}
+              </option>
+            ))}
+          </NativeSelect>
+        </div>
+      )}
     </div>
   );
 }
@@ -138,7 +151,7 @@ export function SellerLayout() {
         </button>
         <Link to="/seller" className="flex items-center gap-2">
           <Logo />
-          <span className="rounded-sm bg-foreground px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-action">
+          <span className="rounded-sm bg-ink px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink-foreground ring-1 ring-inset ring-ink-foreground/20">
             Seller
           </span>
         </Link>

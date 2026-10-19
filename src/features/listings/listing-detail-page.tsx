@@ -33,6 +33,7 @@ import { ListingGallery } from "./components/listing-gallery";
 import { ListingShareButton } from "./components/listing-share-button";
 import { ListingSafetyTips } from "./components/listing-safety-tips";
 import { ListingMobileBar } from "./components/listing-mobile-bar";
+import { attributeDisplayValue } from "./lib/attribute-value";
 
 function sortedImages(l: PublicListingDetailResponse) {
   if (l.galleryImages.length) return [...l.galleryImages].sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary) || a.displayOrder - b.displayOrder);
@@ -167,7 +168,7 @@ export default function ListingDetailPage() {
   ).filter((s): s is { label: string; value: string; icon: Icon } => !!s.value);
   const attributes: Spec[] = l.attributes.map((a) => ({
     label: a.name,
-    value: a.textValue ?? (a.numValue !== null ? formatNumber(a.numValue) : "—"),
+    value: attributeDisplayValue(a) ?? "—",
   }));
 
   return (
@@ -201,6 +202,7 @@ export default function ListingDetailPage() {
           </div>
 
           <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
+            <div className="lg:sticky lg:top-[176px]">
             <div className="flex flex-wrap gap-2">
               {l.seller.isVerified && (
                 <span className="inline-flex items-center gap-1 rounded-sm bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground">
@@ -235,7 +237,7 @@ export default function ListingDetailPage() {
                 <dt className="flex items-center gap-1 text-xs text-muted-foreground">
                   <MapPinIcon className="size-4" /> Location
                 </dt>
-                <dd className="mt-1 truncate font-medium text-foreground">{place || "—"}</dd>
+                <dd className="mt-1 break-words font-medium leading-5 text-foreground">{place || "—"}</dd>
               </div>
             </dl>
 
@@ -265,6 +267,7 @@ export default function ListingDetailPage() {
             </section>
 
             <ListingSafetyTips className="mt-5" />
+            </div>
           </div>
 
           <div className="min-w-0 space-y-10 lg:col-start-1 lg:row-start-2">

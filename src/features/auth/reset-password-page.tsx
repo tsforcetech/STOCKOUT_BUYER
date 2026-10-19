@@ -44,7 +44,7 @@ export default function ResetPasswordPage() {
     <AuthShell>
       <AuthCard title="Choose a new password" subtitle={done ? "Password updated" : undefined}>
         {done ? (
-          <div className="mx-auto max-w-[440px] space-y-8 text-center">
+          <div className="mx-auto max-w-[440px] space-y-6">
             <p className="text-sm text-body">Your password has been reset and all existing sessions were signed out.</p>
             <Button asChild size="lg" className="w-full">
               <Link to="/login">Sign in</Link>
@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
             </Button>
             <p className="text-center text-sm">
               <Link to="/login" className="text-muted-foreground hover:text-foreground">
-                Back to sign in
+                Back to log in
               </Link>
             </p>
           </form>

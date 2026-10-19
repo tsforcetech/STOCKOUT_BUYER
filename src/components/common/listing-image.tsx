@@ -34,5 +34,5 @@ export function ListingImage({ src, alt, className }: { src: string | null | und
       </div>
     );
   }
-  return <img src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} className={cn("object-cover", className)} />;
+  return <img src={url} alt={alt} loading="lazy" onError={() => setFailed(true)} className={cn("bg-cream-strong object-cover", className)} />;
 }

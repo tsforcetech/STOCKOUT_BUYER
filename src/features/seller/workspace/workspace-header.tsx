@@ -1,9 +1,7 @@
 import * as React from "react";
-import { Link } from "react-router";
 import { toast } from "sonner";
 import {
   ArchiveIcon,
-  ArrowLeftIcon,
   ListChecksIcon,
   PaperPlaneTiltIcon,
   PauseIcon,
@@ -20,6 +18,7 @@ import {
   type ListingDetailResponse,
   type ListingModerationStatusResponse,
 } from "@/api/types/seller-listings";
+import { BackLink } from "../components/back-link";
 import { useListingLifecycle } from "../components/listing-lifecycle";
 import { Notice } from "../components/notice";
 import { sellerErrorMessage } from "../lib/errors";
@@ -60,16 +59,12 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
 
   return (
     <>
+      <BackLink to="/seller/listings">All listings</BackLink>
       <PageHeader
         eyebrow="Seller portal · Listing"
         title={version?.title || "Untitled listing"}
         actions={
           <>
-            <Button asChild variant="secondary">
-              <Link to="/seller/listings">
-                <ArrowLeftIcon /> Listings
-              </Link>
-            </Button>
             {listing.currentDraftVersionId && listing.status === "DRAFT" && (
               <Button
                 variant="secondary"
@@ -85,7 +80,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
             )}
             {can.canSubmit && !rejected && !approvedAwaitingPublish && (
               <Button
-                variant="primary"
+                variant="action"
                 onClick={() => lifecycle.open("submit", target)}
               >
                 <PaperPlaneTiltIcon /> Submit for review
@@ -101,7 +96,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
             )}
             {can.canResume && (
               <Button
-                variant="primary"
+                variant="action"
                 onClick={() => lifecycle.open("resume", target)}
               >
                 <PlayIcon /> Resume

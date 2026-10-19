@@ -1,16 +1,18 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router";
+import { Link } from "react-router";
 import { useQueries, useQuery } from "@tanstack/react-query";
-import { ArchiveIcon, IdentificationCardIcon, ListNumbersIcon, NotePencilIcon, PauseCircleIcon, PlusIcon, RocketLaunchIcon, StackIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, CaretRightIcon, IdentificationCardIcon, PackageIcon, ListNumbersIcon, NotePencilIcon, PauseCircleIcon, PlusIcon, RocketLaunchIcon, StackIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { StatCards, type StatItem } from "@/components/common/stat-cards";
-import { DataTable } from "@/components/tables/data-table";
-import { formatNumber } from "@/lib/utils/format";
+import { EmptyState, ErrorState } from "@/components/feedback/states";
+import { Skeleton } from "@/components/ui/misc";
+import { StatusBadge } from "@/components/common/status-badge";
+import { formatNumber, timeAgo } from "@/lib/utils/format";
 import { sellerListingsService } from "@/services/seller-listings.service";
-import type { ListingStatus, SellerListingListQuery } from "@/api/types/seller-listings";
-import { baseListingColumns } from "./components/listing-columns";
+import type { ListingStatus, SellerListingListItemResponse, SellerListingListQuery } from "@/api/types/seller-listings";
+import { LISTING_STATUS_LABELS } from "./lib/listing";
 import { ListingAccessNotice, canManageListings } from "./components/listing-access-notice";
 import { VerificationCard } from "./components/verification-card";
 import { sellerErrorMessage } from "./lib/errors";
@@ -26,7 +28,6 @@ const COUNTS: Array<{ status: ListingStatus | undefined; label: string; hint: st
 export default function SellerDashboardPage() {
   const seller = useActiveSeller();
   const sellerId = seller.sellerId;
-  const navigate = useNavigate();
   const enabled = canManageListings(seller);
   const account = useSellerAccount(sellerId);
   const { index: categories } = useCategoryIndex();
@@ -54,8 +55,6 @@ export default function SellerDashboardPage() {
     };
   });
 
-  const columns = React.useMemo(() => baseListingColumns(categories), [categories]);
-
   return (
     <>
       <PageHeader
@@ -75,7 +74,7 @@ export default function SellerDashboardPage() {
       <div className="space-y-4">
         <VerificationCard seller={account.data} isLoading={account.isLoading} error={account.error} onRetry={() => void account.refetch()} />
         <ListingAccessNotice seller={seller} />
-        <StatCards items={stats} />
+        <StatCards items={stats} className="grid-cols-2" />
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
           <SectionCard>
@@ -85,27 +84,28 @@ export default function SellerDashboardPage() {
                 <Link to="/seller/listings">View all</Link>
               </Button>
             </div>
-            <DataTable
-              caption="Recent listings"
-              columns={columns}
-              data={enabled ? recent.data?.items : []}
-              getRowId={(l) => l.listingId}
+            <RecentListings
+              items={enabled ? recent.data?.items : []}
               isLoading={enabled && recent.isLoading}
               error={recent.error}
               onRetry={() => void recent.refetch()}
-              onRowClick={(l) => navigate(`/seller/listings/${l.listingId}`)}
-              emptyTitle="No listings yet"
-              emptyDescription={enabled ? "Create your first listing — you can prepare drafts while verification is in progress." : "Listings are unavailable for this account."}
-              emptyAction={
-                enabled && (
-                  <Button asChild variant="action">
-                    <Link to="/seller/listings/new">
-                      <PlusIcon /> New listing
-                    </Link>
-                  </Button>
-                )
+              categoryPath={(id) => categories.get(id)?.path.join(" › ")}
+              empty={
+                <EmptyState
+                  className="rounded-lg border border-dashed border-border-strong py-10"
+                  title="No listings yet"
+                  description={enabled ? "Create your first listing — you can prepare drafts while verification is in progress." : "Listings are unavailable for this account."}
+                  action={
+                    enabled && (
+                      <Button asChild variant="action">
+                        <Link to="/seller/listings/new">
+                          <PlusIcon /> New listing
+                        </Link>
+                      </Button>
+                    )
+                  }
+                />
               }
-              pageSizeOptions={[5, 10]}
             />
           </SectionCard>
 
@@ -139,5 +139,70 @@ export default function SellerDashboardPage() {
         </div>
       </div>
     </>
+  );
+}
+
+function RecentListings({
+  items,
+  isLoading,
+  error,
+  onRetry,
+  categoryPath,
+  empty,
+}: {
+  items: SellerListingListItemResponse[] | undefined;
+  isLoading: boolean;
+  error: unknown;
+  onRetry: () => void;
+  categoryPath: (categoryId: string) => string | undefined;
+  empty: React.ReactNode;
+}) {
+  if (error) return <ErrorState error={error} onRetry={onRetry} title="Couldn't load your listings" />;
+  if (isLoading) {
+    return (
+      <ul className="divide-y divide-border rounded-lg border border-border" aria-label="Loading recent listings">
+        {Array.from({ length: 4 }, (_, i) => (
+          <li key={i} className="flex items-center gap-3 px-3 py-3 sm:px-4">
+            <Skeleton className="size-9 shrink-0 rounded-md" />
+            <div className="min-w-0 flex-1 space-y-1.5">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+  const list = items ?? [];
+  if (!list.length) return <>{empty}</>;
+  return (
+    <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border" aria-label="Recent listings">
+      {list.map((l) => {
+        const updated = timeAgo(l.updatedAtUtc ?? l.createdAtUtc);
+        return (
+          <li key={l.listingId}>
+            <Link to={`/seller/listings/${l.listingId}`} className="group flex items-center gap-3 px-3 py-3 transition-colors hover:bg-surface-muted sm:px-4">
+              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-surface-muted text-foreground ring-1 ring-border [&_svg]:size-[18px]" aria-hidden>
+                <PackageIcon />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-medium text-foreground">{l.title || "Untitled listing"}</span>
+                <span className="mt-1 flex min-w-0 items-center gap-2 text-xs text-muted-foreground">
+                  <span className="shrink-0 sm:hidden">
+                    <StatusBadge value={l.status} label={LISTING_STATUS_LABELS[l.status]} />
+                  </span>
+                  <span className="truncate">{categoryPath(l.categoryId) ?? "—"}</span>
+                </span>
+              </span>
+              <span className="hidden shrink-0 flex-col items-end gap-1 sm:flex">
+                <StatusBadge value={l.status} label={LISTING_STATUS_LABELS[l.status]} />
+                {updated && <span className="text-xs text-muted-foreground">Updated {updated}</span>}
+              </span>
+              <CaretRightIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

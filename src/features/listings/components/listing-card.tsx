@@ -4,6 +4,7 @@ import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { ListingImage } from "@/components/common/listing-image";
 import { formatMoney, formatNumber, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
+import { attributeDisplayValue } from "../lib/attribute-value";
 
 /** Up to three short spec values for the card (size, material, … from the listing's attributes). */
 function specChips(item: ListingSearchCard): string[] {
@@ -13,10 +14,7 @@ function specChips(item: ListingSearchCard): string[] {
       (order.indexOf(a.code) + 1 || 99) - (order.indexOf(b.code) + 1 || 99),
   );
   return sorted
-    .map(
-      (a) =>
-        a.textValue ?? (a.numValue !== null ? formatNumber(a.numValue) : null),
-    )
+    .map(attributeDisplayValue)
     .filter((v): v is string => !!v && v.length <= 24)
     .slice(0, 3);
 }

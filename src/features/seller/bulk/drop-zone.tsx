@@ -40,7 +40,7 @@ export function DropZone({ id, label, hint, accept, multiple, disabled, icon: Ic
         if (!disabled) take(e.dataTransfer.files);
       }}
       className={cn(
-        "flex min-w-0 flex-col items-center gap-3 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors",
+        "flex min-w-0 flex-col items-center justify-center gap-3 rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors",
         over ? "border-action-border bg-action-soft" : "border-border-strong bg-cream",
         disabled && "opacity-60",
       )}

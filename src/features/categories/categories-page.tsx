@@ -5,14 +5,16 @@ import { ErrorState, EmptyState } from "@/components/feedback/states";
 import { Skeleton } from "@/components/ui/misc";
 import { searchHref } from "@/features/search/lib/search-params";
 import type { PublicCategoryTreeResponse } from "@/api/types/catalog-taxonomy";
+import { ArrowRightIcon } from "@phosphor-icons/react";
+import { categoryIcon } from "./category-icon";
 
 function Children({ nodes }: { nodes: PublicCategoryTreeResponse[] }) {
   if (!nodes.length) return null;
   return (
-    <ul className="mt-2 space-y-1 border-l border-border pl-3">
+    <ul className="mt-3 space-y-0.5">
       {nodes.map((c) => (
         <li key={c.categoryId}>
-          <Link to={searchHref({ categoryId: c.categoryId })} className="text-sm text-body hover:text-foreground hover:underline">
+          <Link to={searchHref({ categoryId: c.categoryId })} className="-mx-2 block rounded-md px-2 py-1 text-sm text-body transition-colors hover:bg-surface-muted hover:text-foreground">
             {c.name}
           </Link>
           <Children nodes={c.children ?? []} />
@@ -26,8 +28,10 @@ export default function CategoriesPage() {
   const q = useQuery({ queryKey: ["catalog", "tree"], queryFn: ({ signal }) => catalogService.categoryTree(signal), staleTime: 10 * 60_000 });
   return (
     <div className="mx-auto max-w-[1336px] px-4 py-10 sm:px-6">
-      <h1 className="font-heading text-[32px] font-bold leading-10 text-foreground">Browse all categories</h1>
-      <p className="mt-2 text-sm text-muted-foreground">Every category of surplus material currently listed on StockOut.</p>
+      <h1 className="font-heading text-[28px] font-bold leading-9 text-foreground sm:text-[34px] sm:leading-[42px]">Browse all categories</h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">
+        {q.data?.length ? `${q.data.length} categories of surplus construction and industrial material.` : "Every category of surplus material on StockOut."}
+      </p>
       <div className="mt-8">
         {q.isLoading ? (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-40" />)}</div>
@@ -37,14 +41,23 @@ export default function CategoriesPage() {
           <EmptyState title="No categories yet" />
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {q.data.map((root) => (
-              <section key={root.categoryId} className="rounded-xl bg-cream p-5">
-                <Link to={searchHref({ categoryId: root.categoryId })} className="font-heading text-xl font-bold text-foreground hover:underline">
-                  {root.name}
-                </Link>
-                <Children nodes={root.children ?? []} />
-              </section>
-            ))}
+            {q.data.map((root) => {
+              const RootIcon = categoryIcon(root.name);
+              return (
+                <section key={root.categoryId} className="flex flex-col rounded-2xl border border-border bg-surface p-5 transition-shadow hover:shadow-raised">
+                  <Link to={searchHref({ categoryId: root.categoryId })} className="group flex items-center gap-3">
+                    <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cream-strong text-foreground transition-colors group-hover:bg-action group-hover:text-action-foreground">
+                      <RootIcon className="size-6" />
+                    </span>
+                    <span className="font-heading text-lg font-bold leading-6 text-foreground group-hover:underline">{root.name}</span>
+                  </Link>
+                  <Children nodes={root.children ?? []} />
+                  <Link to={searchHref({ categoryId: root.categoryId })} className="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-foreground underline-offset-4 hover:underline">
+                    View all <ArrowRightIcon className="size-3.5" />
+                  </Link>
+                </section>
+              );
+            })}
           </div>
         )}
       </div>

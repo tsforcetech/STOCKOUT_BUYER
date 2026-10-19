@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link, useBlocker } from "react-router";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowLeftIcon, DownloadSimpleIcon, FileCsvIcon, ImagesIcon, PlayIcon, StopIcon, XIcon } from "@phosphor-icons/react";
+import { DownloadSimpleIcon, FileCsvIcon, ImagesIcon, PlayIcon, StopIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge, Checkbox } from "@/components/ui/misc";
 import { ConfirmDialog } from "@/components/ui/dialog";
@@ -14,6 +14,8 @@ import { formatBytes } from "@/lib/utils/format";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { ListingAccessNotice, canManageListings } from "../components/listing-access-notice";
 import { Notice } from "../components/notice";
+import { Stepper } from "../components/stepper";
+import { BackLink } from "../components/back-link";
 import { errorCode, sellerErrorMessage } from "../lib/errors";
 import { sellerKeys, taxonomyKeys, useActiveSeller, useCategoryIndex, useSellerAccount } from "../lib/queries";
 import { DropZone } from "./drop-zone";
@@ -26,22 +28,6 @@ import { TemplateStep } from "./template-step";
 const STEPS = ["Download template", "Upload file", "Review", "Create"] as const;
 const MAX_CSV_BYTES = 5 * 1024 * 1024;
 type Filter = "all" | "valid" | "invalid";
-
-function Steps({ step }: { step: number }) {
-  return (
-    <ol className="mb-4 flex flex-wrap gap-2 text-sm" aria-label="Steps">
-      {STEPS.map((label, i) => (
-        <li
-          key={label}
-          aria-current={step === i + 1 ? "step" : undefined}
-          className={cn("rounded-full px-3 py-1", step === i + 1 ? "bg-foreground text-surface" : step > i + 1 ? "bg-action text-action-foreground" : "bg-surface text-muted-foreground ring-1 ring-border")}
-        >
-          {i + 1}. {label}
-        </li>
-      ))}
-    </ol>
-  );
-}
 
 function StepHeading({ n, title, children }: { n: number; title: string; children?: React.ReactNode }) {
   return (
@@ -230,18 +216,14 @@ export default function SellerBulkUploadPage() {
 
   // ---- render ----
   const header = (
-    <PageHeader
+    <>
+      <BackLink to="/seller/listings">All listings</BackLink>
+      <PageHeader
       eyebrow="Seller portal"
       title="Bulk upload"
-      description="Create many draft listings at once from a CSV file — with stock and a photo for each."
-      actions={
-        <Button asChild variant="secondary">
-          <Link to="/seller/listings">
-            <ArrowLeftIcon /> Back to listings
-          </Link>
-        </Button>
-      }
-    />
+        description="Create many draft listings at once from a CSV file — with stock and a photo for each."
+      />
+    </>
   );
 
   if (!enabled) {
@@ -258,7 +240,7 @@ export default function SellerBulkUploadPage() {
   return (
     <>
       {header}
-      <Steps step={step} />
+      <Stepper steps={STEPS} current={step} />
 
       {run ? (
         <RunPanel run={run} onCancel={cancel} onReset={reset} />

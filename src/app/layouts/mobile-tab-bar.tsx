@@ -25,7 +25,7 @@ export function MobileTabBar() {
   return (
     <nav
       aria-label="Quick navigation"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border-strong bg-cream/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_3px_rgba(0,0,0,0.04)] backdrop-blur md:hidden"
     >
       <div className="flex h-16 items-stretch">
         <NavLink to="/" end className={tab}>
@@ -54,7 +54,7 @@ export function MobileTabBar() {
           to={sellHref(status, hasSeller)}
           className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-foreground"
         >
-          <span className="-mt-6 flex size-12 items-center justify-center rounded-full bg-action text-action-foreground shadow-raised ring-4 ring-cream">
+          <span className="-mt-6 flex size-12 items-center justify-center rounded-full bg-action text-action-foreground shadow-raised ring-4 ring-surface">
             <PlusIcon className="size-6" weight="bold" />
           </span>
           Sell
@@ -69,7 +69,7 @@ export function MobileTabBar() {
                 />
                 {favorites.length > 0 && (
                   <span
-                    className="absolute -right-1.5 -top-1 size-2.5 rounded-full bg-[#e0245e] ring-2 ring-cream"
+                    className="absolute -right-1.5 -top-1 size-2.5 rounded-full bg-[#e0245e] ring-2 ring-surface"
                     aria-hidden
                   />
                 )}
@@ -88,7 +88,7 @@ export function MobileTabBar() {
                 className="size-6"
                 weight={isActive ? "fill" : "regular"}
               />{" "}
-              {status === "authenticated" ? "Account" : "Login"}
+              {status === "authenticated" ? "Account" : "Log in"}
             </>
           )}
         </NavLink>

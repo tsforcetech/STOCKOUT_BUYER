@@ -183,7 +183,7 @@ test("leaving the site layout works when scrollTo returns a Promise (newer Chrom
   await mockApi(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Find surplus stock/i })).toBeVisible();
-  await page.getByRole("banner").getByRole("link", { name: "Login", exact: true }).click();
+  await page.getByRole("banner").getByRole("link", { name: "Log in", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
   await expect(page.getByText("couldn't be displayed")).toHaveCount(0);
 });
@@ -245,4 +245,20 @@ test("seller menu on a phone fills the screen below the header and closes from t
   await page.screenshot({ path: test.info().outputPath("seller-menu-mobile.png") });
   await page.getByRole("button", { name: "Close menu" }).dispatchEvent("click");
   await expect(menu).toBeHidden();
+});
+
+test("category tabs open a dropdown of subcategories that Escape closes", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop", "desktop category bar only");
+  await mockApi(page);
+  const sub = (id: string, name: string) => ({ categoryId: id, slug: id, parentCategoryId: "p1", name, children: [] });
+  await page.route("**/api/v1/catalog/categories", (r) =>
+    json(r, { success: true, data: [{ categoryId: "p1", slug: "pipes", parentCategoryId: null, name: "Plumbing & Piping", children: [sub("s1", "PPR Pipes & Fittings"), sub("s2", "UPVC Pipes & Fittings")] }] }),
+  );
+  await page.goto("/search");
+  const nav = page.getByRole("navigation", { name: "Categories" });
+  await nav.getByRole("button", { name: "Plumbing & Piping" }).click();
+  await expect(nav.getByRole("link", { name: "UPVC Pipes & Fittings" }).first()).toBeVisible();
+  await expect(nav.getByRole("link", { name: /View all/ })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(nav.getByRole("link", { name: "UPVC Pipes & Fittings" })).toHaveCount(0);
 });

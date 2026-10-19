@@ -21,9 +21,9 @@ function CheckGroup({ title, options, selected, onToggle, defaultOpen = true }: 
   if (!options.length) return null;
   const shown = expanded ? options : options.slice(0, 6);
   return (
-    <fieldset className="border-t border-border pt-3">
+    <fieldset className="min-w-0 border-t border-border pt-3">
       <legend className="sr-only">{title}</legend>
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full cursor-pointer items-center justify-between py-1 text-left text-sm font-medium text-foreground">
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="flex w-full cursor-pointer items-center justify-between py-1 text-left text-sm font-semibold text-foreground">
         <span>
           {title}
           {selected.length > 0 && <span className="ml-1.5 rounded-full bg-ink px-1.5 text-[11px] font-bold leading-4 text-ink-foreground">{selected.length}</span>}
@@ -133,8 +133,8 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
 
   return (
     <div className="space-y-3">
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium text-foreground">Category</legend>
+      <fieldset className="min-w-0">
+        <legend className="mb-2 py-1 text-sm font-semibold text-foreground">Category</legend>
         {selected && (
           <div className="mb-2 space-y-1">
             <button type="button" className="flex cursor-pointer items-center gap-1 text-xs text-muted-foreground hover:text-foreground" onClick={() => onChange({ categoryId: parent?.categoryId ?? "", attr: [], brandId: [], page: 1 })}>
@@ -166,8 +166,10 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
         )}
       </fieldset>
 
-      <fieldset className="border-t border-border pt-3">
-        <legend className="mb-2 text-sm font-medium text-foreground">Location</legend>
+      {/* The rule sits on a wrapper: a bordered <fieldset> would cut its own top border around the legend. */}
+      <div className="border-t border-border pt-3">
+      <fieldset className="min-w-0">
+        <legend className="mb-2 py-1 text-sm font-semibold text-foreground">Location</legend>
         <div className="flex flex-wrap gap-1.5">
           {emirates.map((e) => (
             <button
@@ -194,6 +196,7 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
           </NativeSelect>
         )}
       </fieldset>
+      </div>
 
       <CheckGroup title="Brand" options={brands} selected={state.brandId} onToggle={(id) => toggle("brandId", id)} />
       <CheckGroup title="Condition" options={conditions} selected={state.conditionId} onToggle={(id) => toggle("conditionId", id)} />
@@ -203,8 +206,10 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
         <CheckGroup key={g.code} title={g.name} options={g.options} selected={g.options.filter((o) => selectedAttr.includes(o.id)).map((o) => o.id)} onToggle={toggleAttr} defaultOpen={i < 3} />
       ))}
 
-      <fieldset className="border-t border-border pt-3">
-        <legend className="mb-2 text-sm font-medium text-foreground">Price</legend>
+      {/* The rule sits on a wrapper: a bordered <fieldset> would cut its own top border around the legend. */}
+      <div className="border-t border-border pt-3">
+      <fieldset className="min-w-0">
+        <legend className="mb-2 py-1 text-sm font-semibold text-foreground">Price</legend>
         <form
           className="space-y-2"
           onSubmit={(e) => {
@@ -233,6 +238,7 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
           </div>
         </form>
       </fieldset>
+      </div>
 
       <label className="flex cursor-pointer items-center gap-2 border-t border-border pt-3 text-sm text-foreground">
         <input type="checkbox" checked={state.inStockOnly} onChange={(e) => onChange({ inStockOnly: e.target.checked, page: 1 })} className="size-4 accent-[var(--action-border)]" />

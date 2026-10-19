@@ -60,8 +60,8 @@ export default function LoginPage() {
 
   return (
     <AuthShell>
-      <AuthCard title="Welcome to StockOut" subtitle="Login to your account">
-        <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
+      <AuthCard title="Welcome to StockOut" subtitle="Log in to buy surplus stock or manage your listings.">
+        <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-6">
           {params.get("reason") === "password-changed" && !formError && (
             <div role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-success-soft-foreground">
               Your password was changed and all sessions were signed out. Sign in with your new password.
@@ -81,8 +81,8 @@ export default function LoginPage() {
               <PasswordInput autoComplete="current-password" placeholder="Enter your password" {...form.register("password")} />
             </FormField>
             <div className="text-right">
-              <Link to="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground">
-                Forgot Password?
+              <Link to="/forgot-password" className="text-sm font-medium text-foreground underline-offset-4 hover:underline">
+                Forgot password?
               </Link>
             </div>
           </div>
@@ -153,7 +153,7 @@ function MfaStep({ challenge: initial, onBack, onDone }: { challenge: MfaChallen
   return (
     <AuthShell>
       <AuthCard title="Verify it's you" subtitle={<>We emailed a 6-digit code for {challenge.emailOrMobile}.</>}>
-        <form onSubmit={submit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
+        <form onSubmit={submit} noValidate className="mx-auto w-full max-w-[440px] space-y-6">
           <FormError message={error} />
           {info && !error && (
             <p role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-success-soft-foreground">

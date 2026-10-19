@@ -166,7 +166,7 @@ function VerifyStep({ userId, email, next }: { userId: string; email: string; ne
   return (
     <AuthShell>
       <AuthCard title="Verify your email" subtitle={<>We sent a 6-digit code to {email}.</>}>
-        <form onSubmit={submit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
+        <form onSubmit={submit} noValidate className="mx-auto w-full max-w-[440px] space-y-6">
           <FormError message={error} />
           {info && !error && (
             <p role="status" className="rounded-md bg-success-soft px-3 py-2 text-sm text-success-soft-foreground">

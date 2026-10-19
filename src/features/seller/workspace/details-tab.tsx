@@ -47,7 +47,7 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
   const categoryChanged = categoryId !== version.categoryId;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-1">
       {!can.canUpdateDraft ? (
         <Notice>
           {listing.status === "PUBLISHED" || listing.status === "SUSPENDED"
@@ -55,9 +55,9 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
             : "This listing is read-only in its current state."}
         </Notice>
       ) : (
-        <Notice tone="warning" title="Already submitted?">
-          The marketplace can't currently tell us whether this draft is under review. If you've submitted it, avoid editing until you hear back — edits made during
-          review may be published without being re-checked.
+        <Notice>
+          <strong className="font-medium">Already submitted this draft?</strong> Wait for the review before editing — the marketplace can't yet show whether a draft is
+          under review, and changes made during review may go live without being re-checked.
         </Notice>
       )}
       {categoryChanged && (

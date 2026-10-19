@@ -1,5 +1,5 @@
 import * as React from "react";
-import { DownloadSimpleIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { NativeSelect } from "@/components/ui/input";
@@ -96,13 +96,16 @@ export function TemplateStep() {
             <li key={n}>{n}</li>
           ))}
         </ul>
-        <Button variant="primary" onClick={download} className="self-start sm:self-center">
+        <Button variant="action" onClick={download} className="self-start sm:self-center">
           <DownloadSimpleIcon /> Download CSV template
         </Button>
       </div>
 
-      <details className="group rounded-lg border border-border bg-cream px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-foreground">What goes in each column</summary>
+      <details className="group rounded-lg border border-border bg-surface-muted px-4 py-3 open:bg-surface">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+          What goes in each column
+          <CaretDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
         <div className="-mx-4 mt-3 overflow-x-auto px-4">
           <table className="w-full min-w-[640px] text-left text-sm">
             <caption className="sr-only">Template columns</caption>
@@ -141,8 +144,11 @@ export function TemplateStep() {
         </div>
       </details>
 
-      <details className="rounded-lg border border-border bg-cream px-4 py-3">
-        <summary className="cursor-pointer text-sm font-medium text-foreground">Find unit and condition codes</summary>
+      <details className="group rounded-lg border border-border bg-surface-muted px-4 py-3 open:bg-surface">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+          Find unit and condition codes
+          <CaretDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" aria-hidden />
+        </summary>
         <div className="mt-3">
           <ValueLookup />
         </div>

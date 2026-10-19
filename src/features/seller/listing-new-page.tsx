@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router";
-import { ArrowLeftIcon, ArrowRightIcon } from "@phosphor-icons/react";
+import { useNavigate } from "react-router";
+import { ArrowRightIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
@@ -8,27 +8,18 @@ import { PageSkeleton } from "@/components/feedback/states";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { useUrlState } from "@/hooks/use-url-state";
 import { newId } from "@/lib/utils/id";
-import { cn } from "@/lib/utils/cn";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import type { CreateListingDraftRequest } from "@/api/types/seller-listings";
 import { CategoryPicker } from "./components/category-picker";
 import { ListingAccessNotice, canManageListings } from "./components/listing-access-notice";
 import { ListingDetailsForm } from "./components/listing-details-form";
 import { Notice } from "./components/notice";
+import { Stepper } from "./components/stepper";
+import { BackLink } from "./components/back-link";
 import { emptyListingForm } from "./lib/listing-form";
 import { sellerKeys, useActiveSeller, useCategoryIndex, useSellerAccount } from "./lib/queries";
 
-function Steps({ step }: { step: 1 | 2 }) {
-  return (
-    <ol className="mb-4 flex flex-wrap gap-2 text-sm" aria-label="Steps">
-      {["Choose category", "Core details"].map((label, i) => (
-        <li key={label} aria-current={step === i + 1 ? "step" : undefined} className={cn("rounded-full px-3 py-1", step === i + 1 ? "bg-foreground text-surface" : step > i + 1 ? "bg-action text-action-foreground" : "bg-surface text-muted-foreground ring-1 ring-border")}>
-          {i + 1}. {label}
-        </li>
-      ))}
-    </ol>
-  );
-}
+const STEPS = ["Choose category", "Core details"] as const;
 
 export default function SellerListingNewPage() {
   const seller = useActiveSeller();
@@ -60,6 +51,7 @@ export default function SellerListingNewPage() {
   if (!canManageListings(seller)) {
     return (
       <>
+        <BackLink to="/seller/listings">All listings</BackLink>
         <PageHeader eyebrow="Seller portal" title="New listing" />
         <ListingAccessNotice seller={seller} />
       </>
@@ -68,19 +60,13 @@ export default function SellerListingNewPage() {
 
   return (
     <>
+      <BackLink to="/seller/listings">All listings</BackLink>
       <PageHeader
         eyebrow="Seller portal"
         title="New listing"
         description="Start with the category, then the core details. Photos, attributes and stock come next."
-        actions={
-          <Button asChild variant="secondary">
-            <Link to="/seller/listings">
-              <ArrowLeftIcon /> Back to listings
-            </Link>
-          </Button>
-        }
       />
-      <Steps step={step} />
+      <Stepper steps={STEPS} current={step} />
       {step === 1 ? (
         <SectionCard>
           <h2 className="mb-4 font-heading text-lg font-bold text-foreground">Choose a category</h2>

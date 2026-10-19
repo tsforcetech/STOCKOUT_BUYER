@@ -18,7 +18,6 @@ import {
   RefreshButton,
   RowAction,
   SectionCard,
-  Toolbar,
 } from "@/components/common/section-card";
 import { DataTable } from "@/components/tables/data-table";
 import { SearchInput } from "@/components/tables/table-toolbar";
@@ -50,7 +49,8 @@ import {
   ViewToggle,
   type SearchView,
 } from "@/features/search/components/view-toggle";
-import { ErrorState } from "@/components/feedback/states";
+import { EmptyState, ErrorState } from "@/components/feedback/states";
+import { formatNumber } from "@/lib/utils/format";
 
 const VIEW_KEY = "stockout.market.sellerListingsView";
 function useListingsView(): [SearchView, (v: SearchView) => void] {
@@ -216,71 +216,93 @@ export default function SellerListingsPage() {
       />
       <ListingAccessNotice seller={seller} />
       <SectionCard className="mt-4">
-        <Toolbar
-          left={
+        <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div className="min-w-0 xl:w-[320px]">
             <SearchInput
               value={state.search}
               onChange={(search) => setState({ search }, { resetPage: true })}
               placeholder="Search by title…"
               label="Search listings"
             />
-          }
-          right={
-            <>
-              <NativeSelect
-                className="h-[38px] w-44"
-                aria-label="Status"
-                value={state.status}
-                onChange={(e) =>
-                  setState({ status: e.target.value }, { resetPage: true })
-                }
-              >
-                <option value="">All statuses</option>
-                {LISTING_STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {LISTING_STATUS_LABELS[s]}
-                  </option>
-                ))}
-              </NativeSelect>
-              <NativeSelect
-                className="h-[38px] w-52"
-                aria-label="Category"
-                value={state.categoryId}
-                onChange={(e) =>
-                  setState({ categoryId: e.target.value }, { resetPage: true })
-                }
-                disabled={!tree}
-              >
-                <option value="">All categories</option>
-                {categoryOptions.map((c) => (
-                  <option key={c.categoryId} value={c.categoryId}>
-                    {"  ".repeat(c.depth)}
-                    {c.name}
-                  </option>
-                ))}
-              </NativeSelect>
-              <NativeSelect
-                className="h-[38px] w-40"
-                aria-label="Sort"
-                value={state.sort}
-                onChange={(e) =>
-                  setState({ sort: e.target.value }, { resetPage: true })
-                }
-              >
-                {SELLER_LISTING_SORTS.map((s) => (
-                  <option key={s} value={s}>
-                    {SORT_LABELS[s]}
-                  </option>
-                ))}
-              </NativeSelect>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+            <NativeSelect
+              className="h-[38px] w-full sm:w-40"
+              aria-label="Status"
+              value={state.status}
+              onChange={(e) =>
+                setState({ status: e.target.value }, { resetPage: true })
+              }
+            >
+              <option value="">All statuses</option>
+              {LISTING_STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {LISTING_STATUS_LABELS[s]}
+                </option>
+              ))}
+            </NativeSelect>
+            <NativeSelect
+              className="h-[38px] w-full sm:w-52"
+              aria-label="Category"
+              value={state.categoryId}
+              onChange={(e) =>
+                setState({ categoryId: e.target.value }, { resetPage: true })
+              }
+              disabled={!tree}
+            >
+              <option value="">All categories</option>
+              {categoryOptions.map((c) => (
+                <option key={c.categoryId} value={c.categoryId}>
+                  {c.depth > 0 ? `${c.path.slice(0, -1).join(" › ")} › ${c.name}` : c.name}
+                </option>
+              ))}
+            </NativeSelect>
+            <NativeSelect
+              className="h-[38px] w-full sm:w-40"
+              aria-label="Sort"
+              value={state.sort}
+              onChange={(e) =>
+                setState({ sort: e.target.value }, { resetPage: true })
+              }
+            >
+              {SELLER_LISTING_SORTS.map((s) => (
+                <option key={s} value={s}>
+                  {SORT_LABELS[s]}
+                </option>
+              ))}
+            </NativeSelect>
+            <div className="flex items-center justify-end gap-2">
               <RefreshButton
                 onClick={() => void list.refetch()}
                 spinning={list.isFetching}
               />
               <ViewToggle view={view} onChange={setView} />
-            </>
-          }
-        />
+            </div>
+          </div>
+        </div>
+        {enabled && list.data && (filtered || list.data.totalCount > 0) && (
+          <div className="-mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span aria-live="polite">
+              {formatNumber(list.data.totalCount)}{" "}
+              {list.data.totalCount === 1 ? "listing" : "listings"}
+              {filtered ? " match your filters" : ""}
+            </span>
+            {filtered && (
+              <button
+                type="button"
+                className="cursor-pointer text-foreground underline underline-offset-4 hover:text-muted-foreground"
+                onClick={() =>
+                  setState(
+                    { status: "", categoryId: "", search: "" },
+                    { resetPage: true },
+                  )
+                }
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
         {view === "grid" ? (
           <ListingsGrid
             sellerId={sellerId}
@@ -295,19 +317,18 @@ export default function SellerListingsPage() {
             totalCount={list.data?.totalCount ?? 0}
             onPageChange={(page) => setState({ page })}
             empty={
-              <div className="rounded-xl border border-dashed border-border-strong p-10 text-center">
-                <p className="font-heading text-lg font-bold text-foreground">
-                  {filtered
-                    ? "No listings match your filters"
-                    : "No listings yet"}
-                </p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  {filtered
+              <EmptyState
+                className="rounded-xl border border-dashed border-border-strong"
+                title={
+                  filtered ? "No listings match your filters" : "No listings yet"
+                }
+                description={
+                  filtered
                     ? "Try a different search, status or category."
-                    : "Create a draft listing, or add many at once with Bulk upload."}
-                </p>
-                <div className="mt-4 flex justify-center gap-2">
-                  {filtered ? (
+                    : "Create a draft listing, or add many at once with Bulk upload."
+                }
+                action={
+                  filtered ? (
                     <Button
                       variant="secondary"
                       onClick={() =>
@@ -321,15 +342,22 @@ export default function SellerListingsPage() {
                     </Button>
                   ) : (
                     enabled && (
-                      <Button asChild variant="action">
-                        <Link to="/seller/listings/new">
-                          <PlusIcon /> New listing
-                        </Link>
-                      </Button>
+                      <>
+                        <Button asChild variant="secondary">
+                          <Link to="/seller/listings/bulk">
+                            <UploadSimpleIcon /> Bulk upload
+                          </Link>
+                        </Button>
+                        <Button asChild variant="action">
+                          <Link to="/seller/listings/new">
+                            <PlusIcon /> New listing
+                          </Link>
+                        </Button>
+                      </>
                     )
-                  )}
-                </div>
-              </div>
+                  )
+                }
+              />
             }
           />
         ) : (

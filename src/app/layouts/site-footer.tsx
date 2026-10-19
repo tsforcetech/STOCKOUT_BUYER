@@ -9,10 +9,12 @@ export function SiteFooter() {
       links: [
         ["Browse stock", "/search"],
         ["All categories", "/categories"],
+        ["Saved listings", "/saved"],
+        ["Cart", "/cart"],
       ],
     },
     {
-      title: "For Businesses",
+      title: "For businesses",
       links: [
         ["Sell surplus", "/sell"],
         ["Open seller account", "/seller/onboarding"],
@@ -31,10 +33,10 @@ export function SiteFooter() {
   return (
     <footer className="bg-[#111110] text-white">
       <div className="mx-auto max-w-[1336px] px-4 pb-10 pt-14 sm:px-6">
-        <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <p className="text-sm font-medium text-action">Our Mission</p>
-            <p className="mt-3 max-w-xs text-xs leading-5 text-white/70">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
+          <div className="col-span-2 lg:col-span-1">
+            <p className="text-sm font-semibold text-action">Our mission</p>
+            <p className="mt-3 max-w-xs text-sm leading-6 text-white/70">
               Usable materials shouldn't end up in landfill. StockOut connects
               the businesses that have surplus stock with the people who need
               it.
@@ -42,11 +44,11 @@ export function SiteFooter() {
           </div>
           {cols.map((c) => (
             <div key={c.title}>
-              <p className="text-sm font-medium text-action">{c.title}</p>
-              <ul className="mt-3 space-y-2 text-xs text-white/80">
+              <p className="text-sm font-semibold text-action">{c.title}</p>
+              <ul className="mt-3 space-y-2.5 text-sm text-white/75">
                 {c.links.map(([label, to]) => (
                   <li key={to}>
-                    <Link to={to} className="hover:text-white hover:underline">
+                    <Link to={to} className="transition-colors hover:text-white hover:underline underline-offset-4">
                       {label}
                     </Link>
                   </li>
@@ -63,7 +65,7 @@ export function SiteFooter() {
             <Logo className="!h-auto !text-[length:inherit] !text-white" />
           </span>
         </div>
-        <p className="mt-6 text-xs text-white/50">
+        <p className="mt-6 border-t border-white/10 pt-6 text-xs text-white/50">
           © {new Date().getFullYear()} StockOut. All rights reserved.
         </p>
       </div>

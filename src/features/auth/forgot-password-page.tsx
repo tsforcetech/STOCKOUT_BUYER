@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
     <AuthShell>
       <AuthCard title="Reset your password" subtitle={sent ? "Check your inbox" : "We'll email you a reset link"}>
         {sent ? (
-          <div className="mx-auto max-w-[440px] space-y-8 text-center">
+          <div className="mx-auto max-w-[440px] space-y-6">
             <p className="text-sm text-body">
               If an account exists for that address, password reset instructions have been sent. The link expires in 15 minutes.
             </p>
@@ -40,12 +40,12 @@ export default function ForgotPasswordPage() {
                 <Link to="/reset-password">I have a reset code</Link>
               </Button>
               <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
-                Back to sign in
+                Back to log in
               </Link>
             </div>
           </div>
         ) : (
-          <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-8">
+          <form onSubmit={onSubmit} noValidate className="mx-auto w-full max-w-[440px] space-y-6">
             <FormError message={error} />
             <FormField label="Email" htmlFor="emailOrMobile" error={form.formState.errors.emailOrMobile?.message}>
               <Input autoComplete="username" placeholder="Enter your email address" autoFocus {...form.register("emailOrMobile")} />
@@ -55,7 +55,7 @@ export default function ForgotPasswordPage() {
             </Button>
             <p className="text-center text-sm">
               <Link to="/login" className="text-muted-foreground hover:text-foreground">
-                Back to sign in
+                Back to log in
               </Link>
             </p>
           </form>

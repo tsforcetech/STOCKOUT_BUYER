@@ -12,7 +12,6 @@ import {
   CaretRightIcon,
   CaretDownIcon,
   ListIcon,
-  MapPinIcon,
   MonitorIcon,
   MoonIcon,
   SealCheckIcon,
@@ -34,7 +33,7 @@ import { cn } from "@/lib/utils/cn";
 import { initials } from "@/lib/utils/format";
 import { searchHref } from "@/features/search/lib/search-params";
 import { SearchBox } from "@/features/search/components/search-box";
-import { EMIRATES } from "@/features/search/lib/search-params";
+import { categoryIcon } from "@/features/categories/category-icon";
 
 function useCategoryTree() {
   return useQuery({
@@ -50,97 +49,110 @@ type CategoryNode = {
   children?: CategoryNode[] | null;
 };
 
+/** Width of a category tab's dropdown (the "All categories" panel spans the whole bar). */
+const PANEL_WIDTH = 940;
+
 /**
- * dubizzle-style category panel: the left column lists categories (hover/focus to pick one), the right
- * shows the picked category's subcategories in two columns with "View all". Driven by the live tree.
+ * dubizzle-style category dropdown. Left column: `items` as bold rows (hover/focus picks one). Right: the picked
+ * item's children in two columns under a "View all" header. Our catalog is mostly two levels deep, so when the
+ * picked item is a leaf the right side lists its siblings ("More in <parent>") instead of an empty box.
  */
 function CategoryPanel({
-  title,
+  parent,
   items,
   onNavigate,
 }: {
-  title: CategoryNode;
+  /** The tab's root category; undefined for "All categories" (items are then the roots). */
+  parent?: CategoryNode;
   items: CategoryNode[];
   onNavigate: () => void;
 }) {
   const [activeId, setActiveId] = React.useState(items[0]?.categoryId);
   const active = items.find((i) => i.categoryId === activeId) ?? items[0];
-  const subs = active?.children ?? [];
+  if (!active) return null;
+  const children = active.children ?? [];
+  const isLeaf = children.length === 0;
+  const list = isLeaf ? items : children;
+  const ActiveIcon = categoryIcon((parent ?? active).name);
+  const linkCls =
+    "inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-foreground underline-offset-4 hover:underline";
   return (
-    <div className="mx-auto max-w-[1336px] px-6 pb-6">
-      <div className="grid overflow-hidden rounded-b-2xl border border-t-0 border-border-strong bg-surface shadow-raised lg:grid-cols-[320px_1fr]">
-        <ul
-          className="max-h-[420px] overflow-y-auto border-r border-border py-2"
-          role="menu"
-          aria-label={title.name}
-        >
-          {items.map((i) => (
-            <li key={i.categoryId} role="none">
+    <div className="grid max-h-[min(560px,calc(100dvh-180px))] grid-cols-[minmax(0,300px)_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] overflow-hidden rounded-xl border border-border bg-surface shadow-[0_24px_48px_-12px_rgba(0,0,0,0.18),0_4px_12px_-4px_rgba(0,0,0,0.08)]">
+      <ul
+        className="min-h-0 overflow-y-auto overscroll-contain border-r border-border p-2"
+        aria-label={parent ? `${parent.name} subcategories` : "All categories"}
+      >
+        {items.map((i) => {
+          const on = i.categoryId === active.categoryId;
+          return (
+            <li key={i.categoryId}>
               <Link
-                role="menuitem"
                 to={searchHref({ categoryId: i.categoryId })}
                 onClick={onNavigate}
                 onMouseEnter={() => setActiveId(i.categoryId)}
                 onFocus={() => setActiveId(i.categoryId)}
+                aria-current={on ? "true" : undefined}
                 className={cn(
-                  "flex items-center justify-between gap-3 px-6 py-3 text-[15px] transition-colors",
-                  i.categoryId === active?.categoryId
-                    ? "bg-surface-muted font-bold text-foreground"
-                    : "text-body hover:bg-surface-muted",
+                  "flex items-center justify-between gap-3 rounded-lg px-4 py-3 text-[15px] font-semibold text-foreground transition-colors",
+                  on ? "bg-surface-muted" : "hover:bg-surface-muted/70",
                 )}
               >
-                <span className="truncate">{i.name}</span>
-                {(i.children?.length ?? 0) > 0 && (
-                  <CaretRightIcon className="size-4 shrink-0 text-muted-foreground" />
-                )}
+                <span className="min-w-0">{i.name}</span>
+                <CaretRightIcon
+                  className={cn("size-4 shrink-0 transition-opacity", on ? "opacity-100" : "opacity-0")}
+                  aria-hidden
+                />
               </Link>
             </li>
-          ))}
-        </ul>
-        {active && (
-          <div className="bg-surface-muted/50 p-6">
-            <div className="flex items-center justify-between gap-4 border-b border-border pb-4">
-              <p className="truncate font-heading text-lg font-bold text-foreground">
-                {active.name}
-              </p>
-              <Link
-                to={searchHref({ categoryId: active.categoryId })}
-                onClick={onNavigate}
-                className="inline-flex shrink-0 items-center gap-1.5 text-sm font-bold text-foreground hover:underline"
-              >
-                View all <ArrowRightIcon className="size-4" />
-              </Link>
-            </div>
-            {subs.length ? (
-              <ul className="mt-3 grid grid-cols-2 gap-x-8">
-                {subs.map((c) => (
-                  <li key={c.categoryId}>
-                    <Link
-                      to={searchHref({ categoryId: c.categoryId })}
-                      onClick={onNavigate}
-                      className="block truncate rounded-md px-2 py-2 text-[15px] text-body transition-colors hover:bg-cream hover:text-foreground"
-                    >
-                      {c.name}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <div className="mt-4 rounded-xl bg-cream p-5">
-                <p className="text-sm text-body">
-                  Browse every listing in {active.name}.
-                </p>
+          );
+        })}
+      </ul>
+      <div className="flex min-h-0 flex-col overflow-y-auto overscroll-contain px-7 py-5">
+        <div className="flex items-center justify-between gap-4 border-b border-border pb-3">
+          <p className="min-w-0 font-heading text-lg font-bold text-foreground">
+            {isLeaf && parent ? `More in ${parent.name}` : active.name}
+          </p>
+          <Link
+            to={searchHref({ categoryId: (isLeaf && parent ? parent : active).categoryId })}
+            onClick={onNavigate}
+            className={linkCls}
+          >
+            View all <ArrowRightIcon className="size-4" />
+          </Link>
+        </div>
+        {list.length > 0 && (
+          <ul className="mt-3 grid grid-cols-2 gap-x-8">
+            {list.map((c) => (
+              <li key={c.categoryId}>
                 <Link
-                  to={searchHref({ categoryId: active.categoryId })}
+                  to={searchHref({ categoryId: c.categoryId })}
                   onClick={onNavigate}
-                  className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary-hover"
+                  className={cn(
+                    "-mx-2 flex min-h-[34px] items-center rounded-md px-2 py-1.5 text-[15px] leading-5 transition-colors hover:bg-surface-muted hover:text-foreground",
+                    isLeaf && c.categoryId === active.categoryId ? "font-semibold text-foreground" : "text-body",
+                  )}
                 >
-                  Shop {active.name} <ArrowRightIcon className="size-4" />
+                  {c.name}
                 </Link>
-              </div>
-            )}
-          </div>
+              </li>
+            ))}
+          </ul>
         )}
+        <div className="mt-auto pt-5">
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-surface-muted px-4 py-3">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface text-foreground">
+              <ActiveIcon className="size-5" />
+            </span>
+            <p className="min-w-0 flex-1 text-sm text-body">
+              {isLeaf ? "Looking for " : "Everything in "}
+              <span className="font-semibold text-foreground">{active.name}</span>
+              {isLeaf ? "?" : ""}
+            </p>
+            <Link to={searchHref({ categoryId: active.categoryId })} onClick={onNavigate} className={linkCls}>
+              {isLeaf ? `Shop ${active.name}` : "Shop all"} <ArrowRightIcon className="size-4" />
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -170,7 +182,7 @@ function SavedButton() {
       <HeartIcon className="size-5" />
       {n > 0 && (
         <span
-          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e0245e] px-1 text-[11px] font-bold text-white ring-2 ring-cream"
+          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e0245e] px-1 text-[11px] font-bold text-white ring-2 ring-surface"
           aria-hidden
         >
           {n > 99 ? "99+" : n}
@@ -194,7 +206,7 @@ function CartButton() {
       <ShoppingCartSimpleIcon className="size-5" />
       {count > 0 && (
         <span
-          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-[11px] font-bold text-action-foreground ring-2 ring-cream"
+          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-[11px] font-bold text-action-foreground ring-2 ring-surface"
           aria-hidden
         >
           {count > 99 ? "99+" : count}
@@ -207,7 +219,7 @@ function CartButton() {
 function LoginButton() {
   return (
     <Button asChild size="sm" className="h-10 px-6">
-      <Link to="/login">Login</Link>
+      <Link to="/login">Log in</Link>
     </Button>
   );
 }
@@ -227,7 +239,7 @@ function SellerEntry({ compact = false }: { compact?: boolean }) {
     <Link
       to={target.to}
       className={cn(
-        "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-cream-strong",
+        "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-surface-muted",
         compact && "w-full justify-center border border-foreground",
       )}
     >
@@ -305,11 +317,11 @@ function AccountMenu() {
       <PopoverPrimitive.Trigger asChild>
         <button
           type="button"
-          className="flex cursor-pointer items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-2 text-left hover:bg-cream-strong"
+          className="flex cursor-pointer items-center gap-2.5 rounded-full py-0.5 pl-0.5 pr-2 text-left hover:bg-surface-muted"
           aria-label="Account menu"
         >
           <span
-            className="flex size-10 items-center justify-center rounded-full bg-[#1a1a19] font-heading text-sm font-bold text-action ring-2 ring-action ring-offset-2 ring-offset-cream"
+            className="flex size-10 items-center justify-center rounded-full bg-[#1a1a19] font-heading text-sm font-bold text-action ring-2 ring-action ring-offset-2 ring-offset-surface"
             aria-hidden
           >
             {initials(user?.displayName || name)}
@@ -329,7 +341,7 @@ function AccountMenu() {
         <PopoverPrimitive.Content
           align="end"
           sideOffset={10}
-          className="z-50 w-60 rounded-lg bg-cream p-2 text-sm shadow-raised focus:outline-none"
+          className="z-50 w-64 rounded-xl border border-border bg-surface p-2 text-sm shadow-raised focus:outline-none"
         >
           <div className="px-2 py-2">
             <p className="truncate font-medium text-foreground">
@@ -358,7 +370,7 @@ function AccountMenu() {
               <button
                 type="button"
                 onClick={() => navigate(i.to)}
-                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-foreground hover:bg-cream-strong"
+                className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-foreground hover:bg-surface-muted"
               >
                 <i.icon className="size-[18px]" /> {i.label}
               </button>
@@ -380,45 +392,6 @@ function AccountMenu() {
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
-  );
-}
-
-/** Location chip (Figma: "Dubai · 20 km radius"). The search API filters by emirate; distance is not supported. */
-export function LocationPicker({
-  value,
-  onChange,
-  className,
-}: {
-  value: string;
-  onChange: (emirate: string) => void;
-  className?: string;
-}) {
-  return (
-    <label
-      className={cn(
-        "relative flex shrink-0 items-center gap-2 pl-3 pr-1",
-        className,
-      )}
-    >
-      <MapPinIcon className="size-5 text-foreground" aria-hidden />
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label="Location"
-        className="cursor-pointer appearance-none bg-transparent pr-5 text-sm text-foreground outline-none"
-      >
-        <option value="">All UAE</option>
-        {EMIRATES.map((e) => (
-          <option key={e} value={e}>
-            {e}
-          </option>
-        ))}
-      </select>
-      <CaretDownIcon
-        className="pointer-events-none absolute right-1 size-3.5"
-        aria-hidden
-      />
-    </label>
   );
 }
 
@@ -445,7 +418,7 @@ function GreenPoints() {
         <PopoverPrimitive.Content
           align="end"
           sideOffset={10}
-          className="z-50 w-72 rounded-lg bg-cream p-4 text-sm shadow-raised focus:outline-none"
+          className="z-50 w-72 rounded-xl border border-border bg-surface p-4 text-sm shadow-raised focus:outline-none"
         >
           <p className="flex items-center gap-2 font-heading text-base font-bold text-foreground">
             <LeafIcon className="size-5 text-success" weight="fill" /> Green
@@ -455,7 +428,7 @@ function GreenPoints() {
             Earn points for every material you buy or sell instead of sending it
             to landfill, and see the impact of your reuse.
           </p>
-          <p className="mt-3 rounded-md bg-surface px-3 py-2 text-xs text-muted-foreground">
+          <p className="mt-3 rounded-md bg-surface-muted px-3 py-2 text-xs text-muted-foreground">
             Coming soon. Your balance will appear here once Green Points is
             live.
           </p>
@@ -470,9 +443,12 @@ export function SiteHeader() {
   const tree = useCategoryTree();
   /** null = closed, "all" = every top-level category, otherwise a top-level categoryId. */
   const [menu, setMenu] = React.useState<string | null>(null);
+  /** Left offset (px) of the open panel inside the category bar, so it hangs under its tab. */
+  const [anchor, setAnchor] = React.useState(0);
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const location = useLocation();
   const hoverTimer = React.useRef<number | undefined>(undefined);
+  const barRef = React.useRef<HTMLDivElement>(null);
   const isHome = location.pathname === "/";
 
   React.useEffect(() => {
@@ -482,7 +458,9 @@ export function SiteHeader() {
 
   React.useEffect(() => {
     if (!menu) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenu(null);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenu(null);
+    };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [menu]);
@@ -491,47 +469,55 @@ export function SiteHeader() {
     return () => window.clearTimeout(hoverTimer.current);
   }, []);
 
+  /** Places the panel under `tab`, clamped so it never runs past the bar's right edge. */
+  const anchorTo = (key: string, tab: HTMLElement) => {
+    const bar = barRef.current;
+    if (!bar || key === "all") {
+      setAnchor(0);
+      return;
+    }
+    // The bar row has 24px side padding (px-6); the panel lives in the same padded box.
+    const box = bar.getBoundingClientRect();
+    const inner = box.width - 48;
+    const width = Math.min(PANEL_WIDTH, inner);
+    const left = tab.getBoundingClientRect().left - (box.left + 24);
+    setAnchor(Math.max(0, Math.min(left, inner - width)));
+  };
+  const openMenu = (key: string, tab: HTMLElement) => {
+    anchorTo(key, tab);
+    setMenu(key);
+  };
+
   // Hover intent: open after a short pause, close after leaving the bar + panel.
-  const hoverOpen = (key: string) => {
+  const hoverOpen = (key: string, tab: HTMLElement) => {
     window.clearTimeout(hoverTimer.current);
-    hoverTimer.current = window.setTimeout(() => setMenu(key), menu ? 0 : 120);
+    hoverTimer.current = window.setTimeout(() => openMenu(key, tab), menu ? 0 : 120);
   };
   const hoverClose = () => {
     window.clearTimeout(hoverTimer.current);
     hoverTimer.current = window.setTimeout(() => setMenu(null), 180);
   };
+  const toggleMenu = (key: string, tab: HTMLElement) => {
+    window.clearTimeout(hoverTimer.current);
+    if (menu === key) setMenu(null);
+    else openMenu(key, tab);
+  };
 
   const roots = tree.data ?? [];
-  const openRoot =
-    menu && menu !== "all"
-      ? roots.find((r) => r.categoryId === menu)
-      : undefined;
+  const openRoot = menu && menu !== "all" ? roots.find((r) => r.categoryId === menu) : undefined;
   const panel =
     menu === "all" ? (
-      roots.length > 0 && (
-        <CategoryPanel
-          key="all"
-          title={{ categoryId: "all", name: "All categories" }}
-          items={roots}
-          onNavigate={() => setMenu(null)}
-        />
-      )
+      roots.length > 0 && <CategoryPanel key="all" items={roots} onNavigate={() => setMenu(null)} />
     ) : openRoot && (openRoot.children?.length ?? 0) > 0 ? (
-      <CategoryPanel
-        key={openRoot.categoryId}
-        title={openRoot}
-        items={openRoot.children}
-        onNavigate={() => setMenu(null)}
-      />
+      <CategoryPanel key={openRoot.categoryId} parent={openRoot} items={openRoot.children ?? []} onNavigate={() => setMenu(null)} />
     ) : null;
 
+  // Weight never changes between states, so opening a tab doesn't nudge its neighbours.
   const tabClass = (open: boolean) =>
     cn(
-      "relative inline-flex h-full shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap px-3 text-sm transition-colors",
-      "after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:rounded-t-full after:bg-foreground after:transition-transform after:origin-center",
-      open
-        ? "font-bold text-foreground after:scale-x-100"
-        : "text-body after:scale-x-0 hover:text-foreground",
+      "relative inline-flex h-full shrink-0 cursor-pointer items-center gap-1.5 whitespace-nowrap px-3 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+      "after:absolute after:inset-x-3 after:bottom-0 after:h-[3px] after:origin-center after:rounded-t-full after:bg-foreground after:transition-transform",
+      open ? "text-foreground after:scale-x-100" : "text-body after:scale-x-0 hover:text-foreground",
     );
 
   return (
@@ -540,18 +526,10 @@ export function SiteHeader() {
       <div className="bg-[#141413] text-white">
         <div className="mx-auto flex h-9 max-w-[1336px] items-center justify-between gap-4 px-4 text-xs sm:px-6">
           <p className="flex min-w-0 items-center gap-2 truncate">
-            <SealCheckIcon
-              className="size-4 shrink-0 text-action"
-              weight="fill"
-            />
+            <SealCheckIcon className="size-4 shrink-0 text-action" weight="fill" />
             <span className="truncate">
-              <span className="font-semibold text-action">
-                Verified surplus marketplace
-              </span>
-              <span className="hidden text-white/70 sm:inline">
-                {" "}
-                · Inspection-backed industrial stock across the UAE
-              </span>
+              <span className="font-semibold text-action">Verified surplus marketplace</span>
+              <span className="hidden text-white/70 sm:inline"> · Inspection-backed industrial stock across the UAE</span>
             </span>
           </p>
           <div className="flex shrink-0 items-center gap-3">
@@ -561,28 +539,22 @@ export function SiteHeader() {
         </div>
       </div>
 
-      <div className="border-b border-border-strong bg-cream">
+      <div className="relative border-b border-border bg-surface shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         {/* Main row: logo · search (hidden on home, which has the big hero search) · saved · cart · account · seller. */}
         <div className="mx-auto flex h-[72px] max-w-[1336px] items-center gap-3 px-4 sm:gap-4 sm:px-6">
           <button
             type="button"
-            className="flex size-9 cursor-pointer items-center justify-center rounded-md lg:hidden"
+            className="-ml-1.5 flex size-10 cursor-pointer items-center justify-center rounded-full hover:bg-surface-muted lg:hidden"
             onClick={() => setMobileOpen((o) => !o)}
             aria-label="Menu"
             aria-expanded={mobileOpen}
           >
-            {mobileOpen ? (
-              <XIcon className="size-6" />
-            ) : (
-              <ListIcon className="size-6" />
-            )}
+            {mobileOpen ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
           </button>
           <Link to="/" aria-label="StockOut home" className="shrink-0">
             <Logo className="text-2xl" />
           </Link>
-          <div className="mx-2 hidden min-w-0 flex-1 lg:block xl:mx-6">
-            {!isHome && <SearchBox variant="header" />}
-          </div>
+          <div className="mx-2 hidden min-w-0 flex-1 lg:block xl:mx-6">{!isHome && <SearchBox variant="header" animatedPlaceholder />}</div>
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
             <span className="hidden md:inline-flex">
               <SellerEntry />
@@ -596,7 +568,7 @@ export function SiteHeader() {
             ) : status === "anonymous" ? (
               <LoginButton />
             ) : (
-              <span className="h-10 w-20 animate-pulse rounded-full bg-cream-strong" />
+              <span className="h-10 w-20 animate-pulse rounded-full bg-surface-muted" />
             )}
           </div>
         </div>
@@ -608,14 +580,14 @@ export function SiteHeader() {
           onMouseLeave={hoverClose}
           onMouseEnter={() => window.clearTimeout(hoverTimer.current)}
         >
-          <div className="mx-auto flex h-12 max-w-[1336px] items-stretch px-6">
+          <div ref={barRef} className="mx-auto flex h-12 max-w-[1336px] items-stretch px-6">
             <button
               type="button"
               aria-expanded={menu === "all"}
               aria-haspopup="true"
-              onClick={() => setMenu((m) => (m === "all" ? null : "all"))}
-              onMouseEnter={() => hoverOpen("all")}
-              className={tabClass(menu === "all")}
+              onClick={(e) => toggleMenu("all", e.currentTarget)}
+              onMouseEnter={(e) => hoverOpen("all", e.currentTarget)}
+              className={cn(tabClass(menu === "all"), "-ml-3 font-semibold text-foreground")}
             >
               <ListIcon className="size-4" /> All categories
             </button>
@@ -629,21 +601,14 @@ export function SiteHeader() {
                     type="button"
                     aria-expanded={menu === c.categoryId}
                     aria-haspopup="true"
-                    onClick={() =>
-                      setMenu((m) => (m === c.categoryId ? null : c.categoryId))
-                    }
-                    onMouseEnter={() => hoverOpen(c.categoryId)}
+                    onClick={(e) => toggleMenu(c.categoryId, e.currentTarget)}
+                    onMouseEnter={(e) => hoverOpen(c.categoryId, e.currentTarget)}
                     className={tabClass(menu === c.categoryId)}
                   >
                     {c.name}
                   </button>
                 ) : (
-                  <Link
-                    key={c.categoryId}
-                    to={searchHref({ categoryId: c.categoryId })}
-                    onMouseEnter={hoverClose}
-                    className={tabClass(false)}
-                  >
+                  <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} onMouseEnter={hoverClose} className={tabClass(false)}>
                     {c.name}
                   </Link>
                 ),
@@ -651,47 +616,48 @@ export function SiteHeader() {
             </div>
             <Link
               to="/categories"
-              className="ml-2 inline-flex shrink-0 items-center gap-1 text-sm font-medium text-foreground underline-offset-4 hover:underline"
+              onMouseEnter={hoverClose}
+              className="ml-2 inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-foreground underline-offset-4 hover:underline"
             >
               Browse all <ArrowRightIcon className="size-3.5" />
             </Link>
           </div>
           {panel && (
-            <div className="absolute inset-x-0 top-full z-10">{panel}</div>
+            <div className="pointer-events-none absolute inset-x-0 top-full z-10">
+              <div className="mx-auto max-w-[1336px] px-6 pt-2">
+                <div
+                  className="pointer-events-auto relative max-w-[940px]"
+                  style={{ left: anchor }}
+                  onMouseEnter={() => window.clearTimeout(hoverTimer.current)}
+                >
+                  {panel}
+                </div>
+              </div>
+            </div>
           )}
         </nav>
+        {panel && (
+          <div
+            aria-hidden
+            className="absolute inset-x-0 top-full -z-10 hidden h-dvh bg-black/30 lg:block"
+            onClick={() => setMenu(null)}
+          />
+        )}
       </div>
 
-      {panel && (
-        <div
-          aria-hidden
-          className="fixed inset-0 top-[157px] -z-10 hidden bg-black/30 lg:block"
-          onClick={() => setMenu(null)}
-        />
-      )}
       {mobileOpen && (
-        <div className="border-b border-border-strong bg-cream px-4 py-4 lg:hidden">
+        <div className="max-h-[calc(100dvh-108px)] overflow-y-auto border-b border-border bg-surface px-4 py-4 shadow-raised lg:hidden">
           <SearchBox variant="header" />
-          <nav
-            aria-label="Mobile"
-            className="mt-4 flex flex-col gap-1 text-base"
-          >
-            <Link
-              to="/categories"
-              className="rounded-md px-2 py-2 font-medium hover:bg-cream-strong"
-            >
-              All categories
+          <nav aria-label="Mobile" className="mt-4 flex flex-col gap-0.5 text-base">
+            <Link to="/categories" className="flex items-center justify-between rounded-lg px-3 py-2.5 font-semibold text-foreground hover:bg-surface-muted">
+              All categories <ArrowRightIcon className="size-4" />
             </Link>
-            {roots.slice(0, 6).map((c) => (
-              <Link
-                key={c.categoryId}
-                to={searchHref({ categoryId: c.categoryId })}
-                className="rounded-md px-2 py-2 text-body hover:bg-cream-strong"
-              >
+            {roots.slice(0, 8).map((c) => (
+              <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="rounded-lg px-3 py-2.5 text-body hover:bg-surface-muted">
                 {c.name}
               </Link>
             ))}
-            <div className="mt-2">
+            <div className="mt-3 border-t border-border pt-4">
               <SellerEntry compact />
             </div>
           </nav>

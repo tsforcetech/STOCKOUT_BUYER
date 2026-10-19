@@ -4,7 +4,8 @@ import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import type { ListingSnapshot } from "@/lib/favorites/favorites-context";
 import { formatMoney, formatNumber, humanize, timeAgo } from "@/lib/utils/format";
-import type { ListingSearchCard, SearchCardAttribute } from "@/api/types/search";
+import type { ListingSearchCard } from "@/api/types/search";
+import { attributeDisplayValue } from "../lib/attribute-value";
 
 /** Snapshot stored with a ♥ so the saved list renders without refetching the listing. */
 export function listingSnapshot(item: ListingSearchCard): ListingSnapshot {
@@ -20,19 +21,13 @@ export function listingSnapshot(item: ListingSearchCard): ListingSnapshot {
   };
 }
 
-function attributeValue(a: SearchCardAttribute): string | null {
-  if (a.textValue) return a.textValue;
-  if (a.numValue !== null && a.numValue !== undefined) return formatNumber(a.numValue);
-  return null;
-}
-
 /** Key specs shown as chips: brand / grade from the card, then the first listing attributes that carry a value. */
 export function listingSpecs(item: ListingSearchCard, max = 4): string[] {
   const specs: string[] = [];
   if (item.brandName) specs.push(item.brandName);
   if (item.gradeName) specs.push(`Grade ${item.gradeName}`);
   for (const a of item.attributes ?? []) {
-    const value = attributeValue(a);
+    const value = attributeDisplayValue(a);
     if (value) specs.push(`${humanize(a.code)}: ${value}`);
   }
   return specs.slice(0, max);
@@ -46,7 +41,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
   const href = `/listings/${item.listingId}`;
   return (
     <article className="group relative flex gap-3 overflow-hidden rounded-2xl border border-border bg-surface p-2.5 transition-shadow hover:shadow-raised sm:gap-5 sm:p-3">
-      <div className="relative w-28 shrink-0 self-start overflow-hidden rounded-xl sm:w-52 md:w-60">
+      <div className="relative w-28 shrink-0 self-start overflow-hidden rounded-xl sm:w-44 md:w-48">
         <ListingImage src={item.primaryImage?.cdnUrl} alt={item.title} className="aspect-square w-full sm:aspect-[4/3]" />
         {item.conditionName && (
           <span className="absolute left-1.5 top-1.5 rounded-md bg-surface px-1.5 py-0.5 font-heading text-[11px] font-bold text-foreground shadow-raised sm:left-2 sm:top-2 sm:text-xs">{item.conditionName}</span>
@@ -117,7 +112,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
 export function ListingRowSkeleton() {
   return (
     <div className="flex gap-3 rounded-2xl border border-border bg-surface p-2.5 sm:gap-5 sm:p-3" aria-hidden>
-      <div className="aspect-square w-28 shrink-0 animate-pulse rounded-xl bg-surface-muted sm:aspect-[4/3] sm:w-52 md:w-60" />
+      <div className="aspect-square w-28 shrink-0 animate-pulse rounded-xl bg-surface-muted sm:aspect-[4/3] sm:w-44 md:w-48" />
       <div className="flex-1 space-y-2 py-1">
         <div className="h-3 w-1/3 animate-pulse rounded bg-surface-muted" />
         <div className="h-5 w-4/5 animate-pulse rounded bg-surface-muted" />

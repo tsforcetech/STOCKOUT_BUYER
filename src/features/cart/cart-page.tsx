@@ -1,5 +1,5 @@
 import { Link } from "react-router";
-import { InfoIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
+import { InfoIcon, LockSimpleIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import { ListingImage } from "@/components/common/listing-image";
 import { Button } from "@/components/ui/button";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
@@ -40,7 +40,7 @@ export default function CartPage() {
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_380px]">
         <div className="space-y-6">
           {[...bySeller.entries()].map(([seller, items]) => (
-            <section key={seller} className="overflow-hidden rounded-xl border border-border" aria-label={seller}>
+            <section key={seller} className="overflow-hidden rounded-2xl border border-border" aria-label={seller}>
               <header className="flex items-center gap-2 border-b border-border bg-surface-muted px-4 py-3 text-sm font-medium text-foreground">
                 <StorefrontIcon className="size-4" /> {seller}
               </header>
@@ -49,7 +49,7 @@ export default function CartPage() {
                   const s = live.get(item.listingId)!;
                   const qty = Math.min(item.quantity, s.max);
                   return (
-                    <li key={item.listingId} className="flex gap-4 p-4">
+                    <li key={item.listingId} className="flex gap-3 p-4 sm:gap-4">
                       <Link to={`/listings/${item.listingId}`} className="shrink-0">
                         <ListingImage src={item.imageUrl} alt={item.title} className="size-20 rounded-lg sm:size-24" />
                       </Link>
@@ -81,9 +81,10 @@ export default function CartPage() {
                           <button type="button" onClick={() => cart.remove(item.listingId)} className="inline-flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-danger">
                             <TrashIcon className="size-4" /> Remove
                           </button>
+                          {!s.unavailable && <span className="ml-auto font-heading font-bold text-foreground sm:hidden">{formatMoney(s.price * qty, s.currency)}</span>}
                         </div>
                       </div>
-                      <p className="shrink-0 text-right font-heading font-bold text-foreground">{s.unavailable ? "—" : formatMoney(s.price * qty, s.currency)}</p>
+                      <p className="hidden shrink-0 text-right font-heading font-bold text-foreground sm:block">{s.unavailable ? "—" : formatMoney(s.price * qty, s.currency)}</p>
                     </li>
                   );
                 })}
@@ -92,7 +93,7 @@ export default function CartPage() {
           ))}
         </div>
 
-        <aside className="h-fit rounded-xl border border-border p-5 lg:sticky lg:top-[168px]">
+        <aside className="h-fit rounded-2xl border border-border p-5 shadow-raised lg:sticky lg:top-[176px]">
           <h2 className="font-heading text-lg font-bold text-foreground">Order summary</h2>
           <dl className="mt-4 space-y-2 text-sm">
             {[...totals.entries()].map(([currency, total]) => (
@@ -106,8 +107,8 @@ export default function CartPage() {
               <dd>Agreed with seller</dd>
             </div>
           </dl>
-          <Button size="lg" className="mt-5 w-full" disabled aria-describedby="checkout-note">
-            Checkout
+          <Button size="lg" variant="secondary" className="mt-5 w-full rounded-full" disabled aria-describedby="checkout-note">
+            <LockSimpleIcon /> Checkout · coming soon
           </Button>
           <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
             <span className="font-medium text-foreground">Online checkout is coming soon.</span> Ordering and payments open once StockOut's order and payment

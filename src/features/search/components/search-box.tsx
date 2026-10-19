@@ -6,6 +6,7 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { searchService } from "@/services/search.service";
 import { cn } from "@/lib/utils/cn";
 import { searchHref } from "../lib/search-params";
+import { SEARCH_EXAMPLES, useTypewriter } from "../lib/use-typewriter";
 
 /**
  * Header / hero search with type-ahead suggestions (GET /api/v1/search/suggest).
@@ -17,6 +18,8 @@ export function SearchBox({
   categoryId,
   autoFocus,
   addons,
+  animatedPlaceholder = false,
+  className,
 }: {
   variant?: "header" | "hero";
   emirate?: string;
@@ -24,6 +27,9 @@ export function SearchBox({
   autoFocus?: boolean;
   /** Extra controls rendered between the input and the submit button (hero: category + location). */
   addons?: React.ReactNode;
+  /** Cycle "Try asking for '…'" examples in the placeholder while the field is empty and unfocused. */
+  animatedPlaceholder?: boolean;
+  className?: string;
 }) {
   const [params] = useSearchParams();
   const navigate = useNavigate();
@@ -32,6 +38,16 @@ export function SearchBox({
   const [active, setActive] = React.useState(-1);
   const debounced = useDebouncedValue(text.trim(), 250);
   const listId = React.useId();
+  const [focused, setFocused] = React.useState(false);
+  const typed = useTypewriter(SEARCH_EXAMPLES, animatedPlaceholder && !focused && text === "");
+  const placeholder =
+    typed !== null
+      ? `Try asking for '${typed}'`
+      : animatedPlaceholder && !focused
+        ? `Try asking for '${SEARCH_EXAMPLES[0]}'`
+        : variant === "hero"
+          ? "What material are you looking for?"
+          : "Search for anything…";
 
   React.useEffect(() => {
     setText(params.get("q") ?? "");
@@ -65,7 +81,7 @@ export function SearchBox({
   return (
     <form
       role="search"
-      className="relative"
+      className={cn("relative", className)}
       onSubmit={(e) => {
         e.preventDefault();
         if (active >= 0) pick(active);
@@ -88,8 +104,14 @@ export function SearchBox({
             setOpen(true);
             setActive(-1);
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
+          onFocus={() => {
+            setOpen(true);
+            setFocused(true);
+          }}
+          onBlur={() => {
+            setFocused(false);
+            setTimeout(() => setOpen(false), 150);
+          }}
           onKeyDown={(e) => {
             if (e.key === "ArrowDown") {
               e.preventDefault();
@@ -99,14 +121,14 @@ export function SearchBox({
               setActive((a) => Math.max(-1, a - 1));
             } else if (e.key === "Escape") setOpen(false);
           }}
-          placeholder={variant === "hero" ? "What material are you looking for?" : "Search for anything…"}
+          placeholder={placeholder}
           aria-label="Search materials"
           role="combobox"
           aria-expanded={open && items.length > 0}
           aria-controls={listId}
           aria-autocomplete="list"
           maxLength={200}
-          className={cn("h-full min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground", variant === "hero" ? "text-lg" : "text-sm")}
+          className={cn("h-full min-w-0 flex-1 bg-transparent text-foreground outline-none placeholder:text-muted-foreground", variant === "hero" ? "text-base lg:text-lg" : "text-sm")}
         />
         </div>
         {addons}

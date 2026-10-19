@@ -14,6 +14,7 @@ import { isApiError } from "@/lib/api/errors";
 import { dateInputToUtcIso } from "../lib/listing";
 import { sellerAccountErrorMessage, sellerErrorMessage } from "../lib/errors";
 import { sellerKeys } from "../lib/queries";
+import { FilePicker } from "./file-picker";
 import { UploadProgress } from "./upload-progress";
 
 const SUGGESTIONS = ["Trade licence", "Emirates ID", "Passport", "VAT certificate", "Certificate of incorporation", "Memorandum of association", "Bank letter", "Power of attorney"];
@@ -125,12 +126,13 @@ export function AddDocumentDialog({ sellerId, open, onOpenChange }: { sellerId: 
               <option key={s} value={s} />
             ))}
           </datalist>
-          <FormField label="File" htmlFor="documentFile" required error={errors.file?.message} hint={file ? `${file.name} · ${formatBytes(file.size)}` : "PDF, JPG or PNG, max 20 MB."}>
-            <Input
-              type="file"
+          <FormField label="File" htmlFor="documentFile" required error={errors.file?.message} hint={`PDF, JPG or PNG, max ${formatBytes(LIMIT.maxBytes)}.`}>
+            <FilePicker
+              file={file ?? null}
               accept={LIMIT.accept}
               disabled={busy}
-              onChange={(e) => form.setValue("file", e.target.files?.[0] ?? null, { shouldValidate: true })}
+              placeholder="Choose a scan or photo"
+              onChange={(f) => form.setValue("file", f, { shouldValidate: true })}
             />
           </FormField>
           {progress !== null && <UploadProgress value={progress} label={progress >= 1 ? "Uploaded — saving document…" : "Uploading…"} />}

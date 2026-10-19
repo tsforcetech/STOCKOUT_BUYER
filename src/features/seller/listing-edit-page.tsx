@@ -22,7 +22,7 @@ const TABS = [
   { value: "attributes", label: "Attributes" },
   { value: "media", label: "Media" },
   { value: "inventory", label: "Inventory" },
-  { value: "review", label: "Review & inspections" },
+  { value: "review", label: "Review" },
 ] as const;
 
 export default function SellerListingEditPage() {
@@ -72,7 +72,7 @@ export default function SellerListingEditPage() {
       <WorkspaceHeader sellerId={sellerId} listing={listing} moderation={moderation.data} />
       <SectionCard>
         <Tabs value={tab} onValueChange={(v) => setState({ tab: v })}>
-          <TabsList aria-label="Listing sections">
+          <TabsList aria-label="Listing sections" className="-mx-4 px-4 sm:mx-0 sm:px-0">
             {TABS.map((t) => (
               <TabsTrigger key={t.value} value={t.value}>
                 {t.label}

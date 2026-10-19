@@ -15,6 +15,7 @@ import { SearchFilters } from "./components/filters";
 import { SaveSearchDialog } from "./components/save-search-dialog";
 import { AppliedFilters, appliedFilterChips } from "./components/applied-filters";
 import { FilterSheet } from "./components/filter-sheet";
+import { SearchBox } from "./components/search-box";
 import { useSearchView, ViewToggle } from "./components/view-toggle";
 import { useFilterOptions } from "./lib/filter-options";
 
@@ -96,7 +97,10 @@ export default function SearchPage() {
       <p className="mt-1.5 text-sm text-muted-foreground">Verified surplus stock from UAE sellers. Filter by category, location, brand and specification.</p>
 
       {/* Mobile / tablet: sticky Filters + Sort bar under the site header (36px strip + 72px bar). */}
-      <div className="sticky top-[108px] z-30 -mx-4 mt-3 flex items-center gap-2 border-b border-border bg-surface/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+      <div className="sticky top-[108px] z-30 -mx-4 mt-3 border-b border-border bg-surface/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
+        {/* Phones have no header search bar: give the results page its own field so shoppers can refine the query. */}
+        <SearchBox variant="header" className="mb-2.5 [&>div]:h-10" />
+        <div className="flex items-center gap-2">
         <Button variant="secondary" className="h-10 flex-1 rounded-full" onClick={() => setFiltersOpen(true)}>
           <SlidersHorizontalIcon /> Filters
           {activeFilterCount > 0 && <span className="rounded-full bg-action px-1.5 text-xs font-bold leading-5 text-action-foreground">{activeFilterCount}</span>}
@@ -108,6 +112,7 @@ export default function SearchPage() {
           <select aria-label="Sort results" value={state.sort} onChange={(e) => changeSort(e.target.value)} className="absolute inset-0 cursor-pointer opacity-0">
             {sortOptions}
           </select>
+        </div>
         </div>
       </div>
 

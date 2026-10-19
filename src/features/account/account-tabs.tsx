@@ -16,7 +16,7 @@ export function AccountTabs() {
           to={t.to}
           end={t.end}
           className={({ isActive }) =>
-            cn("-mb-px whitespace-nowrap border-b-2 border-transparent px-2 pb-2 pt-1 text-sm text-foreground transition-colors hover:text-muted-foreground", isActive && "border-action-border font-medium")
+            cn("-mb-px whitespace-nowrap border-b-2 border-transparent px-2 pb-2 pt-1 text-sm text-foreground transition-colors hover:text-muted-foreground", isActive && "border-foreground font-semibold")
           }
         >
           {t.label}

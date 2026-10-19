@@ -5,7 +5,6 @@ import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { DetailList } from "@/components/common/page-header";
-import { SectionCard } from "@/components/common/section-card";
 import { StatusBadge } from "@/components/common/status-badge";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { ReasonDialog } from "@/components/forms/reason-dialog";
@@ -15,6 +14,7 @@ import { formatDateTime, humanize } from "@/lib/utils/format";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import type { InspectionSummaryDto, ListingDetailResponse, ListingModerationStatusResponse } from "@/api/types/seller-listings";
 import { Notice } from "../components/notice";
+import { Panel } from "../components/panel";
 import { sellerErrorMessage } from "../lib/errors";
 import { sellerKeys } from "../lib/queries";
 import { toast } from "sonner";
@@ -28,8 +28,7 @@ interface Props {
 function ModerationCard({ moderation }: Pick<Props, "moderation">) {
   const m = moderation.data;
   return (
-    <SectionCard>
-      <h3 className="mb-3 font-heading text-base font-bold text-foreground">Moderation</h3>
+    <Panel title="Moderation" description="The latest decision from the StockOut review team.">
       <Notice className="mb-4">
         The marketplace can't currently report whether a draft is under review — its status always reads “Draft” while a draft exists. The latest decision below is
         reliable, but it may belong to an earlier submission.
@@ -49,7 +48,7 @@ function ModerationCard({ moderation }: Pick<Props, "moderation">) {
           ]}
         />
       ) : null}
-    </SectionCard>
+    </Panel>
   );
 }
 
@@ -70,7 +69,14 @@ function LatestInspection({ sellerId, listingId }: { sellerId: string; listingId
   if (latest.isLoading) return <Skeleton className="h-32 w-full" />;
   if (latest.error) return <ErrorState error={latest.error} onRetry={() => void latest.refetch()} title="Couldn't load the latest inspection" />;
   const i = latest.data;
-  if (!i) return <EmptyState title="No inspections" description="If this category requires a physical inspection, one is created automatically when your listing is approved." />;
+  if (!i)
+    return (
+      <EmptyState
+        className="py-8"
+        title="No inspections yet"
+        description="If this category requires a physical inspection, one is created automatically when your listing is approved."
+      />
+    );
   const canRequest = i.status === "COMPLETED" && (i.result === "FAIL" || i.result === "REINSPECTION_REQUIRED");
 
   return (
@@ -172,28 +178,29 @@ export function ReviewTab({ sellerId, listing, moderation }: Props) {
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 pt-1">
       <ModerationCard moderation={moderation} />
-      <SectionCard>
-        <h3 className="mb-3 font-heading text-base font-bold text-foreground">Latest inspection</h3>
+      <Panel title="Latest inspection">
         <LatestInspection sellerId={sellerId} listingId={listing.listingId} />
-      </SectionCard>
-      <SectionCard>
-        <h3 className="mb-3 font-heading text-base font-bold text-foreground">Inspection history</h3>
-        <DataTable
-          caption="Inspection history"
-          columns={columns}
-          data={history.data?.items}
-          getRowId={(r) => r.inspectionId}
-          isLoading={history.isLoading}
-          isFetching={history.isFetching}
-          error={history.error}
-          onRetry={() => void history.refetch()}
-          pagination={{ page, pageSize: 10, totalCount: history.data?.totalCount ?? 0, onPageChange: setPage, onPageSizeChange: () => setPage(1) }}
-          pageSizeOptions={[10]}
-          emptyTitle="No inspections yet"
-        />
-      </SectionCard>
+      </Panel>
+      {/* History only adds information once at least one inspection exists (the panel above covers the empty case). */}
+      {(history.isLoading || history.error || (history.data?.items.length ?? 0) > 0) && (
+        <Panel title="Inspection history">
+          <DataTable
+            caption="Inspection history"
+            columns={columns}
+            data={history.data?.items}
+            getRowId={(r) => r.inspectionId}
+            isLoading={history.isLoading}
+            isFetching={history.isFetching}
+            error={history.error}
+            onRetry={() => void history.refetch()}
+            pagination={{ page, pageSize: 10, totalCount: history.data?.totalCount ?? 0, onPageChange: setPage, onPageSizeChange: () => setPage(1) }}
+            pageSizeOptions={[10]}
+            emptyTitle="No inspections yet"
+          />
+        </Panel>
+      )}
     </div>
   );
 }

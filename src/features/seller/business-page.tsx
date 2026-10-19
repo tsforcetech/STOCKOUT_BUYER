@@ -22,6 +22,16 @@ import { VerificationCard } from "./components/verification-card";
 import { sellerAccountErrorMessage } from "./lib/errors";
 import { sellerKeys, useActiveSeller, useSellerAccount } from "./lib/queries";
 
+function countryName(code: string | null | undefined): string | undefined {
+  if (!code) return undefined;
+  try {
+    const name = new Intl.DisplayNames(["en"], { type: "region" }).of(code.toUpperCase());
+    return name && name !== code.toUpperCase() ? `${name} (${code.toUpperCase()})` : code;
+  } catch {
+    return code;
+  }
+}
+
 export default function SellerBusinessPage() {
   const context = useActiveSeller();
   const sellerId = context.sellerId;
@@ -77,12 +87,12 @@ export default function SellerBusinessPage() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-4">
             <SectionCard>
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-                <div>
+              <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
                   <h2 className="font-heading text-lg font-bold text-foreground">Verification documents</h2>
                   <p className="text-sm text-muted-foreground">Reviewers use these to verify your account. Expired documents may delay verification.</p>
                 </div>
-                {addButton}
+                {(docCount > 0 || docs.isError) && addButton}
               </div>
               {!ownerActive && (
                 <Notice tone="warning" className="mb-4">
@@ -92,7 +102,7 @@ export default function SellerBusinessPage() {
               <DocumentsTable sellerId={sellerId} canDelete={ownerActive} emptyAction={addButton} />
             </SectionCard>
 
-            {seller && (
+            {seller && seller.verificationStatus !== "VERIFIED" && (
               <SectionCard>
                 <h2 className="font-heading text-lg font-bold text-foreground">Submit for review</h2>
                 {canSubmit ? (
@@ -116,9 +126,7 @@ export default function SellerBusinessPage() {
                   <p className="mt-1 text-sm text-muted-foreground">
                     {seller.status !== "ACTIVE"
                       ? "Suspended accounts can't be submitted for review."
-                      : seller.verificationStatus === "VERIFIED"
-                        ? "Your account is verified. Nothing to submit."
-                        : "Your submission is with our team. You can't withdraw it, but you can still add documents if asked."}
+                      : "Your submission is with our team. You can't withdraw it, but you can still add documents if asked."}
                   </p>
                 )}
               </SectionCard>
@@ -146,7 +154,7 @@ export default function SellerBusinessPage() {
                         { label: "Legal name", value: seller.legalName },
                         { label: "Seller type", value: humanize(seller.organizationType) },
                         { label: "Registration no.", value: seller.registrationNo },
-                        { label: "Country", value: seller.countryCode },
+                        { label: "Country", value: countryName(seller.countryCode) },
                         { label: "Default currency", value: seller.defaultCurrency },
                         { label: "Account status", value: <StatusBadge value={seller.status} /> },
                         { label: "Your role", value: context.isOwner ? "Owner" : "Member" },
