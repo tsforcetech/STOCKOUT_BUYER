@@ -66,8 +66,8 @@ const response = (items: unknown[], page = 1, hasNext = false) => ({
 
 describe("search URL state", () => {
   it("round-trips filters through the URL", () => {
-    const params = writeSearchState({ q: "steel", brandId: ["a", "b"], inStockOnly: true, sort: "price_asc", page: 2 });
-    expect(params.toString()).toBe("q=steel&brandId=a&brandId=b&inStockOnly=true&sort=price_asc&page=2");
+    const params = writeSearchState({ q: "steel", sellerId: "s1", brandId: ["a", "b"], inStockOnly: true, sort: "price_asc", page: 2 });
+    expect(params.toString()).toBe("q=steel&sellerId=s1&brandId=a&brandId=b&inStockOnly=true&sort=price_asc&page=2");
     expect(readSearchState(params)).toMatchObject({ q: "steel", brandId: ["a", "b"], inStockOnly: true, sort: "price_asc", page: 2 });
   });
   it("ignores unknown sort values", () => {
@@ -132,6 +132,17 @@ describe("SearchPage", () => {
     expect(router.state.location.search).toContain("attr=material%3APPR");
     await vi.waitFor(() => expect(calls.some((c) => c.url.searchParams.getAll("attr").includes("material:PPR"))).toBe(true));
     expect(screen.getByRole("button", { name: "Remove filter: Material: PPR" })).toBeInTheDocument();
+  });
+
+  it("filters by seller: sends sellerId, names the seller and hides Save search", async () => {
+    const item = { ...card("1", "Copper cable"), seller: { sellerId: "s-9", displayName: "Sharaco", entityType: "BUSINESS", isVerified: true } };
+    const { calls } = mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([item]) }) }]);
+    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?sellerId=s-9");
+    expect(await screen.findByRole("heading", { level: 1, name: "Stock from Sharaco" })).toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname === "/api/v1/search/listings")!.url.searchParams.get("sellerId")).toBe("s-9");
+    expect(screen.queryByRole("button", { name: /Save search/ })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Remove filter: Seller: Sharaco" }));
+    expect(router.state.location.search).not.toContain("sellerId");
   });
 
   it("asks anonymous users to log in before saving a search", async () => {

@@ -14,6 +14,8 @@ export type SortValue = (typeof SORT_OPTIONS)[number]["value"];
 export interface SearchState {
   q: string;
   categoryId: string;
+  /** Listings from one seller ("View all stock from this seller"). */
+  sellerId: string;
   brandId: string[];
   conditionId: string[];
   gradeId: string[];
@@ -64,6 +66,7 @@ export function readSearchState(params: URLSearchParams): SearchState {
   return {
     q: params.get("q") ?? "",
     categoryId: params.get("categoryId") ?? "",
+    sellerId: params.get("sellerId") ?? "",
     brandId: params.getAll("brandId"),
     conditionId: params.getAll("conditionId"),
     gradeId: params.getAll("gradeId"),
@@ -84,6 +87,7 @@ export function writeSearchState(state: Partial<SearchState>): URLSearchParams {
   const set = (k: string, v: string | undefined) => v && p.set(k, v);
   set("q", state.q?.trim());
   set("categoryId", state.categoryId);
+  set("sellerId", state.sellerId);
   state.brandId?.forEach((v) => p.append("brandId", v));
   state.conditionId?.forEach((v) => p.append("conditionId", v));
   state.gradeId?.forEach((v) => p.append("gradeId", v));

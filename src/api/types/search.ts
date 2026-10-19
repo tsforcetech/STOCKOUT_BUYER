@@ -111,6 +111,8 @@ export interface SearchListingsQuery {
   q?: string;
   /** matches the category or any descendant (categoryPathIds) */
   categoryId?: Guid;
+  /** listings of one seller (Stage R2, non-empty GUID) */
+  sellerId?: Guid;
   /** <= 50 values, no empty GUID */
   brandId?: Guid[];
   /** <= 50 values */

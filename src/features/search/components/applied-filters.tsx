@@ -22,7 +22,7 @@ function price(value: number, currency: string) {
 export function appliedFilterChips(
   state: SearchState,
   facets: SearchFacets | undefined,
-  names: { category?: string; attribute?: (code: string) => string | undefined } = {},
+  names: { category?: string; seller?: string; attribute?: (code: string) => string | undefined } = {},
 ): AppliedFilterChip[] {
   const chips: AppliedFilterChip[] = [];
   if (state.q.trim()) chips.push({ key: "q", label: `“${state.q.trim()}”`, remove: { q: "", page: 1 } });
@@ -30,6 +30,7 @@ export function appliedFilterChips(
     const name = names.category ?? facets?.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
     chips.push({ key: "category", label: name ?? "Category", remove: { categoryId: "", attr: [], page: 1 } });
   }
+  if (state.sellerId) chips.push({ key: "seller", label: names.seller ? `Seller: ${names.seller}` : "This seller", remove: { sellerId: "", page: 1 } });
   const multi = [
     { key: "brandId", title: "Brand", buckets: facets?.brands },
     { key: "conditionId", title: "Condition", buckets: facets?.conditions },

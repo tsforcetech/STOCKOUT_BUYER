@@ -11,9 +11,9 @@ export function assetUrl(path: string | null | undefined): string | null {
 }
 
 /**
- * Listing image with a graceful placeholder. NOTE: the backend's public image URL
- * (`/api/v1/files/{id}/download`) is not implemented yet (see docs/contracts/buyer-search.md §4),
- * so today this renders the placeholder; images appear automatically once the endpoint exists.
+ * Listing image with a graceful placeholder. Public listing photos are served anonymously by
+ * `/api/v1/files/{id}/download` (302 to a short-lived S3 URL) for published listings; anything else that
+ * fails to load (unpublished, expired, network) falls back to the placeholder.
  */
 export function ListingImage({ src, alt, className }: { src: string | null | undefined; alt: string; className?: string }) {
   const url = assetUrl(src);

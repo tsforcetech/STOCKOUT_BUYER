@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowRightIcon,
   CalendarBlankIcon,
   CaretRightIcon,
   CurrencyCircleDollarIcon,
@@ -264,6 +265,12 @@ export default function ListingDetailPage() {
                   </p>
                 </div>
               </div>
+              <Link
+                to={searchHref({ sellerId: l.seller.sellerId })}
+                className="mt-4 flex h-10 items-center justify-center gap-1.5 rounded-lg border border-secondary-border text-sm font-medium text-foreground transition-colors hover:bg-surface-muted"
+              >
+                View all stock from this seller <ArrowRightIcon className="size-4" aria-hidden />
+              </Link>
             </section>
 
             <ListingSafetyTips className="mt-5" />
@@ -293,6 +300,7 @@ export default function ListingDetailPage() {
         </div>
       </div>
       <div ref={endRef} aria-hidden />
+      <ListingRail title={`More from ${l.seller.displayName}`} query={{ sellerId: l.seller.sellerId, sort: "date_desc" }} viewAllHref={searchHref({ sellerId: l.seller.sellerId })} />
       <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={searchHref({ categoryId: l.categoryId })} />
       <ListingMobileBar listing={cartListing} panelRef={panelRef} endRef={endRef} />
     </>

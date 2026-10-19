@@ -14,6 +14,7 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { RowAction } from "@/components/common/section-card";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { filesService } from "@/services/files.service";
+import { listingsService } from "@/services/listings.service";
 import {
   getSellerListingActions,
   type SellerListingListItemResponse,
@@ -75,6 +76,17 @@ export function SellerListingCard({
     retry: false,
   });
 
+  // Published listings without a draft: the public listing detail carries the photo, and public image
+  // downloads are open for published listings (Stage R2), so no seller media call is needed.
+  const publicDetail = useQuery({
+    queryKey: ["listing", "public", id],
+    queryFn: ({ signal }) => listingsService.publicDetail(id, signal),
+    enabled: item.status === "PUBLISHED" && !item.currentDraftVersionId,
+    staleTime: 60_000,
+    retry: false,
+  });
+  const imageSrc = image.data?.downloadUrl ?? publicDetail.data?.primaryMediaUrl ?? null;
+
   const version =
     detail.data?.currentDraftVersion ?? detail.data?.publishedVersion ?? null;
   const loc = version?.location;
@@ -94,7 +106,7 @@ export function SellerListingCard({
     <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised">
       <Link to={`/seller/listings/${id}`} className="relative block">
         <ListingImage
-          src={image.data?.downloadUrl ?? null}
+          src={imageSrc}
           alt={item.title}
           className="aspect-[16/10] w-full"
         />

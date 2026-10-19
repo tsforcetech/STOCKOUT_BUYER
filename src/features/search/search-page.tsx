@@ -37,6 +37,7 @@ export default function SearchPage() {
   const query = {
     q: state.q.slice(0, MAX_QUERY_LENGTH) || undefined,
     categoryId: state.categoryId || undefined,
+    sellerId: state.sellerId || undefined,
     brandId: state.brandId.length ? state.brandId : undefined,
     conditionId: state.conditionId.length ? state.conditionId : undefined,
     gradeId: state.gradeId.length ? state.gradeId : undefined,
@@ -67,10 +68,12 @@ export default function SearchPage() {
   const data = search.data;
   const options = useFilterOptions(state.categoryId);
   const categoryName = options.path[options.path.length - 1]?.name ?? data?.facets.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
-  const heading = state.q ? `Results for “${state.q}”` : categoryName ?? "All surplus stock";
-  const activeFilterCount = [state.categoryId, state.stateOrEmirate, state.city, state.minPrice || state.maxPrice, state.inStockOnly ? "1" : ""].filter(Boolean).length + state.brandId.length + state.conditionId.length + state.gradeId.length + state.attr.length;
+  const sellerName = state.sellerId ? data?.items.find((i) => i.seller.sellerId === state.sellerId)?.seller.displayName : undefined;
+  const heading = state.q ? `Results for “${state.q}”` : state.sellerId && !state.categoryId ? (sellerName ? `Stock from ${sellerName}` : "Seller's stock") : categoryName ?? "All surplus stock";
+  const activeFilterCount = [state.categoryId, state.sellerId, state.stateOrEmirate, state.city, state.minPrice || state.maxPrice, state.inStockOnly ? "1" : ""].filter(Boolean).length + state.brandId.length + state.conditionId.length + state.gradeId.length + state.attr.length;
   const chips = appliedFilterChips(state, data?.facets, {
     category: categoryName,
+    seller: sellerName,
     attribute: (code) => options.requirements?.attributes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name,
   });
   const sortLabel = SORT_OPTIONS.find((o) => o.value === state.sort)?.label ?? "Sort";
@@ -127,9 +130,12 @@ export default function SearchPage() {
               <p className="font-heading text-base font-bold text-foreground" aria-live="polite">
                 {data ? `${formatNumber(data.pagination.totalCount)} listings` : "Searching…"}
               </p>
-              <Button variant="secondary" size="sm" className="rounded-full" onClick={openSave}>
-                <BellSimpleIcon /> Save search
-              </Button>
+              {/* Saved searches can't store a seller filter (CreateSavedSearchRequest has no sellerId). */}
+              {!state.sellerId && (
+                <Button variant="secondary" size="sm" className="rounded-full" onClick={openSave}>
+                  <BellSimpleIcon /> Save search
+                </Button>
+              )}
             </div>
             <div className="flex items-center gap-2">
               <label className="hidden items-center gap-2 text-sm lg:flex">
@@ -163,9 +169,11 @@ export default function SearchPage() {
                           Clear filters
                         </Button>
                       )}
-                      <Button variant="action" onClick={openSave}>
-                        <BellSimpleIcon /> Alert me when listed
-                      </Button>
+                      {!state.sellerId && (
+                        <Button variant="action" onClick={openSave}>
+                          <BellSimpleIcon /> Alert me when listed
+                        </Button>
+                      )}
                     </div>
                   }
                 />
