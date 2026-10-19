@@ -45,7 +45,7 @@ describe("MediaTab without a draft", () => {
 
   it("keeps the note for paused listings (not public, so no photos to fetch)", async () => {
     const { calls } = mockFetch([]);
-    renderWithApp([{ path: "/", element: <MediaTab sellerId="s-1" listing={{ ...live, status: "PAUSED" } as ListingDetailResponse} /> }], "/");
+    renderWithApp([{ path: "/", element: <MediaTab sellerId="s-1" listing={{ ...live, status: "PAUSED" } as unknown as ListingDetailResponse} /> }], "/");
     expect(await screen.findByText(/can only be changed on a draft/)).toBeInTheDocument();
     expect(calls.some((c) => c.url.pathname.startsWith("/api/v1/catalog/listings"))).toBe(false);
   });
