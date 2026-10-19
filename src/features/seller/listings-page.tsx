@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArchiveIcon, PaperPlaneTiltIcon, PauseIcon, PencilSimpleIcon, PlayIcon, PlusIcon } from "@phosphor-icons/react";
+import { ArchiveIcon, PaperPlaneTiltIcon, PauseIcon, PencilSimpleIcon, PlayIcon, PlusIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/page-header";
@@ -100,11 +100,18 @@ export default function SellerListingsPage() {
         description="Create, submit and manage your listings. Live listings can be paused or archived; edits are only possible on drafts."
         actions={
           enabled && (
-            <Button asChild variant="action">
-              <Link to="/seller/listings/new">
-                <PlusIcon /> New listing
-              </Link>
-            </Button>
+            <>
+              <Button asChild variant="secondary">
+                <Link to="/seller/listings/bulk">
+                  <UploadSimpleIcon /> Bulk upload
+                </Link>
+              </Button>
+              <Button asChild variant="action">
+                <Link to="/seller/listings/new">
+                  <PlusIcon /> New listing
+                </Link>
+              </Button>
+            </>
           )
         }
       />

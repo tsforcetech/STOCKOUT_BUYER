@@ -69,6 +69,7 @@ export const routes: RouteObject[] = [
                   { path: "business", lazy: page(() => import("@/features/seller/business-page")) },
                   { path: "listings", lazy: page(() => import("@/features/seller/listings-page")) },
                   { path: "listings/new", lazy: page(() => import("@/features/seller/listing-new-page")) },
+                  { path: "listings/bulk", lazy: page(() => import("@/features/seller/bulk/bulk-upload-page")) },
                   { path: "listings/:listingId", lazy: page(() => import("@/features/seller/listing-edit-page")) },
                 ],
               },

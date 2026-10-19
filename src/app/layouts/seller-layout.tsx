@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router";
-import { ArrowLeftIcon, CaretUpDownIcon, IdentificationCardIcon, ListIcon, ListNumbersIcon, PlusIcon, ReceiptIcon, SquaresFourIcon, UserIcon, XIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, CaretUpDownIcon, IdentificationCardIcon, ListIcon, ListNumbersIcon, PlusIcon, ReceiptIcon, SquaresFourIcon, UploadSimpleIcon, UserIcon, XIcon } from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
@@ -11,7 +11,8 @@ import { ThemeSwitch } from "./site-header";
 
 const NAV = [
   { label: "Dashboard", to: "/seller", icon: SquaresFourIcon, end: true },
-  { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon },
+  { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon, notUnder: "/seller/listings/bulk" },
+  { label: "Bulk upload", to: "/seller/listings/bulk", icon: UploadSimpleIcon },
   { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
   { label: "Business & verification", to: "/seller/business", icon: IdentificationCardIcon },
   { label: "My account", to: "/account", icon: UserIcon },
@@ -47,6 +48,7 @@ function SellerSwitcher() {
 }
 
 function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
+  const { pathname } = useLocation();
   return (
     <nav aria-label="Seller" className="flex-1 px-5">
       <ul className="space-y-1.5">
@@ -56,12 +58,15 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               to={item.to}
               end={item.end}
               onClick={onNavigate}
-              className={({ isActive }) =>
-                cn(
+              className={({ isActive: matched }) => {
+                // "Listings" covers its editor pages but not the separate Bulk upload page.
+                const notUnder = "notUnder" in item ? item.notUnder : undefined;
+                const isActive = matched && !(notUnder && pathname.startsWith(notUnder));
+                return cn(
                   "flex h-[34px] items-center gap-2 rounded-md border px-3 text-sm transition-colors",
                   isActive ? "border-action-border bg-action text-action-foreground" : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
-                )
-              }
+                );
+              }}
             >
               <item.icon className="size-5" /> {item.label}
             </NavLink>
