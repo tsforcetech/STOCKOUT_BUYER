@@ -87,7 +87,12 @@ export function AddDocumentDialog({ sellerId, open, onOpenChange }: { sellerId: 
     } catch (error) {
       setProgress(null);
       // Files errors carry a code ({ errorCode }); user-organization errors don't (E2).
-      setFormError(isApiError(error) && error.code ? sellerErrorMessage(error) : sellerAccountErrorMessage(error));
+      if (isApiError(error) && error.code) setFormError(sellerErrorMessage(error));
+      else if (isApiError(error) && error.status === 400 && !error.hasFieldErrors)
+        // The only non-field 400 for this endpoint is MARKETPLACE_SELLER_DOCUMENT_FILE_INVALID: the server's check of the
+        // uploaded file failed. A backend defect currently makes that check fail for every file (see STOCKOUT_BACKEND_ISSUES A0).
+        setFormError("Your file uploaded, but the server couldn't verify it, so the document wasn't saved. This is a known server issue that's being fixed — please try again later or contact support.");
+      else setFormError(sellerAccountErrorMessage(error));
     }
   });
 

@@ -113,8 +113,12 @@ export function sellerAccountErrorMessage(error: unknown, conflict = "This recor
   if (!isApiError(error)) return getErrorMessage(error);
   if (error.code === "MARKETPLACE_SELLER_ACCESS_DENIED") return "You're not an active member of this seller account.";
   switch (error.status) {
-    case 400:
-      return error.hasFieldErrors ? "Some fields are missing or invalid. Check the form and try again." : "The details were rejected. Check every required field and try again.";
+    case 400: {
+      if (error.hasFieldErrors) return "Some fields are missing or invalid. Check the form and try again.";
+      // Show whatever reason the server gave; user-organization often sends only a generic title.
+      const reason = error.message && !/^(validation|bad request|error)$/i.test(error.message.trim()) ? error.message : null;
+      return reason ? `The server rejected this: ${reason}` : "The server rejected this request without saying why. Check the details and try again, or contact support if it keeps happening.";
+    }
     case 403:
       return "Only the owner of an active seller account can do this.";
     case 404:
