@@ -72,6 +72,7 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
     setMaxPrice(state.maxPrice);
   }, [state.minPrice, state.maxPrice]);
   const { tree, path, requirements } = useFilterOptions(state.categoryId);
+  const [allCategories, setAllCategories] = React.useState(false);
 
   const toggle = (key: "brandId" | "conditionId" | "gradeId" | "attr", id: string) => {
     const current = state[key];
@@ -144,7 +145,7 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
         )}
         {childNodes.length > 0 && (
           <ul className={cn("space-y-0.5", selected && "ml-2 border-l border-border pl-2")}>
-            {childNodes.map((c) => (
+            {(allCategories ? childNodes : childNodes.slice(0, 8)).map((c) => (
               <li key={c.categoryId}>
                 <button
                   type="button"
@@ -157,6 +158,11 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
               </li>
             ))}
           </ul>
+        )}
+        {childNodes.length > 8 && (
+          <button type="button" onClick={() => setAllCategories((v) => !v)} className="mt-1.5 cursor-pointer px-1 text-xs font-medium text-foreground underline underline-offset-4">
+            {allCategories ? "Show fewer" : `Show all ${childNodes.length}`}
+          </button>
         )}
       </fieldset>
 

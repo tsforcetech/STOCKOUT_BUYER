@@ -37,3 +37,11 @@ Element.prototype.scrollTo ??= () => {};
 window.scrollTo = () => {};
 Element.prototype.hasPointerCapture ??= () => false;
 Element.prototype.scrollIntoView ??= () => {};
+
+// Radix Select uses pointer capture and scrollIntoView, which jsdom doesn't implement.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false;
+  Element.prototype.setPointerCapture = () => undefined;
+  Element.prototype.releasePointerCapture = () => undefined;
+}
+if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => undefined;

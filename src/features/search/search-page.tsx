@@ -82,8 +82,18 @@ export default function SearchPage() {
   ));
 
   return (
-    <div className="mx-auto max-w-[1336px] px-4 pb-10 pt-5 sm:px-6 sm:pt-8">
-      <h1 className="font-heading text-2xl font-bold text-foreground sm:text-[32px] sm:leading-10">{heading}</h1>
+    <div className="mx-auto max-w-[1336px] px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:pb-24">
+      {options.path.length > 1 && (
+        <nav aria-label="Category path" className="mb-2 flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          {options.path.slice(0, -1).map((c) => (
+            <button key={c.categoryId} type="button" onClick={() => update({ categoryId: c.categoryId, attr: [], brandId: [], page: 1 })} className="cursor-pointer hover:text-foreground hover:underline">
+              {c.name} <span aria-hidden>/</span>
+            </button>
+          ))}
+        </nav>
+      )}
+      <h1 className="font-heading text-2xl font-bold text-foreground sm:text-[34px] sm:leading-[42px]">{heading}</h1>
+      <p className="mt-1.5 text-sm text-muted-foreground">Verified surplus stock from UAE sellers. Filter by category, location, brand and specification.</p>
 
       {/* Mobile / tablet: sticky Filters + Sort bar under the site header (36px strip + 72px bar). */}
       <div className="sticky top-[108px] z-30 -mx-4 mt-3 flex items-center gap-2 border-b border-border bg-surface/95 px-4 py-2.5 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden">
@@ -101,13 +111,13 @@ export default function SearchPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-8 lg:mt-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+      <div className="mt-5 grid grid-cols-1 gap-8 lg:mt-8 lg:grid-cols-[272px_minmax(0,1fr)] lg:gap-10">
         <aside className="hidden self-start lg:sticky lg:top-[168px] lg:block lg:max-h-[calc(100vh-184px)] lg:overflow-y-auto lg:pb-4 lg:pr-1" aria-label="Filters">
           {filters}
         </aside>
 
-        <section aria-label="Results" className="min-w-0">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        <section aria-label="Results" className="min-h-[60vh] min-w-0">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-border bg-surface px-4 py-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <p className="font-heading text-base font-bold text-foreground" aria-live="polite">
                 {data ? `${formatNumber(data.pagination.totalCount)} listings` : "Searching…"}
@@ -118,8 +128,8 @@ export default function SearchPage() {
             </div>
             <div className="flex items-center gap-2">
               <label className="hidden items-center gap-2 text-sm lg:flex">
-                <span className="text-muted-foreground">Sort</span>
-                <NativeSelect className="h-9 w-48 text-sm" value={state.sort} onChange={(e) => changeSort(e.target.value)}>
+                <span className="whitespace-nowrap text-muted-foreground">Sort by</span>
+                <NativeSelect aria-label="Sort by" className="h-9 w-52 rounded-full text-sm" value={state.sort} onChange={(e) => changeSort(e.target.value)}>
                   {sortOptions}
                 </NativeSelect>
               </label>
@@ -137,17 +147,41 @@ export default function SearchPage() {
                 {Array.from({ length: 6 }).map((_, i) => (view === "list" ? <ListingRowSkeleton key={i} /> : <ListingCardSkeleton key={i} />))}
               </div>
             ) : !data || data.items.length === 0 ? (
-              <EmptyState
-                title="No listings match your search"
-                description="Try different words, remove some filters, or save this search to hear when matching stock is listed."
-                action={
-                  activeFilterCount > 0 ? (
-                    <Button variant="secondary" onClick={clearFilters}>
-                      Clear filters
-                    </Button>
-                  ) : undefined
-                }
-              />
+              <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-14 sm:py-20">
+                <EmptyState
+                  title="No listings match your search"
+                  description="Try different words, remove some filters, or save this search to hear when matching stock is listed."
+                  action={
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {activeFilterCount > 0 && (
+                        <Button variant="secondary" onClick={clearFilters}>
+                          Clear filters
+                        </Button>
+                      )}
+                      <Button variant="action" onClick={openSave}>
+                        <BellSimpleIcon /> Alert me when listed
+                      </Button>
+                    </div>
+                  }
+                />
+                {options.tree.length > 0 && (
+                  <div className="mx-auto mt-10 max-w-2xl text-center">
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Popular categories</p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {(options.path.length ? (options.path[options.path.length - 1]!.children ?? []) : options.tree).slice(0, 8).map((c) => (
+                        <button
+                          key={c.categoryId}
+                          type="button"
+                          onClick={() => update({ categoryId: c.categoryId, attr: [], brandId: [], page: 1 })}
+                          className="cursor-pointer rounded-full border border-border bg-surface px-3.5 py-1.5 text-sm text-foreground transition-colors hover:border-foreground"
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             ) : (
               <>
                 <div className={view === "list" ? LIST : GRID}>

@@ -620,8 +620,9 @@ export function SiteHeader() {
               <ListIcon className="size-4" /> All categories
             </button>
             <span className="mx-1 my-3 w-px bg-border-strong" aria-hidden />
-            <div className="flex min-w-0 flex-1 items-stretch overflow-hidden [mask-image:linear-gradient(to_right,black_calc(100%-48px),transparent)]">
-              {roots.slice(0, 8).map((c) =>
+            {/* Tabs that don't fully fit wrap onto a hidden second row (no half-cut labels); all are under "All categories". */}
+            <div className="flex h-12 min-w-0 flex-1 flex-wrap items-stretch overflow-hidden [&>*]:h-12">
+              {roots.map((c) =>
                 (c.children?.length ?? 0) > 0 ? (
                   <button
                     key={c.categoryId}
