@@ -152,11 +152,19 @@ export function SellerLayout() {
         </Link>
       </header>
       <div className="flex flex-1">
+        {open && (
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+            className="fixed inset-x-0 bottom-0 top-[64px] z-20 cursor-default bg-black/40 lg:hidden"
+          />
+        )}
         <aside
           className={cn(
             "w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)]",
             open
-              ? "fixed inset-y-[64px] left-0 z-30 flex shadow-raised"
+              ? "fixed bottom-0 left-0 top-[64px] z-30 flex h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain shadow-raised"
               : "hidden",
           )}
         >

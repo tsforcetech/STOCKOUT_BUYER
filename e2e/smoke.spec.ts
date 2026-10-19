@@ -226,3 +226,23 @@ test("signed-in session survives a reload and a new tab", async ({ page, context
   await second.goto("/");
   await expect(second.getByRole("button", { name: "Account menu" })).toBeVisible();
 });
+
+test("seller menu on a phone fills the screen below the header and closes from the backdrop", async ({ page }, info) => {
+  test.skip(info.project.name !== "mobile", "phone layout only");
+  await mockApi(page, { sellerContexts: [{ sellerId: "s1", sellerType: "BUSINESS", displayName: "Sharaco", status: "ACTIVE", verificationStatus: "VERIFIED", onboardingStatus: "COMPLETED", isOwner: true }] });
+  await page.goto("/login?next=%2Fseller");
+  await page.getByLabel("Email", { exact: true }).fill("bea@stockout.test");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/seller$/);
+  // Pointer clicks stall on this mocked phone page in headless Chromium; the click event itself is what we test.
+  await page.getByRole("button", { name: "Seller menu" }).dispatchEvent("click");
+  const menu = page.locator("aside").filter({ has: page.getByRole("navigation") });
+  const box = (await menu.boundingBox())!;
+  const viewport = page.viewportSize()!;
+  expect(Math.round(box.y)).toBe(64);
+  expect(Math.round(box.y + box.height)).toBe(viewport.height);
+  await page.screenshot({ path: test.info().outputPath("seller-menu-mobile.png") });
+  await page.getByRole("button", { name: "Close menu" }).dispatchEvent("click");
+  await expect(menu).toBeHidden();
+});

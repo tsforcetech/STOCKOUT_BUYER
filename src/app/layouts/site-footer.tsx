@@ -56,7 +56,7 @@ export function SiteFooter() {
           ))}
         </div>
         <div
-          className="mt-16 select-none font-heading text-[clamp(64px,16vw,220px)] font-bold leading-none tracking-tight text-white"
+          className="mt-12 select-none font-heading text-[clamp(64px,16vw,128px)] font-bold leading-none tracking-tight text-white"
           aria-hidden
         >
           <span className="[&_*]:!text-white">
