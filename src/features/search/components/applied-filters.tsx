@@ -1,7 +1,7 @@
 import { XIcon } from "@phosphor-icons/react";
 import type { SearchFacets } from "@/api/types/search";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
-import { priceOrUndefined, type SearchState } from "../lib/search-params";
+import { priceOrUndefined, splitAttr, type SearchState } from "../lib/search-params";
 
 export interface AppliedFilterChip {
   key: string;
@@ -19,12 +19,16 @@ function price(value: number, currency: string) {
  * (facets are disjunctive, so a selected brand/condition/grade is still listed); until they load the
  * chip falls back to a generic label rather than showing a raw id.
  */
-export function appliedFilterChips(state: SearchState, facets: SearchFacets | undefined): AppliedFilterChip[] {
+export function appliedFilterChips(
+  state: SearchState,
+  facets: SearchFacets | undefined,
+  names: { category?: string; attribute?: (code: string) => string | undefined } = {},
+): AppliedFilterChip[] {
   const chips: AppliedFilterChip[] = [];
   if (state.q.trim()) chips.push({ key: "q", label: `“${state.q.trim()}”`, remove: { q: "", page: 1 } });
   if (state.categoryId) {
-    const name = facets?.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
-    chips.push({ key: "category", label: name ?? "Category", remove: { categoryId: "", page: 1 } });
+    const name = names.category ?? facets?.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
+    chips.push({ key: "category", label: name ?? "Category", remove: { categoryId: "", attr: [], page: 1 } });
   }
   const multi = [
     { key: "brandId", title: "Brand", buckets: facets?.brands },
@@ -39,7 +43,13 @@ export function appliedFilterChips(state: SearchState, facets: SearchFacets | un
       chips.push({ key: `${group.key}:${id}`, label, remove: { [group.key]: selected.filter((x) => x !== id), page: 1 } });
     }
   }
-  if (state.stateOrEmirate) chips.push({ key: "emirate", label: state.stateOrEmirate, remove: { stateOrEmirate: "", page: 1 } });
+  if (state.stateOrEmirate) chips.push({ key: "emirate", label: state.stateOrEmirate, remove: { stateOrEmirate: "", city: "", page: 1 } });
+  if (state.city) chips.push({ key: "city", label: state.city, remove: { city: "", page: 1 } });
+  for (const entry of state.attr) {
+    const [code, value] = splitAttr(entry);
+    const title = names.attribute?.(code);
+    chips.push({ key: `attr:${entry}`, label: title ? `${title}: ${value}` : value, remove: { attr: state.attr.filter((a) => a !== entry), page: 1 } });
+  }
   const min = priceOrUndefined(state.minPrice);
   const max = priceOrUndefined(state.maxPrice);
   if (min !== undefined || max !== undefined) {

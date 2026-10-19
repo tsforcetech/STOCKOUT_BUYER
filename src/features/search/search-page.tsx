@@ -16,6 +16,7 @@ import { SaveSearchDialog } from "./components/save-search-dialog";
 import { AppliedFilters, appliedFilterChips } from "./components/applied-filters";
 import { FilterSheet } from "./components/filter-sheet";
 import { useSearchView, ViewToggle } from "./components/view-toggle";
+import { useFilterOptions } from "./lib/filter-options";
 
 const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
 const LIST = "flex flex-col gap-3";
@@ -39,6 +40,8 @@ export default function SearchPage() {
     conditionId: state.conditionId.length ? state.conditionId : undefined,
     gradeId: state.gradeId.length ? state.gradeId : undefined,
     stateOrEmirate: state.stateOrEmirate || undefined,
+    city: state.city || undefined,
+    attr: state.attr.length ? state.attr : undefined,
     minPrice: priceOrUndefined(state.minPrice),
     maxPrice: priceOrUndefined(state.maxPrice),
     currency: effectiveCurrency(state),
@@ -61,10 +64,14 @@ export default function SearchPage() {
   const openSave = () => (status === "authenticated" ? setSaveOpen(true) : navigate(`/login?next=${encodeURIComponent(`/search?${params.toString()}`)}`));
 
   const data = search.data;
-  const categoryName = data?.facets.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
+  const options = useFilterOptions(state.categoryId);
+  const categoryName = options.path[options.path.length - 1]?.name ?? data?.facets.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
   const heading = state.q ? `Results for “${state.q}”` : categoryName ?? "All surplus stock";
-  const activeFilterCount = [state.categoryId, state.stateOrEmirate, state.minPrice || state.maxPrice, state.inStockOnly ? "1" : ""].filter(Boolean).length + state.brandId.length + state.conditionId.length + state.gradeId.length;
-  const chips = appliedFilterChips(state, data?.facets);
+  const activeFilterCount = [state.categoryId, state.stateOrEmirate, state.city, state.minPrice || state.maxPrice, state.inStockOnly ? "1" : ""].filter(Boolean).length + state.brandId.length + state.conditionId.length + state.gradeId.length + state.attr.length;
+  const chips = appliedFilterChips(state, data?.facets, {
+    category: categoryName,
+    attribute: (code) => options.requirements?.attributes.find((a) => a.code.toLowerCase() === code.toLowerCase())?.name,
+  });
   const sortLabel = SORT_OPTIONS.find((o) => o.value === state.sort)?.label ?? "Sort";
 
   const filters = <SearchFilters state={state} facets={data?.facets} onChange={update} />;

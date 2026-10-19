@@ -81,7 +81,7 @@ describe("SearchPage", () => {
     const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }, { path: "/login", element: <div /> }], "/search?q=steel");
     expect(await screen.findByText("Structural Steel Channels — S355")).toBeInTheDocument();
     expect(screen.getByText("30 listings")).toBeInTheDocument();
-    expect(calls[0].url.searchParams.get("q")).toBe("steel");
+    expect(calls.find((c) => c.url.pathname === "/api/v1/search/listings")!.url.searchParams.get("q")).toBe("steel");
 
     const aside = screen.getByRole("complementary", { name: "Filters" });
     await userEvent.click(within(aside).getByLabelText(/Emirates Steel/));
@@ -92,7 +92,46 @@ describe("SearchPage", () => {
     const { calls } = mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([]) }) }]);
     renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?sort=price_asc");
     expect(await screen.findByText("No listings match your search")).toBeInTheDocument();
-    expect(calls[0].url.searchParams.get("currency")).toBe("AED");
+    expect(calls.find((c) => c.url.pathname === "/api/v1/search/listings")!.url.searchParams.get("currency")).toBe("AED");
+  });
+
+  it("shows category attribute, brand and emirate filters even with no results, and filters by attribute", async () => {
+    const { calls } = mockFetch([
+      { method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: { ...response([]), totalCount: 0, facets: { ...response([]).facets, categories: [], brands: [], statesOrEmirates: [] } } }) },
+      {
+        method: "GET",
+        path: "/api/v1/catalog/categories",
+        respond: () => ({ body: { success: true, data: [{ categoryId: "root", slug: "plumbing", parentCategoryId: null, name: "Plumbing & Piping", children: [{ categoryId: "ppr", slug: "ppr", parentCategoryId: "root", name: "PPR Pipes & Fittings", children: [] }] }] } }),
+      },
+      {
+        method: "GET",
+        path: "/api/v1/catalog/categories/ppr/listing-requirements",
+        respond: () => ({
+          body: {
+            success: true,
+            data: {
+              categoryId: "ppr",
+              attributes: [{ attributeDefinitionId: "a1", code: "material", name: "Material", dataType: "SINGLE_SELECT", displayOrder: 1, isRequired: true, options: [{ attributeOptionId: "o1", value: "PPR", displayOrder: 1, isActive: true, version: 1 }, { attributeOptionId: "o2", value: "UPVC", displayOrder: 2, isActive: true, version: 1 }] }],
+              brands: [{ brandId: "br1", code: "AQUATHERM", name: "Aquatherm", description: null, isInherited: true, sourceCategoryId: "root" }],
+              unitRules: { categoryId: "ppr", defaultUnitId: null, units: [] },
+              conditionRules: { categoryId: "ppr", isConditionRequired: false, conditions: [{ conditionId: "new", code: "new", name: "New", isInherited: true, isGradeRequired: false, grades: [] }] },
+            },
+          },
+        }),
+      },
+    ]);
+    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?categoryId=ppr");
+    const aside = screen.getByRole("complementary", { name: "Filters" });
+    expect(await within(aside).findByLabelText("UPVC")).toBeInTheDocument();
+    expect(within(aside).getByLabelText("Aquatherm")).toBeInTheDocument();
+    expect(within(aside).getByLabelText("New")).toBeInTheDocument();
+    expect(within(aside).getByRole("button", { name: "Sharjah" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("PPR Pipes & Fittings");
+
+    await userEvent.click(within(aside).getByLabelText("PPR"));
+    expect(router.state.location.search).toContain("attr=material%3APPR");
+    await vi.waitFor(() => expect(calls.some((c) => c.url.searchParams.getAll("attr").includes("material:PPR"))).toBe(true));
+    expect(screen.getByRole("button", { name: "Remove filter: Material: PPR" })).toBeInTheDocument();
   });
 
   it("asks anonymous users to log in before saving a search", async () => {

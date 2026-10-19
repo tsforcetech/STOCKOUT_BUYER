@@ -36,6 +36,8 @@ export function SaveSearchDialog({ open, onOpenChange, state, defaultName }: { o
         conditionIds: state.conditionId.length ? state.conditionId : null,
         gradeIds: state.gradeId.length ? state.gradeId : null,
         stateOrEmirate: state.stateOrEmirate || null,
+        city: state.city || null,
+        attr: state.attr.length ? state.attr : null,
         // Same rule as the search request: price filters/sorts need a currency (50904).
         currency: effectiveCurrency(state) ?? null,
         minPrice: priceOrUndefined(state.minPrice) ?? null,

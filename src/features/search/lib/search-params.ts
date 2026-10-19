@@ -18,6 +18,9 @@ export interface SearchState {
   conditionId: string[];
   gradeId: string[];
   stateOrEmirate: string;
+  city: string;
+  /** Attribute filters as `code:value` (OR within a code, AND across codes). */
+  attr: string[];
   minPrice: string;
   maxPrice: string;
   currency: string;
@@ -65,6 +68,8 @@ export function readSearchState(params: URLSearchParams): SearchState {
     conditionId: params.getAll("conditionId"),
     gradeId: params.getAll("gradeId"),
     stateOrEmirate: params.get("stateOrEmirate") ?? "",
+    city: params.get("city") ?? "",
+    attr: params.getAll("attr").filter((a) => a.indexOf(":") > 0),
     minPrice: params.get("minPrice") ?? "",
     maxPrice: params.get("maxPrice") ?? "",
     currency: params.get("currency") ?? "",
@@ -83,6 +88,8 @@ export function writeSearchState(state: Partial<SearchState>): URLSearchParams {
   state.conditionId?.forEach((v) => p.append("conditionId", v));
   state.gradeId?.forEach((v) => p.append("gradeId", v));
   set("stateOrEmirate", state.stateOrEmirate);
+  set("city", state.city);
+  state.attr?.forEach((v) => p.append("attr", v));
   set("minPrice", state.minPrice);
   set("maxPrice", state.maxPrice);
   set("currency", state.currency);
@@ -96,3 +103,10 @@ export function searchHref(state: Partial<SearchState>): string {
   const qs = writeSearchState(state).toString();
   return qs ? `/search?${qs}` : "/search";
 }
+
+/** `code:value` → [code, value]; codes are matched case-insensitively. */
+export function splitAttr(entry: string): [string, string] {
+  const i = entry.indexOf(":");
+  return [entry.slice(0, i), entry.slice(i + 1)];
+}
+export const attrKey = (code: string, value: string) => `${code.toLowerCase()}:${value}`;
