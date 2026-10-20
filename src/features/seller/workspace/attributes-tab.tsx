@@ -5,6 +5,8 @@ import { FormError } from "@/components/forms/form-field";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/feedback/states";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellerListingsService } from "@/services/seller-listings.service";
+import { listingsService } from "@/services/listings.service";
+import { attributeDisplayValue } from "@/features/listings/lib/attribute-value";
 import { getSellerListingActions, type EffectiveCategoryAttributeResponse, type ListingAttributesResponse, type ListingDetailResponse } from "@/api/types/seller-listings";
 import { Notice } from "../components/notice";
 import { isVersionConflict, sellerErrorMessage } from "../lib/errors";
@@ -99,7 +101,7 @@ export function AttributesTab({ sellerId, listing }: { sellerId: string; listing
     enabled: !!draft,
   });
 
-  if (!draft) return <Notice>Attributes can only be viewed and edited on a draft. Published listings can't be edited through the seller portal yet.</Notice>;
+  if (!draft) return <PublishedAttributes listing={listing} />;
   if (req.isLoading || attrs.isLoading) return <PageSkeleton />;
   if (req.error) return <ErrorState error={req.error} onRetry={() => void req.refetch()} title="Couldn't load this category's attributes" />;
   if (attrs.error) return <ErrorState error={attrs.error} onRetry={() => void attrs.refetch()} title="Couldn't load the listing's attributes" />;
@@ -111,6 +113,51 @@ export function AttributesTab({ sellerId, listing }: { sellerId: string; listing
     <div className="space-y-4">
       {!can.canEditAttributes && <Notice>Attributes are read-only in the listing's current state.</Notice>}
       <AttributesEditor key={`${attrs.data.listingVersionId}:${draft.categoryId}`} sellerId={sellerId} listing={listing} defs={defs} initial={attrs.data} readOnly={!can.canEditAttributes} />
+    </div>
+  );
+}
+
+/**
+ * Published listings have no draft version, so the seller attributes endpoint can't be used (409). The live values
+ * come from the public listing instead, read-only, exactly as buyers see them.
+ */
+function PublishedAttributes({ listing }: { listing: ListingDetailResponse }) {
+  const live = listing.status === "PUBLISHED";
+  const detail = useQuery({
+    queryKey: ["listing", "public", listing.listingId],
+    queryFn: ({ signal }) => listingsService.publicDetail(listing.listingId, signal),
+    enabled: live,
+    retry: false,
+    staleTime: 60_000,
+  });
+  const note = <Notice>Attributes can only be changed on a draft. Published listings can't be edited through the seller portal yet.</Notice>;
+  if (!live) return note;
+  if (detail.isLoading) return <PageSkeleton />;
+  if (detail.error) return <ErrorState error={detail.error} onRetry={() => void detail.refetch()} title="Couldn't load the live attributes" />;
+  const attributes = detail.data?.attributes ?? [];
+  return (
+    <div className="space-y-5">
+      {note}
+      <section aria-label="Live attributes">
+        <div className="mb-3 flex items-baseline justify-between gap-3">
+          <h3 className="font-heading text-base font-bold text-foreground">Attributes buyers see</h3>
+          <span className="text-xs text-muted-foreground">
+            {attributes.length} attribute{attributes.length === 1 ? "" : "s"} · view only
+          </span>
+        </div>
+        {attributes.length === 0 ? (
+          <EmptyState title="No attributes on the live listing" description="This listing was published without attribute values." />
+        ) : (
+          <dl className="grid gap-3 sm:grid-cols-2">
+            {attributes.map((a) => (
+              <div key={a.code} className="rounded-xl border border-border bg-surface px-4 py-3">
+                <dt className="text-xs text-muted-foreground">{a.name}</dt>
+                <dd className="mt-1 break-words text-sm font-medium text-foreground">{attributeDisplayValue(a) ?? "—"}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+      </section>
     </div>
   );
 }
