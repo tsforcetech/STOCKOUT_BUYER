@@ -65,6 +65,9 @@ export default function SearchPage() {
   const openSave = () => requireAuth(() => setSaveOpen(true), "Log in to save this search and find it again later.");
 
   const data = search.data;
+  // The search service can count documents it then hides (e.g. sellers not yet marked verified in the index);
+  // never show "153 listings" above an empty first page.
+  const shownTotal = data ? (data.items.length === 0 && data.pagination.page <= 1 ? 0 : data.pagination.totalCount) : undefined;
   const options = useFilterOptions(state.categoryId);
   const categoryName = options.path[options.path.length - 1]?.name ?? data?.facets.categories.find((c) => c.categoryId === state.categoryId)?.categoryName;
   const sellerName = state.sellerId ? data?.items.find((i) => i.seller.sellerId === state.sellerId)?.seller.displayName : undefined;
@@ -127,7 +130,7 @@ export default function SearchPage() {
           <div className="mb-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-3 rounded-xl border border-border bg-surface px-4 py-3">
             <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
               <p className="font-heading text-base font-bold text-foreground" aria-live="polite">
-                {data ? `${formatNumber(data.pagination.totalCount)} listings` : "Searching…"}
+                {data ? `${formatNumber(shownTotal)} listings` : "Searching…"}
               </p>
               {/* Saved searches can't store a seller filter (CreateSavedSearchRequest has no sellerId). */}
               {!state.sellerId && (
@@ -216,7 +219,7 @@ export default function SearchPage() {
         </section>
       </div>
 
-      <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} activeCount={activeFilterCount} resultCount={data?.pagination.totalCount} loading={search.isFetching} onClearAll={clearFilters}>
+      <FilterSheet open={filtersOpen} onOpenChange={setFiltersOpen} activeCount={activeFilterCount} resultCount={shownTotal} loading={search.isFetching} onClearAll={clearFilters}>
         {filters}
       </FilterSheet>
 
