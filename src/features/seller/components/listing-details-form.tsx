@@ -101,6 +101,11 @@ export function ListingDetailsForm({ categoryId, categoryLabel, onChangeCategory
             </Button>
           )}
         </div>
+        {req.data?.requiresPhysicalInspection && (
+          <Notice tone="info" title="This category needs a physical inspection">
+            After the marketplace team approves your listing, an inspector checks the goods at your warehouse before it goes live.
+          </Notice>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <FormField label="Title" htmlFor="title" required error={errors.title?.message} className="sm:col-span-2">

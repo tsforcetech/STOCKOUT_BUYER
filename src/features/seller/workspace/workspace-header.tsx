@@ -119,6 +119,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
             label={LISTING_STATUS_LABELS[listing.status]}
           />
           {version && <span>Version {version.versionNumber}</span>}
+          {version?.requiresPhysicalInspection && <span className="rounded-full bg-info-soft px-2 py-0.5 font-medium text-info-soft-foreground">Inspection required</span>}
           <span className="font-mono">
             LST-{listing.listingId.slice(0, 8).toUpperCase()}
           </span>

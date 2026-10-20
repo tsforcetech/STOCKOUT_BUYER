@@ -52,7 +52,7 @@ function ModerationCard({ moderation }: Pick<Props, "moderation">) {
   );
 }
 
-function LatestInspection({ sellerId, listingId }: { sellerId: string; listingId: string }) {
+function LatestInspection({ sellerId, listingId, requiresInspection }: { sellerId: string; listingId: string; requiresInspection?: boolean }) {
   const qc = useQueryClient();
   const [asking, setAsking] = React.useState(false);
   const latest = useQuery({ queryKey: sellerKeys.latestInspection(sellerId, listingId), queryFn: ({ signal }) => sellerListingsService.latestInspection(sellerId, listingId, signal) });
@@ -74,7 +74,13 @@ function LatestInspection({ sellerId, listingId }: { sellerId: string; listingId
       <EmptyState
         className="py-8"
         title="No inspections yet"
-        description="If this category requires a physical inspection, one is created automatically when your listing is approved."
+        description={
+          requiresInspection === true
+            ? "This category needs a physical inspection. One is created automatically when your listing is approved, and an inspector will contact you."
+            : requiresInspection === false
+              ? "This listing's category doesn't need a physical inspection."
+              : "If this category requires a physical inspection, one is created automatically when your listing is approved."
+        }
       />
     );
   const canRequest = i.status === "COMPLETED" && (i.result === "FAIL" || i.result === "REINSPECTION_REQUIRED");
@@ -181,7 +187,7 @@ export function ReviewTab({ sellerId, listing, moderation }: Props) {
     <div className="space-y-4 pt-1">
       <ModerationCard moderation={moderation} />
       <Panel title="Latest inspection">
-        <LatestInspection sellerId={sellerId} listingId={listing.listingId} />
+        <LatestInspection sellerId={sellerId} listingId={listing.listingId} requiresInspection={(listing.currentDraftVersion ?? listing.publishedVersion)?.requiresPhysicalInspection} />
       </Panel>
       {/* History only adds information once at least one inspection exists (the panel above covers the empty case). */}
       {(history.isLoading || history.error || (history.data?.items.length ?? 0) > 0) && (

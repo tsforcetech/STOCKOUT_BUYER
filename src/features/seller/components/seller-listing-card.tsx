@@ -122,6 +122,11 @@ export function SellerListingCard({
               + draft
             </span>
           )}
+          {item.requiresPhysicalInspection && (
+            <span className="rounded-md bg-black/70 px-2 py-0.5 text-[11px] text-white" title="This category needs a physical inspection before the listing goes live">
+              Inspection
+            </span>
+          )}
         </div>
         {(media.data?.media.length ?? 0) > 1 && (
           <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/70 px-2 py-0.5 text-[11px] text-white">

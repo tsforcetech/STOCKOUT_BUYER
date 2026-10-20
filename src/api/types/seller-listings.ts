@@ -147,6 +147,8 @@ export interface PublicCategoryConditionsResponse {
 /** C# Contracts.Validation.ListingRequirementsResponse. */
 export interface ListingRequirementsResponse {
   categoryId: Guid;
+  /** R3-A: listings in this exact category need a physical inspection after approval. */
+  requiresPhysicalInspection?: boolean;
   attributes: EffectiveCategoryAttributeResponse[];
   brands: EffectiveCategoryBrandResponse[];
   unitRules: PublicCategoryUnitsResponse;
@@ -453,6 +455,8 @@ export interface UpdateListingDraftResponse {
 export interface ListingVersionDto {
   listingVersionId: Guid;
   versionNumber: number;
+  /** R3-A: snapshotted from the category when the version was created. */
+  requiresPhysicalInspection?: boolean;
   categoryId: Guid;
   title: string;
   description: string | null;
@@ -492,6 +496,8 @@ export interface SellerListingListQuery {
 /** C# SellerListingListItemResponse. title/categoryId from draft version, else published version. */
 export interface SellerListingListItemResponse {
   listingId: Guid;
+  /** R3-A: the current version's physical-inspection flag. */
+  requiresPhysicalInspection?: boolean;
   sellerId: Guid;
   status: ListingStatus;
   currentDraftVersionId: Guid | null;
