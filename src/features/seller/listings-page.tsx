@@ -25,10 +25,8 @@ import { useUrlState } from "@/hooks/use-url-state";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import {
   getSellerListingActions,
-  LISTING_STATUSES,
   SELLER_LISTING_LIMITS,
   SELLER_LISTING_SORTS,
-  type ListingStatus,
   type SellerListingListItemResponse,
   type SellerListingListQuery,
   type SellerListingSort,
@@ -39,7 +37,11 @@ import {
   canManageListings,
 } from "./components/listing-access-notice";
 import { useListingLifecycle } from "./components/listing-lifecycle";
-import { LISTING_STATUS_LABELS, SORT_LABELS } from "./lib/listing";
+import { LISTING_VIEWS, SORT_LABELS } from "./lib/listing";
+import { FilterPills } from "@/components/common/filter-pills";
+
+/** Listings fetched at once for the status pills; far above any one seller today. */
+const ALL_LISTINGS_CAP = 1000;
 import { sellerKeys, useActiveSeller, useCategoryIndex } from "./lib/queries";
 import {
   SellerListingCard,
@@ -93,12 +95,11 @@ export default function SellerListingsPage() {
   const { open: openLifecycle, dialogs: lifecycleDialogs } =
     useListingLifecycle(sellerId);
 
+  // All of the seller's listings in one request (the API has no page-size cap): the status pills need version
+  // states the API can't filter by, so counting, filtering and paging happen here.
   const query: SellerListingListQuery = {
-    page: state.page,
-    pageSize: state.pageSize,
-    status: (LISTING_STATUSES as readonly string[]).includes(state.status)
-      ? (state.status as ListingStatus)
-      : undefined,
+    page: 1,
+    pageSize: ALL_LISTINGS_CAP,
     categoryId: state.categoryId || undefined,
     search:
       state.search.slice(0, SELLER_LISTING_LIMITS.SEARCH_MAX_LENGTH) ||
@@ -116,6 +117,22 @@ export default function SellerListingsPage() {
   });
 
   const [view, setView] = useListingsView();
+  const statusView =
+    LISTING_VIEWS.find((v) => v.key === state.status) ?? LISTING_VIEWS[0]!;
+  const all = React.useMemo(() => list.data?.items ?? [], [list.data]);
+  const visible = React.useMemo(
+    () => all.filter(statusView.match),
+    [all, statusView],
+  );
+  const data = list.data
+    ? {
+        items: visible.slice(
+          (state.page - 1) * state.pageSize,
+          state.page * state.pageSize,
+        ),
+        totalCount: visible.length,
+      }
+    : undefined;
   const categoryOptions = React.useMemo(
     () => [...categories.values()],
     [categories],
@@ -189,7 +206,11 @@ export default function SellerListingsPage() {
     [categories, openLifecycle, navigate],
   );
 
-  const filtered = !!(state.status || state.categoryId || state.search);
+  const filtered = !!(
+    (state.status && state.status !== "all") ||
+    state.categoryId ||
+    state.search
+  );
 
   return (
     <>
@@ -216,6 +237,22 @@ export default function SellerListingsPage() {
       />
       <ListingAccessNotice seller={seller} />
       <SectionCard className="mt-4">
+        {enabled && (
+          <FilterPills
+            className="mb-4"
+            label="Listing status"
+            value={statusView.key}
+            onChange={(v) =>
+              setState({ status: v === "all" ? "" : v }, { resetPage: true })
+            }
+            items={LISTING_VIEWS.map((v) => ({
+              value: v.key,
+              label: v.label,
+              count: list.data ? all.filter(v.match).length : undefined,
+              highlight: v.needsAction,
+            }))}
+          />
+        )}
         <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
           <div className="min-w-0 xl:w-[320px]">
             <SearchInput
@@ -226,21 +263,6 @@ export default function SellerListingsPage() {
             />
           </div>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
-            <NativeSelect
-              className="h-[38px] w-full sm:w-40"
-              aria-label="Status"
-              value={state.status}
-              onChange={(e) =>
-                setState({ status: e.target.value }, { resetPage: true })
-              }
-            >
-              <option value="">All statuses</option>
-              {LISTING_STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {LISTING_STATUS_LABELS[s]}
-                </option>
-              ))}
-            </NativeSelect>
             <NativeSelect
               className="h-[38px] w-full sm:w-52"
               aria-label="Category"
@@ -253,7 +275,9 @@ export default function SellerListingsPage() {
               <option value="">All categories</option>
               {categoryOptions.map((c) => (
                 <option key={c.categoryId} value={c.categoryId}>
-                  {c.depth > 0 ? `${c.path.slice(0, -1).join(" › ")} › ${c.name}` : c.name}
+                  {c.depth > 0
+                    ? `${c.path.slice(0, -1).join(" › ")} › ${c.name}`
+                    : c.name}
                 </option>
               ))}
             </NativeSelect>
@@ -280,11 +304,11 @@ export default function SellerListingsPage() {
             </div>
           </div>
         </div>
-        {enabled && list.data && (filtered || list.data.totalCount > 0) && (
+        {enabled && data && (filtered || data.totalCount > 0) && (
           <div className="-mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
             <span aria-live="polite">
-              {formatNumber(list.data.totalCount)}{" "}
-              {list.data.totalCount === 1 ? "listing" : "listings"}
+              {formatNumber(data.totalCount)}{" "}
+              {data.totalCount === 1 ? "listing" : "listings"}
               {filtered ? " match your filters" : ""}
             </span>
             {filtered && (
@@ -306,7 +330,7 @@ export default function SellerListingsPage() {
         {view === "grid" ? (
           <ListingsGrid
             sellerId={sellerId}
-            items={enabled ? list.data?.items : []}
+            items={enabled ? data?.items : []}
             isLoading={enabled && list.isLoading}
             error={list.error}
             onRetry={() => void list.refetch()}
@@ -314,13 +338,15 @@ export default function SellerListingsPage() {
             onAction={openLifecycle}
             page={state.page}
             pageSize={state.pageSize}
-            totalCount={list.data?.totalCount ?? 0}
+            totalCount={data?.totalCount ?? 0}
             onPageChange={(page) => setState({ page })}
             empty={
               <EmptyState
                 className="rounded-xl border border-dashed border-border-strong"
                 title={
-                  filtered ? "No listings match your filters" : "No listings yet"
+                  filtered
+                    ? "No listings match your filters"
+                    : "No listings yet"
                 }
                 description={
                   filtered
@@ -364,7 +390,7 @@ export default function SellerListingsPage() {
           <DataTable
             caption="Your listings"
             columns={columns}
-            data={enabled ? list.data?.items : []}
+            data={enabled ? data?.items : []}
             getRowId={(l) => l.listingId}
             isLoading={enabled && list.isLoading}
             isFetching={list.isFetching}
@@ -374,7 +400,7 @@ export default function SellerListingsPage() {
             pagination={{
               page: state.page,
               pageSize: state.pageSize,
-              totalCount: list.data?.totalCount ?? 0,
+              totalCount: data?.totalCount ?? 0,
               onPageChange: (page) => setState({ page }),
               onPageSizeChange: (pageSize) =>
                 setState({ pageSize }, { resetPage: true }),

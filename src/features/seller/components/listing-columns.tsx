@@ -4,7 +4,7 @@ import { EntityCell } from "@/components/common/entity-cell";
 import { StatusBadge } from "@/components/common/status-badge";
 import { formatDateTime } from "@/lib/utils/format";
 import type { SellerListingListItemResponse } from "@/api/types/seller-listings";
-import { LISTING_STATUS_LABELS } from "../lib/listing";
+import { listingState } from "../lib/listing";
 import type { CategoryEntry } from "../lib/queries";
 
 /** Columns shared by the dashboard and listings table. The list API has no price/image/stock (contract L2). */
@@ -28,8 +28,8 @@ export function baseListingColumns(categories: Map<string, CategoryEntry>): Colu
       accessorFn: (l) => l.status,
       cell: ({ row }) => (
         <div className="flex flex-wrap items-center gap-1.5">
-          <StatusBadge value={row.original.status} label={LISTING_STATUS_LABELS[row.original.status]} />
-          {row.original.status !== "DRAFT" && row.original.currentDraftVersionId && <span className="text-xs text-muted-foreground">+ draft</span>}
+          <StatusBadge {...listingState(row.original)} />
+          {row.original.status !== "DRAFT" && row.original.currentDraftVersionId && (!row.original.currentDraftVersionStatus || row.original.currentDraftVersionStatus === "DRAFT") && <span className="text-xs text-muted-foreground">+ draft</span>}
         </div>
       ),
     },

@@ -20,7 +20,7 @@ import {
   type SellerListingListItemResponse,
 } from "@/api/types/seller-listings";
 import { formatMoney, formatNumber, timeAgo } from "@/lib/utils/format";
-import { LISTING_STATUS_LABELS } from "../lib/listing";
+import { listingState } from "../lib/listing";
 import { sellerKeys } from "../lib/queries";
 
 type LifecycleAction = "submit" | "pause" | "resume" | "archive";
@@ -112,12 +112,9 @@ export function SellerListingCard({
         />
         <div className="absolute left-2.5 top-2.5 flex flex-wrap gap-1.5">
           <span className="rounded-md bg-surface/95 px-1.5 py-0.5 shadow-raised">
-            <StatusBadge
-              value={item.status}
-              label={LISTING_STATUS_LABELS[item.status]}
-            />
+            <StatusBadge {...listingState(item)} />
           </span>
-          {item.status !== "DRAFT" && item.currentDraftVersionId && (
+          {item.status !== "DRAFT" && item.currentDraftVersionId && (!item.currentDraftVersionStatus || item.currentDraftVersionStatus === "DRAFT") && (
             <span className="rounded-md bg-black/70 px-2 py-0.5 text-[11px] text-white">
               + draft
             </span>

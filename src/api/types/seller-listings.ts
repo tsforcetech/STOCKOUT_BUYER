@@ -506,6 +506,8 @@ export interface SellerListingListItemResponse {
   updatedAtUtc: IsoDateTime | null;
   title: string;
   categoryId: Guid;
+  /** Status of the current draft/candidate version (null when there is none). */
+  currentDraftVersionStatus?: ListingVersionStatus | null;
 }
 
 /** C# SellerListingListResponse (no page echo). */
