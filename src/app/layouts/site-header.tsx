@@ -24,6 +24,7 @@ import {
 import { Logo } from "@/components/common/logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
+import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { useTheme } from "@/app/providers/theme";
 import { useCart } from "@/lib/cart/cart-context";
 import { useFavorites } from "@/lib/favorites/favorites-context";
@@ -161,7 +162,7 @@ function CategoryPanel({
 /** Figma "Buyer Nav Sell" mega menu: seller entry points that exist in the product. */
 /** dubizzle-style "Place your ad": always-visible lime call to action for selling. */
 export function sellHref(status: string, hasSeller: boolean): string {
-  if (status !== "authenticated") return "/login?next=%2Fseller%2Fonboarding";
+  if (status !== "authenticated") return "/seller/onboarding";
   return hasSeller ? "/seller/listings/new" : "/seller/onboarding";
 }
 
@@ -217,27 +218,30 @@ function CartButton() {
 }
 
 function LoginButton() {
+  const { openAuth } = useAuthDialog();
   return (
-    <Button asChild size="sm" className="h-10 px-6">
-      <Link to="/login">Log in</Link>
+    <Button size="sm" className="h-10 px-6" onClick={() => openAuth()}>
+      Log in
     </Button>
   );
 }
 
 function SellerEntry({ compact = false }: { compact?: boolean }) {
   const { status, actor } = useAuth();
+  const { guardLink } = useAuthDialog();
   const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
-  // Selling is a mode of the signed-in account: visitors just log in first.
+  // Selling is a mode of the signed-in account: visitors log in (popup) first, then continue to the seller portal.
   if (status === "initializing") return null;
   const target =
     status !== "authenticated"
-      ? { to: "/login?next=%2Fseller%2Fonboarding", label: "Start selling" }
+      ? { to: "/seller", label: "Start selling" }
       : hasSeller
         ? { to: "/seller", label: "Seller portal" }
         : { to: "/seller/onboarding", label: "Start selling" };
   return (
     <Link
       to={target.to}
+      onClick={guardLink(target.to, "Log in or create a free account to start selling.")}
       className={cn(
         "inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-full px-3 font-heading text-[15px] font-bold text-foreground transition-colors hover:bg-surface-muted",
         compact && "w-full justify-center border border-foreground",

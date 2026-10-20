@@ -1,12 +1,12 @@
 import * as React from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useSearchParams } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { ArrowsDownUpIcon, BellSimpleIcon, CaretDownIcon, CaretLeftIcon, CaretRightIcon, SlidersHorizontalIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { searchService } from "@/services/search.service";
-import { useAuth } from "@/lib/auth/auth-context";
+import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { formatNumber } from "@/lib/utils/format";
 import { ListingCard, ListingCardSkeleton } from "@/features/listings/components/listing-card";
 import { ListingRow, ListingRowSkeleton } from "@/features/listings/components/listing-row";
@@ -24,8 +24,7 @@ const LIST = "flex flex-col gap-3";
 
 export default function SearchPage() {
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
-  const { status } = useAuth();
+  const { requireAuth } = useAuthDialog();
   const state = readSearchState(params);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [saveOpen, setSaveOpen] = React.useState(false);
@@ -63,7 +62,7 @@ export default function SearchPage() {
   const clearFilters = () => setParams(writeSearchState({ q: state.q, sort: state.sort }));
   const clearAll = () => setParams(writeSearchState({ sort: state.sort }));
   const changeSort = (sort: string) => update({ sort: sort as SearchState["sort"], page: 1 });
-  const openSave = () => (status === "authenticated" ? setSaveOpen(true) : navigate(`/login?next=${encodeURIComponent(`/search?${params.toString()}`)}`));
+  const openSave = () => requireAuth(() => setSaveOpen(true), "Log in to save this search and find it again later.");
 
   const data = search.data;
   const options = useFilterOptions(state.categoryId);

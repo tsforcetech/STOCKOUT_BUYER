@@ -183,9 +183,24 @@ test("leaving the site layout works when scrollTo returns a Promise (newer Chrom
   await mockApi(page);
   await page.goto("/");
   await expect(page.getByRole("heading", { name: /Find surplus stock/i })).toBeVisible();
-  await page.getByRole("banner").getByRole("link", { name: "Log in", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Welcome to StockOut" })).toBeVisible();
+  await page.getByRole("contentinfo").getByRole("link", { name: "All categories" }).click();
+  await expect(page.getByRole("heading", { name: "Browse all categories" })).toBeVisible();
   await expect(page.getByText("couldn't be displayed")).toHaveCount(0);
+});
+
+test("header log in opens a popup and the visitor stays on the page", async ({ page }) => {
+  await mockApi(page);
+  await page.goto("/categories");
+  await expect(page.getByRole("heading", { name: "Browse all categories" })).toBeVisible();
+  await page.getByRole("button", { name: "Log in", exact: true }).first().click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("heading", { name: "Log in" })).toBeVisible();
+  await dialog.getByLabel("Email", { exact: true }).fill("bea@stockout.test");
+  await dialog.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
+  await dialog.getByRole("button", { name: "Continue" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(page).toHaveURL(/\/categories$/);
+  await expect(page.getByRole("heading", { name: "Browse all categories" })).toBeVisible();
 });
 
 test("buyer adds a listing to the cart; checkout waits for online ordering", async ({ page }) => {

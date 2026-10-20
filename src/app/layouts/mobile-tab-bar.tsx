@@ -9,12 +9,14 @@ import {
 import { useAuth } from "@/lib/auth/auth-context";
 import { useFavorites } from "@/lib/favorites/favorites-context";
 import { cn } from "@/lib/utils/cn";
+import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { sellHref } from "./site-header";
 
 /** App-style bottom navigation on phones (dubizzle pattern): Home · Search · + Sell · Saved · Account. */
 export function MobileTabBar() {
   const { status, actor } = useAuth();
   const { favorites } = useFavorites();
+  const { openAuth, guardLink } = useAuthDialog();
   const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
   const tab = ({ isActive }: { isActive: boolean }) =>
     cn(
@@ -52,6 +54,7 @@ export function MobileTabBar() {
         </NavLink>
         <NavLink
           to={sellHref(status, hasSeller)}
+          onClick={guardLink(sellHref(status, hasSeller), "Log in or create a free account to start selling.")}
           className="flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-foreground"
         >
           <span className="-mt-6 flex size-12 items-center justify-center rounded-full bg-action text-action-foreground shadow-raised ring-4 ring-surface">
@@ -80,6 +83,11 @@ export function MobileTabBar() {
         </NavLink>
         <NavLink
           to={status === "authenticated" ? "/account" : "/login"}
+          onClick={(e) => {
+            if (status !== "anonymous") return;
+            e.preventDefault();
+            openAuth();
+          }}
           className={tab}
         >
           {({ isActive }) => (

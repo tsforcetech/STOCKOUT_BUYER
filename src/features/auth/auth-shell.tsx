@@ -72,3 +72,14 @@ export function AuthCard({ title, subtitle, children }: { title: string; subtitl
     </div>
   );
 }
+
+/** Full-page frame for the shared auth forms (see auth-forms.tsx). */
+export function PageFrame({ title, subtitle, children }: { title: string; subtitle?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <AuthShell>
+      <AuthCard title={title} subtitle={subtitle}>
+        {children}
+      </AuthCard>
+    </AuthShell>
+  );
+}

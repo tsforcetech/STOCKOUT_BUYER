@@ -1,8 +1,21 @@
+import type * as React from "react";
 import { Link } from "react-router";
 import { Logo } from "@/components/common/logo";
+import { useAuth } from "@/lib/auth/auth-context";
+import { useAuthDialog } from "@/features/auth/auth-dialog";
 
 /** Figma home footer (dark band with link columns and oversized wordmark). Only links to pages that exist. */
 export function SiteFooter() {
+  const { status } = useAuth();
+  const { openAuth, guardLink } = useAuthDialog();
+  // Log in / Register open the sign-in popup; links to signed-in pages ask anonymous visitors to log in first.
+  const onLinkClick = (to: string) => (e: React.MouseEvent) => {
+    if (to === "/login" || to === "/register") {
+      if (status !== "anonymous") return;
+      e.preventDefault();
+      openAuth({ mode: to === "/register" ? "register" : "login" });
+    } else if (to.startsWith("/seller") || to.startsWith("/account")) guardLink(to)(e);
+  };
   const cols = [
     {
       title: "Marketplace",
@@ -48,7 +61,7 @@ export function SiteFooter() {
               <ul className="mt-3 space-y-2.5 text-sm text-white/75">
                 {c.links.map(([label, to]) => (
                   <li key={to}>
-                    <Link to={to} className="transition-colors hover:text-white hover:underline underline-offset-4">
+                    <Link to={to} onClick={onLinkClick(to)} className="transition-colors hover:text-white hover:underline underline-offset-4">
                       {label}
                     </Link>
                   </li>
