@@ -52,17 +52,11 @@ function HeroField({ label, children }: { label: string; children: (labelId: str
 
 const heroSelect = "h-8 rounded-md border-0 bg-transparent px-0 text-[15px] font-medium hover:border-0";
 
-/** The moving gradient ring + glow around the hero search (lime → green → cyan, from the brand palette). */
-function GlowFrame({ children }: { children: React.ReactNode }) {
+/** Hero search card: one clean white surface with a soft shadow; a lime outline appears only while it has focus. */
+function SearchFrame({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative rounded-[22px] bg-white/10 p-1.5 ring-1 ring-white/15 backdrop-blur-md">
-      <span aria-hidden className="pointer-events-none absolute inset-2 rounded-2xl bg-[linear-gradient(90deg,#f8ff2c,#4ade80,#22d3ee,#f8ff2c)] opacity-45 blur-xl" />
-      <div className="relative rounded-2xl p-[2px]">
-        <span aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
-          <span className="absolute left-1/2 top-1/2 -ml-[1100px] -mt-[1100px] size-[2200px] animate-[spin_7s_linear_infinite] bg-[conic-gradient(from_0deg,#f8ff2c,#4ade80,#22d3ee,#a3e635,#f8ff2c)] motion-reduce:animate-none" />
-        </span>
-        <div className="relative">{children}</div>
-      </div>
+    <div className="rounded-xl shadow-[0_20px_50px_-18px_rgba(0,0,0,0.65)] ring-1 ring-white/15 transition-shadow focus-within:ring-2 focus-within:ring-action">
+      {children}
     </div>
   );
 }
@@ -109,7 +103,7 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero: dark card, lime eyebrow, two-tone headline, glowing search with category + location, popular chips. */}
+      {/* Hero: dark card, lime eyebrow, two-tone headline, search with category + location, popular chips. */}
       <section className={`${SECTION} pt-4 sm:pt-6`}>
         <div className="relative isolate overflow-hidden rounded-[28px] bg-[#141413] text-white">
           {homeHeroUrl ? (
@@ -132,7 +126,7 @@ export default function HomePage() {
             <p className="mt-3 max-w-xl text-sm text-white/80 sm:text-base">Search inspected construction and industrial materials from trusted UAE sellers.</p>
 
             <div className="mt-7 max-w-[1100px]">
-              <GlowFrame>
+              <SearchFrame>
                 <SearchBox
                   variant="hero"
                   animatedPlaceholder
@@ -167,7 +161,7 @@ export default function HomePage() {
                     </div>
                   }
                 />
-              </GlowFrame>
+              </SearchFrame>
             </div>
 
             {roots.length > 0 && (
