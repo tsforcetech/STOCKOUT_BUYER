@@ -1,10 +1,11 @@
 import { Link } from "react-router";
-import { MapPinIcon, SealCheckIcon } from "@phosphor-icons/react";
+import { MapPinIcon } from "@phosphor-icons/react";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import type { ListingSnapshot } from "@/lib/favorites/favorites-context";
 import { formatMoney, formatNumber, humanize, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
+import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
 
 /** Snapshot stored with a ♥ so the saved list renders without refetching the listing. */
@@ -67,11 +68,8 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
           </h3>
           <p className="flex min-w-0 items-center gap-1 text-xs text-body">
             <span className="truncate">{item.seller.displayName}</span>
-            {item.seller.isVerified && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-action px-1.5 py-px font-heading text-[11px] font-bold text-action-foreground" title="Verified seller">
-                <SealCheckIcon className="size-3" weight="fill" aria-hidden /> Verified
-              </span>
-            )}
+            {item.seller.isVerified && <SellerTick />}
+            <VerifiedTag className="ml-1" />
             {item.conditionName && <span className="shrink-0 rounded-full border border-foreground/80 px-2 py-px text-[11px] font-semibold text-foreground">{item.conditionName}</span>}
             {ago && <span className="hidden shrink-0 text-muted-foreground sm:inline">· {ago}</span>}
           </p>

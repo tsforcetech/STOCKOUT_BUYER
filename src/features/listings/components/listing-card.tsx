@@ -1,9 +1,9 @@
 import { Link } from "react-router";
-import { SealCheckIcon } from "@phosphor-icons/react";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { ListingImage } from "@/components/common/listing-image";
 import { formatMoney, formatNumber, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
+import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
 
 /** Up to three short spec values for the card (size, material, … from the listing's attributes). */
@@ -67,8 +67,10 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
             {item.title}
           </h3>
           {/* Badges sit below the photo, not on it, so they never cover what the photo shows. */}
-          {(item.conditionName || specs.length > 0) && (
-            <ul className="mt-1 flex flex-wrap gap-1" aria-label="Condition and key specs">
+          <ul className="mt-1 flex flex-wrap items-center gap-1" aria-label="Verification, condition and key specs">
+              <li>
+                <VerifiedTag />
+              </li>
               {item.conditionName && (
                 <li className="rounded-full border border-foreground/80 px-2 py-px text-[11px] font-semibold text-foreground">
                   {item.conditionName}
@@ -83,14 +85,9 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
                 </li>
               ))}
             </ul>
-          )}
           <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
             <span className="truncate">{item.seller.displayName}</span>
-            {item.seller.isVerified && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-action px-1.5 py-px font-heading text-[11px] font-bold text-action-foreground">
-                <SealCheckIcon className="size-3" weight="fill" aria-hidden /> Verified
-              </span>
-            )}
+            {item.seller.isVerified && <SellerTick />}
           </p>
           <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2.5">
             <p className="font-heading text-lg font-bold leading-6 text-foreground">

@@ -35,6 +35,7 @@ import { ListingGallery } from "./components/listing-gallery";
 import { ListingShareButton } from "./components/listing-share-button";
 import { ListingSafetyTips } from "./components/listing-safety-tips";
 import { ListingMobileBar } from "./components/listing-mobile-bar";
+import { VerifiedTag } from "./components/verified-tag";
 import { attributeDisplayValue } from "./lib/attribute-value";
 
 function sortedImages(l: PublicListingDetailResponse) {
@@ -206,11 +207,7 @@ export default function ListingDetailPage() {
           <div className="min-w-0 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <div className="lg:sticky lg:top-[176px]">
             <div className="flex flex-wrap gap-2">
-              {l.seller.isVerified && (
-                <span className="inline-flex items-center gap-1 rounded-sm bg-success-soft px-2 py-0.5 text-xs font-medium text-success-soft-foreground">
-                  Verified seller <SealCheckIcon className="size-3.5" weight="fill" />
-                </span>
-              )}
+              <VerifiedTag size="md" />
               {l.conditionName && <span className="rounded-sm bg-surface-muted px-2 py-0.5 text-xs text-foreground">{l.conditionName}</span>}
               {!l.isAvailable && <span className="rounded-sm bg-danger-soft px-2 py-0.5 text-xs font-medium text-danger-soft-foreground">Out of stock</span>}
             </div>
