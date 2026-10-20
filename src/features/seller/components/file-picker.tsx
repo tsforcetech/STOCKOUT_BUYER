@@ -2,9 +2,11 @@ import * as React from "react";
 import { FileIcon, PaperclipIcon, XIcon } from "@phosphor-icons/react";
 import { formatBytes } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
+import { useFileDrop } from "../lib/file-drop";
 
 /**
- * Styled single-file picker (replaces the browser's raw "Choose File · No file chosen" control).
+ * Styled single-file picker (replaces the browser's raw "Choose File · No file chosen" control). Accepts a file
+ * dropped onto it as well as click/tap to browse.
  * Keeps a real <input type="file"> (visually hidden) so labels, keyboard and form semantics still work.
  */
 export const FilePicker = React.forwardRef<
@@ -29,6 +31,7 @@ export const FilePicker = React.forwardRef<
     if (typeof ref === "function") ref(el);
     else if (ref) ref.current = el;
   };
+  const { over, handlers } = useFileDrop({ accept, disabled, onFiles: (files) => onChange(files[0] ?? null) });
   const clear = () => {
     if (inner.current) inner.current.value = "";
     onChange(null);
@@ -36,9 +39,10 @@ export const FilePicker = React.forwardRef<
 
   return (
     <div
+      {...handlers}
       className={cn(
         "relative flex min-h-11 items-center gap-3 rounded-md border border-dashed bg-surface px-3 py-2 transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-ring",
-        invalid ? "border-danger" : "border-secondary-border hover:border-action-border",
+        over ? "border-action-border bg-action-soft" : invalid ? "border-danger" : "border-secondary-border hover:border-action-border",
         disabled && "pointer-events-none opacity-50",
       )}
     >
@@ -54,7 +58,7 @@ export const FilePicker = React.forwardRef<
             <span className="block text-xs text-muted-foreground">{formatBytes(file.size)}</span>
           </>
         ) : (
-          <span className="text-muted-foreground">{placeholder}</span>
+          <span className="text-muted-foreground">{over ? "Drop the file here" : `${placeholder} or drag it here`}</span>
         )}
       </span>
       <span className="shrink-0 rounded-md border border-secondary-border bg-surface px-2.5 py-1 text-xs font-medium text-foreground">{file ? "Change" : "Browse"}</span>

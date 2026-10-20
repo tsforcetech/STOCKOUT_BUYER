@@ -45,3 +45,9 @@ if (!Element.prototype.hasPointerCapture) {
   Element.prototype.releasePointerCapture = () => undefined;
 }
 if (!Element.prototype.scrollIntoView) Element.prototype.scrollIntoView = () => undefined;
+
+// jsdom has no object URLs (used for local photo previews).
+if (!URL.createObjectURL) {
+  URL.createObjectURL = () => "blob:preview";
+  URL.revokeObjectURL = () => undefined;
+}

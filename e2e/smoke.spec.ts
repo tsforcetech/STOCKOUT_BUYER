@@ -262,3 +262,24 @@ test("category tabs open a dropdown of subcategories that Escape closes", async 
   await page.keyboard.press("Escape");
   await expect(nav.getByRole("link", { name: "UPVC Pipes & Fittings" })).toHaveCount(0);
 });
+
+test("bulk upload shows photo thumbnails for added images", async ({ page }, info) => {
+  await mockApi(page, { sellerContexts: [{ sellerId: "s1", sellerType: "BUSINESS", displayName: "Sharaco", status: "ACTIVE", verificationStatus: "VERIFIED", onboardingStatus: "COMPLETED", isOwner: true }] });
+  await page.goto("/login?next=%2Fseller%2Flistings%2Fbulk");
+  await page.getByLabel("Email", { exact: true }).fill("bea@stockout.test");
+  await page.getByLabel("Password", { exact: true }).fill("correct-horse-battery");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/seller\/listings\/bulk$/);
+  // 1×1 PNG
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==", "base64");
+  await page.getByLabel("Photos (optional)").setInputFiles([
+    { name: "ppr-pipe.png", mimeType: "image/png", buffer: png },
+    { name: "rebar.png", mimeType: "image/png", buffer: png },
+  ]);
+  await expect(page.getByText("2 photos added")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Remove ppr-pipe.png" })).toBeVisible();
+  await page.getByText("2 photos added").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: test.info().outputPath(`bulk-thumbs-${info.project.name}.png`) });
+  await page.getByRole("button", { name: "Remove rebar.png" }).dispatchEvent("click");
+  await expect(page.getByText("1 photo added")).toBeVisible();
+});

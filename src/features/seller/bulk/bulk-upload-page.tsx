@@ -263,6 +263,7 @@ export default function SellerBulkUploadPage() {
                 label="Listings file (.csv)"
                 hint={`Drag the CSV here or choose it. Up to ${MAX_BULK_ROWS} rows.`}
                 accept=".csv,text/csv"
+                filter={false}
                 icon={FileCsvIcon}
                 buttonLabel={fileName ? "Choose another file" : "Choose CSV file"}
                 onFiles={(files) => void loadCsv(files[0])}
@@ -305,20 +306,34 @@ export default function SellerBulkUploadPage() {
                 <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {images.size} {images.size === 1 ? "photo" : "photos"} added
                 </p>
-                <ul className="flex flex-wrap gap-2">
+                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                   {[...images.entries()].map(([key, f]) => {
                     const problem = checkImageFile(f);
                     const uses = referenced.get(key) ?? 0;
                     return (
-                      <li key={key} className={cn("flex max-w-full items-center gap-2 rounded-md border px-2 py-1 text-xs", problem ? "border-danger/30 bg-danger-soft text-danger-soft-foreground" : "border-border bg-surface-muted text-foreground")}>
-                        <span className="truncate" title={problem ?? f.name}>
-                          {f.name}
-                        </span>
-                        <span className="shrink-0 text-muted-foreground">{formatBytes(f.size)}</span>
-                        {!problem && records.length > 0 && <span className="shrink-0 text-muted-foreground">{uses ? `used ${uses}×` : "not used"}</span>}
-                        <button type="button" className="shrink-0 rounded p-0.5 hover:bg-border" aria-label={`Remove ${f.name}`} onClick={() => removeImage(key)}>
+                      <li key={key} className={cn("group relative overflow-hidden rounded-lg border bg-surface", problem ? "border-danger/40" : "border-border")}>
+                        <LocalThumb file={f} className="aspect-[4/3] w-full" />
+                        <button
+                          type="button"
+                          className="absolute right-1.5 top-1.5 flex size-7 cursor-pointer items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80"
+                          aria-label={`Remove ${f.name}`}
+                          onClick={() => removeImage(key)}
+                        >
                           <XIcon className="size-3.5" />
                         </button>
+                        <div className="space-y-0.5 px-2 py-1.5 text-xs">
+                          <p className="truncate font-medium text-foreground" title={f.name}>
+                            {f.name}
+                          </p>
+                          {problem ? (
+                            <p className="text-danger-soft-foreground">{problem}</p>
+                          ) : (
+                            <p className="text-muted-foreground">
+                              {formatBytes(f.size)}
+                              {records.length > 0 && (uses ? ` · used ${uses}×` : " · not used")}
+                            </p>
+                          )}
+                        </div>
                       </li>
                     );
                   })}
@@ -494,4 +509,17 @@ function RunPanel({ run, onCancel, onReset }: { run: Run; onCancel: () => void; 
       )}
     </div>
   );
+}
+
+/** Preview of a photo picked on this device (object URL, revoked when the tile goes away). */
+function LocalThumb({ file, className }: { file: File; className?: string }) {
+  const [url, setUrl] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    const u = URL.createObjectURL(file);
+    setUrl(u);
+    return () => {
+      URL.revokeObjectURL(u);
+    };
+  }, [file]);
+  return url ? <img src={url} alt="" className={cn("bg-surface-muted object-cover", className)} /> : <div className={cn("bg-surface-muted", className)} />;
 }
