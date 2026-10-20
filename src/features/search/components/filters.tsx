@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatNumber } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 import { EMIRATES, attrKey, splitAttr, type SearchState } from "../lib/search-params";
+import { ATTRIBUTE_FILTERS_LIVE } from "../lib/flags";
 import { useFilterOptions } from "../lib/filter-options";
 
 interface Option {
@@ -202,7 +203,7 @@ export function SearchFilters({ state, facets, onChange }: { state: SearchState;
       <CheckGroup title="Condition" options={conditions} selected={state.conditionId} onToggle={(id) => toggle("conditionId", id)} />
       <CheckGroup title="Grade" options={facets?.grades ?? []} selected={state.gradeId} onToggle={(id) => toggle("gradeId", id)} />
 
-      {[...attributeGroups, ...facetOnlyGroups].map((g, i) => (
+      {ATTRIBUTE_FILTERS_LIVE && [...attributeGroups, ...facetOnlyGroups].map((g, i) => (
         <CheckGroup key={g.code} title={g.name} options={g.options} selected={g.options.filter((o) => selectedAttr.includes(o.id)).map((o) => o.id)} onToggle={toggleAttr} defaultOpen={i < 3} />
       ))}
 

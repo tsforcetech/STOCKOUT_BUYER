@@ -6,6 +6,8 @@ import { readSearchState, writeSearchState } from "../lib/search-params";
 import { renderWithApp } from "@/test/render";
 import { mockFetch } from "@/test/http";
 
+vi.mock("../lib/flags", () => ({ ATTRIBUTE_FILTERS_LIVE: true }));
+
 afterEach(() => vi.unstubAllGlobals());
 
 const card = (id: string, title: string) => ({
