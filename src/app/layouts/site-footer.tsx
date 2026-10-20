@@ -3,11 +3,13 @@ import { Link } from "react-router";
 import { Logo } from "@/components/common/logo";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useAuthDialog } from "@/features/auth/auth-dialog";
+import { useRfq } from "@/features/rfq/rfq-dialog";
 
 /** Figma home footer (dark band with link columns and oversized wordmark). Only links to pages that exist. */
 export function SiteFooter() {
   const { status } = useAuth();
   const { openAuth, guardLink } = useAuthDialog();
+  const openRfq = useRfq();
   // Log in / Register open the sign-in popup; links to signed-in pages ask anonymous visitors to log in first.
   const onLinkClick = (to: string) => (e: React.MouseEvent) => {
     if (to === "/login" || to === "/register") {
@@ -66,6 +68,13 @@ export function SiteFooter() {
                     </Link>
                   </li>
                 ))}
+                {c.title === "Marketplace" && (
+                  <li>
+                    <button type="button" onClick={() => openRfq({ source: "footer" })} className="cursor-pointer transition-colors hover:text-white hover:underline underline-offset-4">
+                      Request a quote
+                    </button>
+                  </li>
+                )}
               </ul>
             </div>
           ))}

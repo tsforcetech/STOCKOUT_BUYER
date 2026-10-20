@@ -28,6 +28,7 @@ import { searchHref } from "@/features/search/lib/search-params";
 import { useFavorites, type ListingSnapshot } from "@/lib/favorites/favorites-context";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { AddToCart, type AddToCartListing } from "@/features/cart/add-to-cart";
+import { RfqBanner } from "@/features/rfq/rfq-banner";
 import type { PublicListingDetailResponse } from "@/api/types/seller-listings";
 import { ListingRail } from "./components/listing-rail";
 import { ListingGallery } from "./components/listing-gallery";
@@ -245,6 +246,18 @@ export default function ListingDetailPage() {
             <div ref={panelRef} className="mt-5 scroll-mt-28">
               <AddToCart listing={cartListing} />
             </div>
+
+            <RfqBanner
+              variant="compact"
+              className="mt-3"
+              options={{
+                source: "listing",
+                prefill: { item: l.title, categoryId: l.categoryId, unit },
+                context: l.isAvailable ? `Need more than ${formatNumber(l.sellableQuantity)} ${unit}, or a different size, brand or grade?` : "This one is out of stock. Tell us what you need and sellers will quote you.",
+              }}
+              title={l.isAvailable ? "Need more, or a different spec?" : "Out of stock? Request a quote"}
+              body="Send a request for quote. Verified sellers with matching stock reply."
+            />
 
             <section aria-label="Seller" className="mt-5 rounded-xl border border-border p-4">
               <div className="flex items-center gap-3">

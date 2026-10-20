@@ -12,6 +12,7 @@ import { categoryIcon } from "@/features/categories/category-icon";
 import { useFavorites } from "@/lib/favorites/favorites-context";
 import { catalogService } from "@/services/catalog.service";
 import { useAuth } from "@/lib/auth/auth-context";
+import { RfqBanner } from "@/features/rfq/rfq-banner";
 
 const LOCATION_KEY = "stockout.market.emirate";
 
@@ -232,6 +233,17 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* RFQ: right after the category grid, where a buyer who didn't spot their item decides what to do next. */}
+      <section className={`${SECTION} py-4`}>
+        <RfqBanner
+          variant="wide"
+          options={{ source: "home", tab: "upload" }}
+          title="Have a BOQ or material list?"
+          body="Upload it or type what you need. We'll ask verified sellers across the UAE to quote you."
+          cta="Upload your RFQ"
+        />
+      </section>
 
       <RecentlyViewed />
 

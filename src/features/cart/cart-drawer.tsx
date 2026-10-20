@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
+import { RfqBanner } from "@/features/rfq/rfq-banner";
 
 /**
  * Mini cart that slides in from the right (header cart icon, and after "Add to cart").
@@ -88,6 +89,14 @@ export function CartDrawer() {
               </ul>
 
               <footer className="border-t border-border px-5 py-4">
+                <RfqBanner
+                  variant="compact"
+                  className="mb-4"
+                  beforeOpen={close}
+                  options={{ source: "cart", context: "Missing items for this project? Add them here; your cart stays as it is." }}
+                  title="Missing something for this project?"
+                  body="Send one request for the rest. Sellers quote you."
+                />
                 {[...totals.entries()].map(([currency, total]) => (
                   <div key={currency} className="flex items-baseline justify-between">
                     <span className="text-sm text-muted-foreground">Subtotal</span>

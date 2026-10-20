@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
+import { RfqBanner } from "@/features/rfq/rfq-banner";
 
 export default function CartPage() {
   const cart = useCart();
@@ -91,6 +92,13 @@ export default function CartPage() {
               </ul>
             </section>
           ))}
+          <RfqBanner
+            variant="inline"
+            options={{ source: "cart", context: "Missing items for this project? Add them here; your cart stays as it is." }}
+            title="Missing items for this project?"
+            body="Add everything else to one request for quote, or upload your BOQ. Verified sellers quote you."
+            cta="Request the rest"
+          />
         </div>
 
         <aside className="h-fit rounded-2xl border border-border p-5 shadow-raised lg:sticky lg:top-[176px]">

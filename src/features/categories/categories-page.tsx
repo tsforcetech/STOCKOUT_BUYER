@@ -7,6 +7,7 @@ import { searchHref } from "@/features/search/lib/search-params";
 import type { PublicCategoryTreeResponse } from "@/api/types/catalog-taxonomy";
 import { ArrowRightIcon } from "@phosphor-icons/react";
 import { categoryIcon } from "./category-icon";
+import { RfqBanner } from "@/features/rfq/rfq-banner";
 
 function Children({ nodes }: { nodes: PublicCategoryTreeResponse[] }) {
   if (!nodes.length) return null;
@@ -60,6 +61,13 @@ export default function CategoriesPage() {
             })}
           </div>
         )}
+        <RfqBanner
+          variant="wide"
+          className="mt-10"
+          options={{ source: "categories" }}
+          title="Don't see your category?"
+          body="Tell us what you're looking for, or upload your BOQ. We'll ask verified sellers to quote you."
+        />
       </div>
     </div>
   );
