@@ -43,9 +43,6 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
     <article className="group relative flex gap-3 overflow-hidden rounded-2xl border border-border bg-surface p-2.5 transition-shadow hover:shadow-raised sm:gap-5 sm:p-3">
       <div className="relative w-28 shrink-0 self-start overflow-hidden rounded-xl sm:w-44 md:w-48">
         <ListingImage src={item.primaryImage?.cdnUrl} alt={item.title} className="aspect-square w-full sm:aspect-[4/3]" />
-        {item.conditionName && (
-          <span className="absolute left-1.5 top-1.5 rounded-md bg-surface px-1.5 py-0.5 font-heading text-[11px] font-bold text-foreground shadow-raised sm:left-2 sm:top-2 sm:text-xs">{item.conditionName}</span>
-        )}
         {!item.isAvailable && <span className="absolute bottom-1.5 left-1.5 rounded-md bg-foreground px-1.5 py-0.5 text-[11px] text-surface">Out of stock</span>}
       </div>
 
@@ -71,11 +68,11 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
           <p className="flex min-w-0 items-center gap-1 text-xs text-body">
             <span className="truncate">{item.seller.displayName}</span>
             {item.seller.isVerified && (
-              <span className="inline-flex shrink-0 items-center gap-0.5 text-success" title="Verified seller">
-                <SealCheckIcon className="size-4" weight="fill" aria-hidden />
-                <span className="sr-only">Verified seller</span>
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-action px-1.5 py-px font-heading text-[11px] font-bold text-action-foreground" title="Verified seller">
+                <SealCheckIcon className="size-3" weight="fill" aria-hidden /> Verified
               </span>
             )}
+            {item.conditionName && <span className="shrink-0 rounded-full border border-foreground/80 px-2 py-px text-[11px] font-semibold text-foreground">{item.conditionName}</span>}
             {ago && <span className="hidden shrink-0 text-muted-foreground sm:inline">· {ago}</span>}
           </p>
           {specs.length > 0 && (

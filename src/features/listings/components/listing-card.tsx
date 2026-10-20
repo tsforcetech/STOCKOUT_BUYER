@@ -39,18 +39,6 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
             alt={item.title}
             className="aspect-[16/10] w-full"
           />
-          <div className="absolute left-2.5 top-2.5 flex flex-wrap items-start gap-1.5">
-            {item.seller.isVerified && (
-              <span className="inline-flex items-center gap-1.5 rounded-md bg-action px-2 py-0.5 font-heading text-xs font-bold text-action-foreground">
-                <SealCheckIcon className="size-3.5" /> Verified
-              </span>
-            )}
-            {item.conditionName && (
-              <span className="rounded-md bg-surface px-2 py-0.5 font-heading text-xs font-bold text-foreground shadow-raised">
-                {item.conditionName}
-              </span>
-            )}
-          </div>
           {ago && (
             <span className="absolute bottom-2.5 right-2.5 rounded-md bg-black/70 px-2 py-0.5 text-[11px] text-white">
               {ago}
@@ -78,8 +66,14 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
           <h3 className="line-clamp-2 font-heading text-base font-bold leading-5 text-foreground group-hover:underline">
             {item.title}
           </h3>
-          {specs.length > 0 && (
-            <ul className="mt-1 flex flex-wrap gap-1" aria-label="Key specs">
+          {/* Badges sit below the photo, not on it, so they never cover what the photo shows. */}
+          {(item.conditionName || specs.length > 0) && (
+            <ul className="mt-1 flex flex-wrap gap-1" aria-label="Condition and key specs">
+              {item.conditionName && (
+                <li className="rounded-full border border-foreground/80 px-2 py-px text-[11px] font-semibold text-foreground">
+                  {item.conditionName}
+                </li>
+              )}
               {specs.map((v) => (
                 <li
                   key={v}
@@ -93,11 +87,9 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
           <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
             <span className="truncate">{item.seller.displayName}</span>
             {item.seller.isVerified && (
-              <SealCheckIcon
-                className="size-3.5 shrink-0 text-success"
-                weight="fill"
-                aria-label="Verified seller"
-              />
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-md bg-action px-1.5 py-px font-heading text-[11px] font-bold text-action-foreground">
+                <SealCheckIcon className="size-3" weight="fill" aria-hidden /> Verified
+              </span>
             )}
           </p>
           <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2.5">
