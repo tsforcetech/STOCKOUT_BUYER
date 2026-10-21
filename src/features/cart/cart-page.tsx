@@ -97,7 +97,7 @@ export default function CartPage() {
             options={{ source: "cart", context: "Missing items for this project? Add them here; your cart stays as it is." }}
             title="Missing items for this project?"
             body="Add everything else to one request for quote, or upload your BOQ. Verified sellers quote you."
-            cta="Request the rest"
+            cta="Get quotes for the missing items"
           />
         </div>
 

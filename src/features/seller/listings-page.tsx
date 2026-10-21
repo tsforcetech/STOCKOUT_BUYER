@@ -351,7 +351,7 @@ export default function SellerListingsPage() {
                 description={
                   filtered
                     ? "Try a different search, status or category."
-                    : "Create a draft listing, or add many at once with Bulk upload."
+                    : "Add one item in minutes, or your whole stock list in one go."
                 }
                 action={
                   filtered ? (

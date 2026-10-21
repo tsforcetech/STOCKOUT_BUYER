@@ -97,7 +97,7 @@ export default function SearchPage() {
   const openSave = () =>
     requireAuth(
       () => setSaveOpen(true),
-      "Log in to save this search and find it again later.",
+      "Sign in and we'll tell you when new stock matches.",
     );
 
   const data = search.data;
@@ -322,8 +322,12 @@ export default function SearchPage() {
                 />
                 <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-14 sm:py-20">
                   <EmptyState
-                    title="No listings match your search"
-                    description="Try different words, remove some filters, or save this search to hear when matching stock is listed."
+                    title={activeFilterCount > 0 ? "Nothing matches these filters" : "No listings match your search"}
+                    description={
+                      activeFilterCount > 0
+                        ? "Try a wider area or clear filters."
+                        : "Try different words, or save this search to hear when matching stock is listed."
+                    }
                     action={
                       <div className="flex flex-wrap justify-center gap-2">
                         {activeFilterCount > 0 && (
@@ -396,7 +400,7 @@ export default function SearchPage() {
                                 categoryId: state.categoryId,
                               },
                             }}
-                            title="Didn't find the exact spec?"
+                            title="Need a different size or quantity? Ask sellers directly."
                             body="Share your requirement or upload a BOQ. Verified sellers send you quotes."
                           />
                         )}

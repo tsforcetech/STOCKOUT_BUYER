@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowRightIcon, MapPinIcon, RecycleIcon, SealCheckIcon, SparkleIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, ClipboardTextIcon, MapPinIcon, RecycleIcon, SealCheckIcon, SparkleIcon, StorefrontIcon } from "@phosphor-icons/react";
 import { homeHeroUrl } from "@/assets/brand";
 import { NativeSelect } from "@/components/ui/input";
 import { SearchBox } from "@/features/search/components/search-box";
@@ -85,7 +85,8 @@ function RecentlyViewed() {
 }
 
 const PROMISES = [
-  { icon: SealCheckIcon, title: "Verified sellers", body: "Sellers are KYC-checked before their listings go live." },
+  { icon: SealCheckIcon, title: "Verified sellers", body: "Every seller is verified with a trade licence or Emirates ID before they can sell." },
+  { icon: ClipboardTextIcon, title: "Inspected by StockOut", body: "Selected categories are physically inspected by StockOut before they're listed." },
   { icon: MapPinIcon, title: "Across all 7 emirates", body: "Filter by emirate and area to find stock you can collect nearby." },
   { icon: RecycleIcon, title: "Surplus, not landfill", body: "Unused and reusable materials from finished projects and overstock." },
 ] as const;
@@ -124,7 +125,7 @@ export default function HomePage() {
               <br />
               <span className="text-action">Verified for reuse.</span>
             </h1>
-            <p className="mt-3 max-w-xl text-sm text-white/80 sm:text-base">Search inspected construction and industrial materials from trusted UAE sellers.</p>
+            <p className="mt-3 max-w-xl text-sm text-white/80 sm:text-base">New, unused and quality surplus stock from verified UAE sellers — collect today.</p>
 
             <div className="mt-7 max-w-[1100px]">
               <SearchFrame>
@@ -185,7 +186,7 @@ export default function HomePage() {
 
       {/* What buyers can count on: statements the product backs (KYC-verified sellers, emirate filters). */}
       <section className={`${SECTION} pt-4`} aria-label="Why StockOut">
-        <ul className="grid gap-3 sm:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PROMISES.map(({ icon: Icon, title, body }) => (
             <li key={title} className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-action-soft text-foreground">
@@ -247,7 +248,7 @@ export default function HomePage() {
 
       <RecentlyViewed />
 
-      <ListingRail title="Newly added" query={{ sort: "date_desc" }} viewAllHref={searchHref({ sort: "date_desc" })} />
+      <ListingRail title="Just listed" query={{ sort: "date_desc" }} viewAllHref={searchHref({ sort: "date_desc" })} />
       <ListingRail
         title={emirate ? `Available near you · ${emirate}` : "Available near you"}
         query={{ stateOrEmirate: emirate || undefined, inStockOnly: true }}
@@ -279,7 +280,7 @@ export default function HomePage() {
             {[
               ["Open a seller account", "Register as a business or an individual."],
               ["Get verified", "Upload your documents; our team reviews them."],
-              ["List your surplus", "Photos, specs, quantity and price, or bulk upload."],
+              ["List your surplus in 5 minutes", "3 steps: photos → price → publish. Or upload 100 items from Excel at once."],
             ].map(([title, body], i) => (
               <li key={title} className="flex items-start gap-4 rounded-2xl bg-surface p-4 shadow-raised">
                 <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink font-heading text-sm font-bold text-ink-foreground">{i + 1}</span>

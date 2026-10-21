@@ -1,9 +1,11 @@
 import { Link } from "react-router";
+import { stockLabel } from "../lib/stock";
+import { cn } from "@/lib/utils/cn";
 import { MapPinIcon } from "@phosphor-icons/react";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import type { ListingSnapshot } from "@/lib/favorites/favorites-context";
-import { formatMoney, formatNumber, humanize, timeAgo } from "@/lib/utils/format";
+import { formatMoney, humanize, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
 import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
@@ -91,8 +93,8 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
               {item.quantityUnitSymbol && <span className="font-sans text-sm font-normal text-muted-foreground">/{item.quantityUnitSymbol}</span>}
             </p>
             {item.isAvailable && item.sellableQuantity > 0 && (
-              <p className="text-[11px] text-muted-foreground sm:text-xs">
-                {formatNumber(item.sellableQuantity)} {item.quantityUnitSymbol ?? item.quantityUnitName ?? ""} available
+              <p className={cn("text-[11px] sm:text-xs", stockLabel(item.sellableQuantity, null).low ? "font-semibold text-warning-soft-foreground" : "text-muted-foreground")}>
+                {stockLabel(item.sellableQuantity, item.quantityUnitSymbol ?? item.quantityUnitName).text}
               </p>
             )}
           </div>

@@ -1,7 +1,9 @@
 import { Link } from "react-router";
+import { stockLabel } from "../lib/stock";
+import { cn } from "@/lib/utils/cn";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { ListingImage } from "@/components/common/listing-image";
-import { formatMoney, formatNumber, timeAgo } from "@/lib/utils/format";
+import { formatMoney, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
 import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
@@ -98,12 +100,10 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
                 </span>
               )}
             </p>
-            {item.isAvailable && item.sellableQuantity > 0 && (
-              <span className="shrink-0 text-[11px] text-muted-foreground">
-                {formatNumber(item.sellableQuantity)}{" "}
-                {item.quantityUnitSymbol ?? ""} available
-              </span>
-            )}
+            {item.isAvailable && item.sellableQuantity > 0 && (() => {
+              const stock = stockLabel(item.sellableQuantity, item.quantityUnitSymbol);
+              return <span className={cn("shrink-0 text-[11px]", stock.low ? "font-semibold text-warning-soft-foreground" : "text-muted-foreground")}>{stock.text}</span>;
+            })()}
           </div>
         </div>
       </Link>

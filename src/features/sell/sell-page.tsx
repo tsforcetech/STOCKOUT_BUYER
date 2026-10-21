@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 const STEPS = [
   { icon: IdentificationCardIcon, title: "Open a seller account", text: "Register as a business or an individual. It takes a couple of minutes." },
   { icon: SealCheckIcon, title: "Get verified", text: "Upload your verification documents. Our team reviews them before your listings go live." },
-  { icon: ListPlusIcon, title: "List your surplus", text: "Add photos, specifications, quantity and price. Listings are reviewed — some categories are physically inspected." },
+  { icon: ListPlusIcon, title: "List your surplus in 5 minutes", text: "3 steps: photos → price → publish. Or upload 100 items from Excel at once. Listings are reviewed — some categories are physically inspected." },
   { icon: MagnifyingGlassIcon, title: "Get discovered", text: "Published listings appear in search for buyers across the UAE." },
 ];
 
