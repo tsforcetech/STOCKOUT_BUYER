@@ -31,6 +31,8 @@ import { AddToCart, type AddToCartListing } from "@/features/cart/add-to-cart";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
 import type { PublicListingDetailResponse } from "@/api/types/seller-listings";
 import { ListingRail } from "./components/listing-rail";
+import { isSameItem, sameItemQuery } from "./lib/same-item";
+import type { ListingSearchCard } from "@/api/types/search";
 import { ListingGallery } from "./components/listing-gallery";
 import { ListingShareButton } from "./components/listing-share-button";
 import { ListingSafetyTips } from "./components/listing-safety-tips";
@@ -146,6 +148,11 @@ export default function ListingDetailPage() {
   const unit = unitOf(l);
   // BASE_URL keeps the deploy sub-path (e.g. /STOCKOUT_BUYER/) so shared links resolve.
   const url = new URL(`${import.meta.env.BASE_URL}listings/${encodeURIComponent(l.listingId)}`, window.location.origin).toString();
+  // Same product from other sellers, for buyers who need more than this seller has. Ordered by stock, not price.
+  const otherSellers = (items: ListingSearchCard[]) =>
+    items
+      .filter((x) => x.listingId !== l.listingId && x.seller.sellerId !== l.seller.sellerId && x.isAvailable && x.sellableQuantity > 0 && isSameItem(l.title, x.title))
+      .sort((a, b) => b.sellableQuantity - a.sellableQuantity);
   const cartListing: AddToCartListing = {
     listingId: l.listingId,
     title: l.title,
@@ -310,6 +317,13 @@ export default function ListingDetailPage() {
         </div>
       </div>
       <div ref={endRef} aria-hidden />
+      <ListingRail
+        title="Need more stock? Also available from other sellers"
+        subtitle="The same item from other verified sellers, with the most stock first."
+        query={{ q: sameItemQuery(l.title), categoryId: l.categoryId }}
+        select={otherSellers}
+        viewAllHref={searchHref({ q: sameItemQuery(l.title), categoryId: l.categoryId })}
+      />
       <ListingRail title={`More from ${l.seller.displayName}`} query={{ sellerId: l.seller.sellerId, sort: "date_desc" }} viewAllHref={searchHref({ sellerId: l.seller.sellerId })} />
       <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={searchHref({ categoryId: l.categoryId })} />
       <ListingMobileBar listing={cartListing} panelRef={panelRef} endRef={endRef} />

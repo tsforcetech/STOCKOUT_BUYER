@@ -3,15 +3,31 @@ import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeftIcon, ArrowRightIcon } from "@phosphor-icons/react";
 import { searchService } from "@/services/search.service";
-import type { SearchListingsQuery } from "@/api/types/search";
+import type { ListingSearchCard, SearchListingsQuery } from "@/api/types/search";
 import { getErrorMessage } from "@/lib/api/errors";
 import { ListingCard, ListingCardSkeleton } from "./listing-card";
 
 /** Figma home carousel ("Recommended for you", "Newly Added", "Available Near You"). Driven by a real search query. */
-export function ListingRail({ title, query, viewAllHref, action }: { title: string; query: SearchListingsQuery; viewAllHref: string; action?: React.ReactNode }) {
+export function ListingRail({
+  title,
+  subtitle,
+  query,
+  viewAllHref,
+  action,
+  select,
+}: {
+  title: string;
+  subtitle?: string;
+  query: SearchListingsQuery;
+  viewAllHref: string;
+  action?: React.ReactNode;
+  /** Narrows / reorders the fetched page (e.g. drop the listing being viewed). A rail with nothing left is hidden. */
+  select?: (items: ListingSearchCard[]) => ListingSearchCard[];
+}) {
   const scroller = React.useRef<HTMLDivElement>(null);
-  const q = useQuery({ queryKey: ["search", "rail", query], queryFn: ({ signal }) => searchService.listings({ pageSize: 12, ...query }, signal) });
-  const items = q.data?.items ?? [];
+  const q = useQuery({ queryKey: ["search", "rail", query], queryFn: ({ signal }) => searchService.listings({ pageSize: select ? 24 : 12, ...query }, signal) });
+  const fetched = q.data?.items;
+  const items = React.useMemo(() => (select ? select(fetched ?? []) : (fetched ?? [])), [fetched, select]);
   const scroll = (dir: 1 | -1) => scroller.current?.scrollBy({ left: dir * (scroller.current.clientWidth * 0.8), behavior: "smooth" });
 
   if (!q.isLoading && !q.error && items.length === 0) return null;
@@ -19,7 +35,10 @@ export function ListingRail({ title, query, viewAllHref, action }: { title: stri
   return (
     <section className="mx-auto max-w-[1336px] px-4 py-6 sm:px-6" aria-label={title}>
       <div className="mb-4 flex items-end justify-between gap-3">
-        <h2 className="font-heading text-xl font-bold text-foreground sm:text-[28px] sm:leading-9">{title}</h2>
+        <div className="min-w-0">
+          <h2 className="font-heading text-xl font-bold text-foreground sm:text-[28px] sm:leading-9">{title}</h2>
+          {subtitle && <p className="mt-1 text-sm text-muted-foreground">{subtitle}</p>}
+        </div>
         <div className="flex items-center gap-3">
           {action}
           <Link to={viewAllHref} className="text-sm text-foreground underline underline-offset-4">
