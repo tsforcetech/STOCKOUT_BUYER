@@ -8,8 +8,6 @@ import { RowAction } from "@/components/common/section-card";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/feedback/states";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellerListingsService } from "@/services/seller-listings.service";
-import { listingsService } from "@/services/listings.service";
-import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { getSellerListingActions, LISTING_MEDIA_LIMITS as M, type ListingDetailResponse, type ListingMediaItemResponse, type ListingMediaType } from "@/api/types/seller-listings";
 import { FileDownloadAction, OwnImageThumb } from "../components/file-link";
 import { Notice } from "../components/notice";
@@ -24,7 +22,9 @@ export function MediaTab({ sellerId, listing }: { sellerId: string; listing: Lis
   const id = listing.listingId;
   const can = getSellerListingActions(listing);
   const [toDelete, setToDelete] = React.useState<ListingMediaItemResponse | null>(null);
-  const media = useQuery({ queryKey: sellerKeys.media(sellerId, id), queryFn: ({ signal }) => sellerListingsService.media(sellerId, id, signal), enabled: !!listing.currentDraftVersionId });
+  // Without a draft the endpoint returns the published version's media (read-only).
+  const hasVersion = !!(listing.currentDraftVersionId || listing.publishedVersionId);
+  const media = useQuery({ queryKey: sellerKeys.media(sellerId, id), queryFn: ({ signal }) => sellerListingsService.media(sellerId, id, signal), enabled: hasVersion });
 
   const rowVersion = () => qc.getQueryData<ListingDetailResponse>(sellerKeys.detail(sellerId, id))?.rowVersion ?? listing.rowVersion;
   const afterMutation = async (rv: string) => {
@@ -65,7 +65,7 @@ export function MediaTab({ sellerId, listing }: { sellerId: string; listing: Lis
     }
   };
 
-  if (!listing.currentDraftVersionId) return <PublishedMedia listing={listing} />;
+  if (!hasVersion) return <Notice>This listing has no photos or documents yet.</Notice>;
   if (media.isLoading) return <PageSkeleton />;
   if (media.error) return <ErrorState error={media.error} onRetry={() => void media.refetch()} title="Couldn't load media" />;
 
@@ -82,14 +82,19 @@ export function MediaTab({ sellerId, listing }: { sellerId: string; listing: Lis
 
   return (
     <div className="space-y-6">
-      {!can.canMutateMedia && <Notice>Media is read-only in the listing's current state.</Notice>}
-      <Notice title="Known marketplace limitations">
-        <ul className="list-disc space-y-1 pl-4">
-          <li>A listing needs at least one photo to be submitted, and a primary photo to go live. (A document alone is accepted on submit but won't let it go live.)</li>
-          <li>Buyers may not see listing photos yet — the public image link isn't served by the marketplace at the moment.</li>
-          <li>Resuming a paused listing re-checks the primary photo and can fail with “not ready” due to a known ownership check issue. Contact support if that happens.</li>
-        </ul>
-      </Notice>
+      {!listing.currentDraftVersionId ? (
+        <Notice>Photos and documents can only be changed on a draft. Published listings can't be edited through the seller portal yet.</Notice>
+      ) : (
+        !can.canMutateMedia && <Notice>Media is read-only in the listing's current state.</Notice>
+      )}
+      {can.canMutateMedia && (
+        <Notice title="Known marketplace limitations">
+          <ul className="list-disc space-y-1 pl-4">
+            <li>A listing needs at least one photo to be submitted, and a primary photo to go live. (A document alone is accepted on submit but won't let it go live.)</li>
+            <li>Resuming a paused listing re-checks the primary photo and can fail with “not ready” due to a known ownership check issue. Contact support if that happens.</li>
+          </ul>
+        </Notice>
+      )}
 
       {can.canMutateMedia && (
         <MediaUploader disabled={op.isPending} attach={attach} imageSlots={M.DEFAULT_MAX_IMAGES - images.length} documentSlots={M.DEFAULT_MAX_DOCUMENTS - docs.length} />
@@ -171,58 +176,6 @@ export function MediaTab({ sellerId, listing }: { sellerId: string; listing: Lis
         loading={op.isPending}
         onConfirm={() => toDelete && runOp({ kind: "delete", item: toDelete })}
       />
-    </div>
-  );
-}
-
-/**
- * Read-only photos for a listing without a draft. The seller media endpoint answers 409 then, so a live listing's
- * photos come from the public listing detail (public image downloads work for published listings). Paused or
- * archived listings aren't public, so their photos can't be shown.
- */
-function PublishedMedia({ listing }: { listing: ListingDetailResponse }) {
-  const live = listing.status === "PUBLISHED";
-  const detail = useQuery({
-    queryKey: ["listing", "public", listing.listingId],
-    queryFn: ({ signal }) => listingsService.publicDetail(listing.listingId, signal),
-    enabled: live,
-    retry: false,
-    staleTime: 60_000,
-  });
-  const note = <Notice>Photos and documents can only be changed on a draft. Published listings can't be edited through the seller portal yet.</Notice>;
-  if (!live) return note;
-  if (detail.isLoading) return <PageSkeleton />;
-  if (detail.error) return <ErrorState error={detail.error} onRetry={() => void detail.refetch()} title="Couldn't load the live photos" />;
-  const images = [...(detail.data?.galleryImages ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
-  return (
-    <div className="space-y-5">
-      {note}
-      <section aria-label="Live photos">
-        <div className="mb-3 flex items-baseline justify-between gap-3">
-          <h3 className="font-heading text-base font-bold text-foreground">Photos buyers see</h3>
-          <span className="text-xs text-muted-foreground">
-            {images.length} photo{images.length === 1 ? "" : "s"} · view only
-          </span>
-        </div>
-        {images.length === 0 ? (
-          <EmptyState title="No photos on the live listing" description="This listing was published without photos." />
-        ) : (
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {images.map((img, i) => (
-              <li key={img.fileAssetId} className="overflow-hidden rounded-xl border border-border bg-surface">
-                <a href={assetUrl(img.cdnUrl) ?? undefined} target="_blank" rel="noreferrer" className="relative block" aria-label={`Open photo ${i + 1} in a new tab`}>
-                  <ListingImage src={img.cdnUrl} alt={`${listing.currentDraftVersion?.title ?? listing.publishedVersion?.title ?? "Listing"} photo ${i + 1}`} className="aspect-[4/3] w-full" />
-                  {img.isPrimary && (
-                    <Badge tone="primary" className="absolute left-2 top-2">
-                      <StarIcon className="size-3" weight="fill" aria-hidden /> Cover
-                    </Badge>
-                  )}
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }

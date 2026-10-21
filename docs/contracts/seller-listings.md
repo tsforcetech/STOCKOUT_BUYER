@@ -454,7 +454,7 @@ Success: 200 `ListingAttributesResponse`. This is the A1 shape **re-read**, with
    - `LISTING_DOCUMENT`: `application/pdf`, `image/jpeg`, `image/png`, at most 20 MiB
 4. In every endpoint below, `fileAssetId` is the files-service `fileId`.
 
-Media always belongs to the **current draft version**. With no draft, every media endpoint returns 409 `MARKETPLACE_LISTING_TRANSITION_INVALID`.
+Media mutations always target the **current draft version**; with no draft they return 409 `MARKETPLACE_LISTING_TRANSITION_INVALID`. `GET …/media` reads the current draft version, or the **published version when there is no draft** (migration `045_F2B_PublishedListingMediaGetProcedure.sql`, backend `9471971`, verified live 21 Oct). It still returns 409 only when the listing has neither. The seller portal shows that media read-only.
 
 The SQL allows mutation when the listing status is `DRAFT`, `CHANGES_REQUIRED` or `PUBLISHED` (`MIG/030:65,273,398,492`). **The version status is not checked**, so media can change while a version is `UNDER_REVIEW` or `APPROVED`.
 
