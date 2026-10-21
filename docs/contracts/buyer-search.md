@@ -209,6 +209,6 @@ How alerts work: a worker evaluates them and emits `search.alert.matched.v1` (`C
 5. The 50901 message for a bad `alertFrequency` lists only 4 values, but 7 are accepted.
 6. Saved-search auth does not check session revocation. A logged-out token keeps working for up to 15 min.
 7. The search service's `ServiceAuth:Key` (`Api/appsettings.json:25-27`) differs from the gateway's (`emcore-internal-dev-key`) in the checked-in config, so the `X-User-Id` fallback is not trusted. The website must send `Authorization: Bearer` (it is forwarded as-is).
-8. The attribute filter code is upper-cased, but indexed codes are not normalized (see §1). Text value matching is case-sensitive.
+8. ~~The attribute filter code is upper-cased, but indexed codes are not normalized.~~ Fixed by backend F2-F / L13 (`55d7d72`, verified live 21 Oct): codes and text values match case-insensitively; `attrs[code]` and `attributes[code]` are both accepted; several values for one code (repeated keys or comma-separated) are OR, different codes are AND. A value containing a comma can't be filtered on its own.
 9. DateTimes in saved-search DTOs come from SQL and have no `Z`. Parse them as UTC.
 10. The admin repo doc (§C) is stale: it says "no authentication", and the 50907 and 50908 codes are now reachable.

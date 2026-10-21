@@ -137,4 +137,4 @@ and — **fixed** — SD `SearchProblemDetailsDto`, whose `errorCode` is numeric
   marketplace errors; BaseApiController.cs:29-33) — the UI maps them by HTTP status.
 - **B8** `GET /api/v1/search/listings` binds `attributes[CODE]` both via the `Dictionary` model binder and again in
   `EnrichDynamicAttributeQueryParameters` (SearchListingsController.cs:42-90), which can duplicate values. The UI does not send
-  attribute filters today.
+  attribute filters since 21 Oct (L13 fixed); duplicated values are harmless because values for one code are OR-ed.
