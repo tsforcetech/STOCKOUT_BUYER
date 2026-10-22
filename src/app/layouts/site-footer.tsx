@@ -79,13 +79,8 @@ export function SiteFooter() {
             </div>
           ))}
         </div>
-        <div
-          className="mt-12 select-none font-heading text-[clamp(64px,16vw,128px)] font-bold leading-none tracking-tight text-white"
-          aria-hidden
-        >
-          <span className="[&_*]:!text-white">
-            <Logo className="!h-auto !text-[length:inherit] !text-white" />
-          </span>
+        <div className="mt-12" aria-hidden>
+          <Logo tone="light" className="h-auto w-full max-w-[720px]" />
         </div>
         <p className="mt-6 border-t border-white/10 pt-6 text-xs text-white/50">
           © {new Date().getFullYear()} StockOut. All rights reserved.

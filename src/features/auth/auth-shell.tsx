@@ -21,7 +21,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(80%_70%_at_90%_0%,#3d3d36_0%,#1d1d1b_50%,#111110_100%)]" />
         <div className="absolute -bottom-32 -left-24 -z-10 size-[420px] rounded-full bg-[#f8ff2c]/10 blur-3xl" />
         {loginHeroUrl && <img src={loginHeroUrl} alt="" className="pointer-events-none absolute inset-0 -z-10 size-full object-cover opacity-40" />}
-        <Logo tone="light" className="text-2xl" />
+        <Logo tone="light" className="h-8" />
         <div className="mt-auto max-w-[460px]">
           <p className="font-heading text-[44px] font-bold leading-[48px] tracking-tight">
             Find surplus stock.
@@ -45,7 +45,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
       <section className="relative flex min-w-0 flex-1 flex-col">
         <div className="flex items-center justify-between gap-4 px-5 pt-6 sm:px-10 sm:pt-8">
           <Link to="/" aria-label="StockOut home" className="lg:invisible">
-            <Logo className="h-[26px] text-xl" />
+            <Logo className="h-7" />
           </Link>
           <Link to="/" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground">
             <ArrowLeftIcon className="size-4" /> Back to marketplace

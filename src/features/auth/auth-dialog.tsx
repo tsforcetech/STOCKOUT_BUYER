@@ -113,7 +113,7 @@ export function AuthDialogProvider({ children }: { children: React.ReactNode }) 
             )}
           >
             <div className="flex items-center justify-between border-b border-border px-5 py-3 sm:border-0 sm:px-7 sm:pt-6 sm:pb-0">
-              <Logo className="h-[22px] text-lg" />
+              <Logo className="h-6" />
               <DialogPrimitive.Close className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-mr-2")} aria-label="Close">
                 <XIcon />
               </DialogPrimitive.Close>

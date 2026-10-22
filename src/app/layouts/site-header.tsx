@@ -556,7 +556,7 @@ export function SiteHeader() {
             {mobileOpen ? <XIcon className="size-6" /> : <ListIcon className="size-6" />}
           </button>
           <Link to="/" aria-label="StockOut home" className="shrink-0">
-            <Logo className="text-2xl" />
+            <Logo className="h-7 sm:h-8" />
           </Link>
           <div className="mx-2 hidden min-w-0 flex-1 lg:block xl:mx-6">{!isHome && <SearchBox variant="header" animatedPlaceholder />}</div>
           <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">

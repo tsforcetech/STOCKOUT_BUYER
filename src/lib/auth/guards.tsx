@@ -1,12 +1,9 @@
 import { Navigate, Outlet, useLocation } from "react-router";
+import { BrandLoader } from "@/components/feedback/brand-loader";
 import { useAuth } from "./auth-context";
 
 export function FullScreenLoader() {
-  return (
-    <div className="flex min-h-[60vh] items-center justify-center" role="status" aria-label="Loading">
-      <div className="size-10 animate-spin rounded-full border-4 border-border border-t-action-border" />
-    </div>
-  );
+  return <BrandLoader />;
 }
 
 /** Requires a signed-in user; otherwise sends them to /login and back afterwards. */
