@@ -12,6 +12,7 @@ import {
   ReceiptIcon,
   SignOutIcon,
   SquaresFourIcon,
+  StorefrontIcon,
   UploadSimpleIcon,
   UserIcon,
   XIcon,
@@ -57,48 +58,107 @@ function useSellerSignOut() {
   }, [signOut, navigate]);
 }
 
+function MenuItem({ icon: Icon, label, onSelect, tone }: { icon: React.ElementType; label: string; onSelect: () => void; tone?: "danger" }) {
+  return (
+    <PopoverPrimitive.Close asChild>
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cn(
+          "flex h-9 w-full cursor-pointer items-center gap-2.5 rounded-md px-2.5 text-left text-sm transition-colors",
+          tone === "danger" ? "text-danger-soft-foreground hover:bg-danger-soft" : "text-foreground hover:bg-surface-muted",
+        )}
+      >
+        <Icon className="size-[18px] shrink-0" /> {label}
+      </button>
+    </PopoverPrimitive.Close>
+  );
+}
+
 function SellerAccountMenu() {
   const { user } = useAuth();
+  const { activeSeller } = useSellerMode();
   const navigate = useNavigate();
   const signOut = useSellerSignOut();
   const name = user?.displayName || user?.firstName || user?.email || "Account";
-  const items = [
-    { label: "My profile", to: "/seller/profile", icon: UserIcon },
-    { label: "Security", to: "/seller/security", icon: LockKeyIcon },
-    { label: "Back to marketplace", to: "/", icon: ArrowLeftIcon },
-  ];
   return (
     <PopoverPrimitive.Root>
       <PopoverPrimitive.Trigger asChild>
-        <button type="button" aria-label="Account menu" className="flex cursor-pointer items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2 hover:bg-surface-muted">
+        <button
+          type="button"
+          aria-label="Account menu"
+          className="flex cursor-pointer items-center gap-2 rounded-full border border-transparent py-0.5 pl-0.5 pr-2 transition-colors hover:border-border hover:bg-surface-muted data-[state=open]:border-border data-[state=open]:bg-surface-muted"
+        >
           <span className="flex size-9 items-center justify-center rounded-full bg-ink font-heading text-xs font-bold text-ink-foreground" aria-hidden>
             {initials(name)}
           </span>
           <span className="hidden max-w-36 truncate text-sm font-medium text-foreground md:block">{name}</span>
-          <CaretDownIcon className="size-4 text-foreground" />
+          <CaretDownIcon className="size-4 text-muted-foreground" />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
-        <PopoverPrimitive.Content align="end" sideOffset={8} className="z-50 w-60 rounded-xl border border-border bg-surface p-2 text-sm shadow-raised focus:outline-none">
-          <div className="px-2 py-2">
-            <p className="truncate font-medium text-foreground">{name}</p>
-            {user?.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+        <PopoverPrimitive.Content
+          align="end"
+          sideOffset={8}
+          className="z-50 w-72 overflow-hidden rounded-xl border border-border bg-surface text-sm shadow-raised focus:outline-none"
+        >
+          <div className="flex items-center gap-3 border-b border-border bg-surface-muted/60 px-4 py-3.5">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ink font-heading text-sm font-bold text-ink-foreground" aria-hidden>
+              {initials(name)}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate font-semibold text-foreground">{name}</p>
+              {user?.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+              {activeSeller && (
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {activeSeller.displayName || "Seller"} · {activeSeller.isOwner ? "Owner" : "Member"}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="my-1 h-px bg-border-strong" />
-          {items.map((i) => (
-            <PopoverPrimitive.Close asChild key={i.to}>
-              <button type="button" onClick={() => navigate(i.to)} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-foreground hover:bg-surface-muted">
-                <i.icon className="size-[18px]" /> {i.label}
-              </button>
-            </PopoverPrimitive.Close>
-          ))}
-          <div className="my-1 h-px bg-border-strong" />
-          <button type="button" onClick={() => void signOut()} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-danger-soft-foreground hover:bg-danger-soft">
-            <SignOutIcon className="size-[18px]" /> Sign out
-          </button>
+          <div className="p-1.5">
+            <MenuItem icon={UserIcon} label="My profile" onSelect={() => navigate("/seller/profile")} />
+            <MenuItem icon={LockKeyIcon} label="Security" onSelect={() => navigate("/seller/security")} />
+            <MenuItem icon={StorefrontIcon} label="Back to marketplace" onSelect={() => navigate("/")} />
+          </div>
+          <div className="border-t border-border px-4 py-3">
+            <p className="mb-2 text-xs font-medium text-muted-foreground">Appearance</p>
+            <ThemeSwitch />
+          </div>
+          <div className="border-t border-border p-1.5">
+            <MenuItem icon={SignOutIcon} label="Sign out" tone="danger" onSelect={() => void signOut()} />
+          </div>
         </PopoverPrimitive.Content>
       </PopoverPrimitive.Portal>
     </PopoverPrimitive.Root>
+  );
+}
+
+/** Sidebar footer: who is signed in, with a one-click sign out. */
+function SidebarUser({ onSignOut }: { onSignOut: () => void }) {
+  const { user } = useAuth();
+  const name = user?.displayName || user?.firstName || user?.email || "Account";
+  return (
+    <div className="flex items-center gap-3">
+      <Link to="/seller/profile" className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 -m-1 hover:bg-surface-muted">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink font-heading text-xs font-bold text-ink-foreground" aria-hidden>
+          {initials(name)}
+        </span>
+        <span className="min-w-0">
+          <span className="block truncate text-sm font-medium text-foreground">{name}</span>
+          {user?.email && <span className="block truncate text-xs text-muted-foreground">{user.email}</span>}
+        </span>
+      </Link>
+      <button
+        type="button"
+        onClick={onSignOut}
+        aria-label="Sign out"
+        title="Sign out"
+        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger-soft hover:text-danger-soft-foreground"
+      >
+        <SignOutIcon className="size-5" />
+      </button>
+    </div>
   );
 }
 
@@ -247,17 +307,7 @@ export function SellerLayout() {
           <SellerSwitcher />
           <SellerNav onNavigate={() => setOpen(false)} />
           <div className="mt-auto border-t border-border p-4">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
-              Theme
-            </p>
-            <ThemeSwitch />
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              className="mt-3 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-3 text-sm text-danger-soft-foreground transition-colors hover:bg-danger-soft"
-            >
-              <SignOutIcon className="size-[18px]" /> Sign out
-            </button>
+            <SidebarUser onSignOut={() => void signOut()} />
           </div>
         </aside>
         <main

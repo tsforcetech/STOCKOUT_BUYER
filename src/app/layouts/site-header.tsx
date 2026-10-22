@@ -258,7 +258,7 @@ const THEMES = [
   ["system", "System", MonitorIcon],
 ] as const;
 
-/** Light / Dark / System segmented control, used in the account menu and the seller sidebar. */
+/** Light / Dark / System segmented control, used in the site and seller-portal account menus. */
 export function ThemeSwitch({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   return (
