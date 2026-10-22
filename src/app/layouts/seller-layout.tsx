@@ -1,12 +1,16 @@
 import * as React from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { Popover as PopoverPrimitive } from "radix-ui";
 import {
   ArrowLeftIcon,
+  CaretDownIcon,
   IdentificationCardIcon,
+  LockKeyIcon,
   ListIcon,
   ListNumbersIcon,
   PlusIcon,
   ReceiptIcon,
+  SignOutIcon,
   SquaresFourIcon,
   UploadSimpleIcon,
   UserIcon,
@@ -18,7 +22,8 @@ import { PageSkeleton } from "@/components/feedback/states";
 import { StatusBadge } from "@/components/common/status-badge";
 import { NativeSelect } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/misc";
-import { humanize } from "@/lib/utils/format";
+import { humanize, initials } from "@/lib/utils/format";
+import { useAuth } from "@/lib/auth/auth-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { cn } from "@/lib/utils/cn";
 import { ThemeSwitch } from "./site-header";
@@ -38,8 +43,64 @@ const NAV = [
     to: "/seller/business",
     icon: IdentificationCardIcon,
   },
-  { label: "My account", to: "/account", icon: UserIcon },
+  { label: "My profile", to: "/seller/profile", icon: UserIcon },
+  { label: "Security", to: "/seller/security", icon: LockKeyIcon },
 ];
+
+/** Leaves the portal for the home page first (seller routes would bounce to the login page), then signs out. */
+function useSellerSignOut() {
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  return React.useCallback(async () => {
+    await navigate("/", { replace: true });
+    await signOut();
+  }, [signOut, navigate]);
+}
+
+function SellerAccountMenu() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const signOut = useSellerSignOut();
+  const name = user?.displayName || user?.firstName || user?.email || "Account";
+  const items = [
+    { label: "My profile", to: "/seller/profile", icon: UserIcon },
+    { label: "Security", to: "/seller/security", icon: LockKeyIcon },
+    { label: "Back to marketplace", to: "/", icon: ArrowLeftIcon },
+  ];
+  return (
+    <PopoverPrimitive.Root>
+      <PopoverPrimitive.Trigger asChild>
+        <button type="button" aria-label="Account menu" className="flex cursor-pointer items-center gap-2 rounded-full py-0.5 pl-0.5 pr-2 hover:bg-surface-muted">
+          <span className="flex size-9 items-center justify-center rounded-full bg-ink font-heading text-xs font-bold text-ink-foreground" aria-hidden>
+            {initials(name)}
+          </span>
+          <span className="hidden max-w-36 truncate text-sm font-medium text-foreground md:block">{name}</span>
+          <CaretDownIcon className="size-4 text-foreground" />
+        </button>
+      </PopoverPrimitive.Trigger>
+      <PopoverPrimitive.Portal>
+        <PopoverPrimitive.Content align="end" sideOffset={8} className="z-50 w-60 rounded-xl border border-border bg-surface p-2 text-sm shadow-raised focus:outline-none">
+          <div className="px-2 py-2">
+            <p className="truncate font-medium text-foreground">{name}</p>
+            {user?.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
+          </div>
+          <div className="my-1 h-px bg-border-strong" />
+          {items.map((i) => (
+            <PopoverPrimitive.Close asChild key={i.to}>
+              <button type="button" onClick={() => navigate(i.to)} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-foreground hover:bg-surface-muted">
+                <i.icon className="size-[18px]" /> {i.label}
+              </button>
+            </PopoverPrimitive.Close>
+          ))}
+          <div className="my-1 h-px bg-border-strong" />
+          <button type="button" onClick={() => void signOut()} className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-2 text-left text-danger-soft-foreground hover:bg-danger-soft">
+            <SignOutIcon className="size-[18px]" /> Sign out
+          </button>
+        </PopoverPrimitive.Content>
+      </PopoverPrimitive.Portal>
+    </PopoverPrimitive.Root>
+  );
+}
 
 function SellerSwitcher() {
   const { sellers, activeSeller, setActiveSellerId } = useSellerMode();
@@ -128,6 +189,7 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
 /** Seller portal shell: admin-console design system (white sidebar, grey canvas). */
 export function SellerLayout() {
   const [open, setOpen] = React.useState(false);
+  const signOut = useSellerSignOut();
   const location = useLocation();
   React.useEffect(() => {
     setOpen(false);
@@ -163,6 +225,7 @@ export function SellerLayout() {
           <span className="hidden sm:inline">Back to marketplace</span>
           <span className="sm:hidden">Shop</span>
         </Link>
+        <SellerAccountMenu />
       </header>
       <div className="flex flex-1">
         {open && (
@@ -188,6 +251,13 @@ export function SellerLayout() {
               Theme
             </p>
             <ThemeSwitch />
+            <button
+              type="button"
+              onClick={() => void signOut()}
+              className="mt-3 flex h-9 w-full cursor-pointer items-center gap-2 rounded-md px-3 text-sm text-danger-soft-foreground transition-colors hover:bg-danger-soft"
+            >
+              <SignOutIcon className="size-[18px]" /> Sign out
+            </button>
           </div>
         </aside>
         <main
