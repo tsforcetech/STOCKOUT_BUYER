@@ -3,8 +3,8 @@ import type { SellerOnboardingStatus, SellerVerificationStatus } from "@/api/typ
 import { cn } from "@/lib/utils/cn";
 
 const STEPS = [
-  { title: "Create seller account", body: "Tell us whether you sell as a business or an individual." },
-  { title: "Upload verification documents", body: "Trade licence, Emirates ID, VAT certificate or similar." },
+  { title: "Create seller account", body: "Register your company with its legal name and trade licence." },
+  { title: "Business profile & documents", body: "Licence dates, VAT, signatory, bank letter and the four required documents." },
   { title: "Submit for review", body: "Our team checks your documents, usually within a few working days." },
   { title: "Verified", body: "Your live listings become visible to buyers in search." },
 ] as const;

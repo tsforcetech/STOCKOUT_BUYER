@@ -17,7 +17,6 @@ export default function SellerOnboardingPage() {
   const { setActiveSellerId } = useSellerMode();
   const navigate = useNavigate();
   const contexts = actor?.sellerContexts ?? [];
-  const hasIndividual = contexts.some((c) => c.sellerType === "INDIVIDUAL");
 
   const open = (sellerId: string) => {
     setActiveSellerId(sellerId);
@@ -28,7 +27,7 @@ export default function SellerOnboardingPage() {
     const existed = contexts.some((c) => c.sellerId === seller.sellerId);
     await reloadActor();
     setActiveSellerId(seller.sellerId);
-    toast.success(existed ? "You already had this seller account — we opened it." : "Seller account created. Next, upload your verification documents.");
+    toast.success(existed ? "You already had this seller account — we opened it." : "Seller account created. Next, complete your business profile and upload your documents.");
     navigate("/seller/business");
   };
 
@@ -87,7 +86,7 @@ export default function SellerOnboardingPage() {
             <p className="mb-6 mt-1 text-sm text-muted-foreground">
               Step 1 of 3. You'll upload documents and submit for review next. Fields marked * are required.
             </p>
-            <CreateSellerForm hasIndividual={hasIndividual} onCreated={onCreated} />
+            <CreateSellerForm onCreated={onCreated} />
           </section>
           <p className="text-center text-xs text-muted-foreground">
             Just browsing? <Link to="/" className="underline underline-offset-4">Back to the marketplace</Link>

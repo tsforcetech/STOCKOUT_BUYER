@@ -11,6 +11,7 @@ import type { ListingAttributesResponse, ListingDetailResponse, ListingMediaResp
 export const sellerKeys = {
   seller: (sellerId: string) => ["seller", sellerId, "account"] as const,
   documents: (sellerId: string) => ["seller", sellerId, "documents"] as const,
+  eligibility: (sellerId: string) => ["seller", sellerId, "eligibility"] as const,
   listings: (sellerId: string) => ["seller", sellerId, "listings"] as const,
   listingList: (sellerId: string, query: SellerListingListQuery) => ["seller", sellerId, "listings", "list", query] as const,
   listing: (sellerId: string, listingId: string) => ["seller", sellerId, "listings", "item", listingId] as const,
@@ -39,6 +40,11 @@ export function useActiveSeller(): SellerContextResponse {
 
 export function useSellerAccount(sellerId: string) {
   return useQuery({ queryKey: sellerKeys.seller(sellerId), queryFn: ({ signal }) => marketplaceService.seller(sellerId, signal) });
+}
+
+/** GET /sellers/{id}/eligibility — whether listings can go live (canList) and why not. */
+export function useSellerEligibility(sellerId: string) {
+  return useQuery({ queryKey: sellerKeys.eligibility(sellerId), queryFn: ({ signal }) => marketplaceService.eligibility(sellerId, signal), staleTime: 60_000 });
 }
 
 export function useListingDetail(sellerId: string, listingId: string) {

@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { PaperPlaneTiltIcon, PlusIcon } from "@phosphor-icons/react";
+import { PaperPlaneTiltIcon, PencilSimpleIcon, PlusIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/misc";
@@ -11,9 +11,15 @@ import { StatusBadge } from "@/components/common/status-badge";
 import { ErrorState } from "@/components/feedback/states";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { useAuth } from "@/lib/auth/auth-context";
-import { humanize } from "@/lib/utils/format";
+import { formatDate, humanize } from "@/lib/utils/format";
+import { isApiError } from "@/lib/api/errors";
+import { usePolicyGate } from "@/features/legal/policy-gate";
 import { marketplaceService } from "@/services/marketplace.service";
-import { AddDocumentDialog } from "./components/add-document-dialog";
+import { AddDocumentDialog, type UploadCategory } from "./components/add-document-dialog";
+import { BusinessProfileDialog } from "./components/business-profile-dialog";
+import { KycChecklist } from "./components/kyc-checklist";
+import { ListingEligibilityNotice } from "./components/listing-access-notice";
+import { licenceProblem } from "./lib/kyc";
 import { DocumentsTable, useSellerDocuments } from "./components/documents-table";
 import { Notice } from "./components/notice";
 import { OnboardingSteps, onboardingStepIndex } from "./components/onboarding-steps";
@@ -39,13 +45,19 @@ export default function SellerBusinessPage() {
   const { reloadActor } = useAuth();
   const account = useSellerAccount(sellerId);
   const docs = useSellerDocuments(sellerId);
-  const [adding, setAdding] = React.useState(false);
+  const [adding, setAdding] = React.useState<UploadCategory | null>(null);
+  const [editingProfile, setEditingProfile] = React.useState(false);
+  const { recheck } = usePolicyGate();
   const [confirmSubmit, setConfirmSubmit] = React.useState(false);
 
   const seller = account.data;
   const ownerActive = context.isOwner && context.status === "ACTIVE";
   const docCount = docs.data?.length ?? 0;
-  const canSubmit = !!seller && seller.onboardingStatus === "DRAFT" && seller.status === "ACTIVE";
+  const canSubmit = !!seller && (seller.onboardingStatus === "DRAFT" || seller.verificationStatus === "REJECTED") && seller.status === "ACTIVE";
+  const licence = seller ? licenceProblem(seller) : null;
+  // Older deployments don't report completeness; then at least one document is required, as before.
+  const docsComplete = seller?.mandatoryDocumentsComplete ?? docCount > 0;
+  const blockers = seller ? [licence, docsComplete ? null : "Upload a document for every item in the checklist."].filter((b): b is string => !!b) : [];
 
   const submit = useApiMutation({
     toastOnError: false,
@@ -63,7 +75,7 @@ export default function SellerBusinessPage() {
   });
 
   const addButton = ownerActive && (
-    <Button variant="action" onClick={() => setAdding(true)}>
+    <Button variant="action" onClick={() => setAdding("TRADE_LICENSE")}>
       <PlusIcon /> Add document
     </Button>
   );
@@ -78,19 +90,35 @@ export default function SellerBusinessPage() {
       />
       <div className="space-y-4">
         <VerificationCard seller={seller} isLoading={account.isLoading} error={account.error} onRetry={() => void account.refetch()} showLink={false} />
+        {seller?.rejectionReason && seller.verificationStatus === "REJECTED" && (
+          <Notice tone="danger" title="Reviewer's reason">
+            {seller.rejectionReason}
+          </Notice>
+        )}
+        {ownerActive && <ListingEligibilityNotice sellerId={sellerId} />}
         {seller && seller.verificationStatus !== "VERIFIED" && (
           <SectionCard>
             <OnboardingSteps current={onboardingStepIndex(seller, docCount)} orientation="horizontal" />
           </SectionCard>
         )}
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_340px]">
           <div className="min-w-0 space-y-4">
+            {seller && seller.verificationStatus !== "VERIFIED" && (
+              <SectionCard>
+                <div className="mb-4">
+                  <h2 className="font-heading text-lg font-bold text-foreground">Verification checklist</h2>
+                  <p className="text-sm text-muted-foreground">Everything our reviewers need. Each item must be uploaded before you can submit.</p>
+                </div>
+                <KycChecklist seller={seller} docs={docs.data ?? []} canEdit={ownerActive} onUpload={setAdding} onEditProfile={() => setEditingProfile(true)} />
+              </SectionCard>
+            )}
+
             <SectionCard>
               <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <h2 className="font-heading text-lg font-bold text-foreground">Verification documents</h2>
-                  <p className="text-sm text-muted-foreground">Reviewers use these to verify your account. Expired documents may delay verification.</p>
+                  <p className="text-sm text-muted-foreground">Reviewers check each document. Expired documents can't be uploaded.</p>
                 </div>
                 {(docCount > 0 || docs.isError) && addButton}
               </div>
@@ -109,17 +137,20 @@ export default function SellerBusinessPage() {
                   <>
                     <p className="mt-1 text-sm text-muted-foreground">
                       {seller.verificationStatus === "REJECTED"
-                        ? "Your previous submission wasn't approved. Update your documents, then submit again."
-                        : "When your documents are ready, send them to our team for review."}
+                        ? "Your previous submission wasn't approved. Fix the items marked in the checklist, then submit again."
+                        : "When your profile and documents are ready, send them to our team for review."}
                     </p>
-                    <Notice className="mt-3">
-                      The marketplace doesn't technically require documents to submit, but reviewers can't verify you without them — so we ask for at least one.
-                    </Notice>
-                    <div className="mt-4 flex flex-wrap items-center gap-3">
-                      <Button variant="primary" onClick={() => setConfirmSubmit(true)} disabled={docCount === 0 || docs.isLoading}>
+                    {blockers.length > 0 && !docs.isLoading && (
+                      <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-muted-foreground">
+                        {blockers.map((b) => (
+                          <li key={b}>{b}</li>
+                        ))}
+                      </ul>
+                    )}
+                    <div className="mt-4">
+                      <Button variant="primary" onClick={() => setConfirmSubmit(true)} disabled={blockers.length > 0 || docs.isLoading || !ownerActive}>
                         <PaperPlaneTiltIcon /> Submit for review
                       </Button>
-                      {docCount === 0 && !docs.isLoading && <span className="text-sm text-muted-foreground">Add at least one document first.</span>}
                     </div>
                   </>
                 ) : (
@@ -135,7 +166,14 @@ export default function SellerBusinessPage() {
 
           <div className="min-w-0 space-y-4">
             <SectionCard>
-              <h2 className="mb-4 font-heading text-lg font-bold text-foreground">Seller details</h2>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <h2 className="font-heading text-lg font-bold text-foreground">Business profile</h2>
+                {seller && ownerActive && (
+                  <Button variant="secondary" size="sm" onClick={() => setEditingProfile(true)}>
+                    <PencilSimpleIcon /> Edit
+                  </Button>
+                )}
+              </div>
               {account.isLoading ? (
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-40" />
@@ -146,22 +184,29 @@ export default function SellerBusinessPage() {
                 <ErrorState error={account.error} onRetry={() => void account.refetch()} />
               ) : (
                 seller && (
-                  <>
-                    <DetailList
-                      columns={1}
-                      items={[
-                        { label: "Display name", value: seller.displayName },
-                        { label: "Legal name", value: seller.legalName },
-                        { label: "Seller type", value: humanize(seller.organizationType) },
-                        { label: "Registration no.", value: seller.registrationNo },
-                        { label: "Country", value: countryName(seller.countryCode) },
-                        { label: "Default currency", value: seller.defaultCurrency },
-                        { label: "Account status", value: <StatusBadge value={seller.status} /> },
-                        { label: "Your role", value: context.isOwner ? "Owner" : "Member" },
-                      ]}
-                    />
-                    <p className="mt-4 text-xs text-muted-foreground">These details can't be edited online yet. Contact support if something is wrong.</p>
-                  </>
+                  <DetailList
+                    columns={1}
+                    items={[
+                      { label: "Display name", value: seller.displayName },
+                      { label: "Legal name", value: seller.legalName },
+                      { label: "Seller type", value: humanize(seller.organizationType) },
+                      { label: "Trade licence", value: [seller.tradeLicenseNumber ?? seller.registrationNo, seller.issuingAuthority].filter(Boolean).join(" · ") || null },
+                      {
+                        label: "Licence expiry",
+                        value: seller.tradeLicenseExpiresAtUtc ? formatDate(seller.tradeLicenseExpiresAtUtc) : <span className="text-danger">Not set</span>,
+                      },
+                      {
+                        label: "VAT",
+                        value: seller.isVatRegistered ? `Registered · TRN ${seller.taxRegistrationNumber ?? "—"}` : seller.hasVatDeclaration ? "Not registered (declaration)" : "Not set",
+                      },
+                      { label: "Signatory", value: [seller.signatoryName, seller.signatoryAuthorityRole].filter(Boolean).join(" · ") || null },
+                      { label: "Bank", value: [seller.bankName, seller.bankIban].filter(Boolean).join(" · ") || null },
+                      { label: "Country", value: countryName(seller.countryCode) },
+                      { label: "Default currency", value: seller.defaultCurrency },
+                      { label: "Account status", value: <StatusBadge value={seller.status} /> },
+                      { label: "Your role", value: context.isOwner ? "Owner" : "Member" },
+                    ]}
+                  />
                 )
               )}
             </SectionCard>
@@ -175,19 +220,30 @@ export default function SellerBusinessPage() {
         </div>
       </div>
 
-      <AddDocumentDialog sellerId={sellerId} open={adding} onOpenChange={setAdding} />
+      <AddDocumentDialog
+        sellerId={sellerId}
+        open={adding !== null}
+        initialCategory={adding ?? "TRADE_LICENSE"}
+        vatRegistered={!!seller?.isVatRegistered}
+        onOpenChange={(o) => !o && setAdding(null)}
+      />
+      {seller && <BusinessProfileDialog seller={seller} open={editingProfile} onOpenChange={setEditingProfile} />}
       <ConfirmDialog
         open={confirmSubmit}
         onOpenChange={setConfirmSubmit}
         tone="primary"
         title="Submit for review?"
-        description={`You're submitting ${docCount} document${docCount === 1 ? "" : "s"}. You can't withdraw a submission once it's sent.`}
+        description={`You're submitting your business profile and ${docCount} document${docCount === 1 ? "" : "s"}. You can't withdraw a submission once it's sent.`}
         confirmLabel="Submit"
         loading={submit.isPending}
         onConfirm={() =>
           submit.mutate(undefined, {
             onError: (e) => {
               void account.refetch();
+              if (isApiError(e) && e.code === "POLICY_ACCEPTANCE_REQUIRED") {
+                setConfirmSubmit(false);
+                void recheck();
+              }
               toast.error(sellerAccountErrorMessage(e, "This account was already submitted or changed since you loaded it. We refreshed the status."));
             },
           })

@@ -4,12 +4,15 @@ import { Logo } from "@/components/common/logo";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { useRfq } from "@/features/rfq/rfq-dialog";
+import { useCookieConsent } from "@/features/privacy/cookie-consent";
+import { policyPath } from "@/features/legal/queries";
 
 /** Figma home footer (dark band with link columns and oversized wordmark). Only links to pages that exist. */
 export function SiteFooter() {
   const { status } = useAuth();
   const { openAuth, guardLink } = useAuthDialog();
   const openRfq = useRfq();
+  const { openSettings } = useCookieConsent();
   // Log in / Register open the sign-in popup; links to signed-in pages ask anonymous visitors to log in first.
   const onLinkClick = (to: string) => (e: React.MouseEvent) => {
     if (to === "/login" || to === "/register") {
@@ -44,12 +47,22 @@ export function SiteFooter() {
         ["Saved searches", "/account/saved-searches"],
       ],
     },
+    {
+      title: "Legal",
+      links: [
+        ["Terms of use", policyPath("STK-POL-WEB-001")],
+        ["Privacy policy", policyPath("STK-POL-PRV-001")],
+        ["Cookie policy", policyPath("STK-POL-CKE-001")],
+        ["Prohibited items", policyPath("STK-POL-PRH-001")],
+        ["All policies", "/legal"],
+      ],
+    },
   ] as const;
   return (
     <footer className="bg-[#111110] text-white">
       <div className="mx-auto max-w-[1336px] px-4 pb-10 pt-14 sm:px-6">
-        <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
-          <div className="col-span-2 lg:col-span-1">
+        <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-5">
+          <div className="col-span-2 md:col-span-3 lg:col-span-1">
             <p className="text-sm font-semibold text-action">Our mission</p>
             <p className="mt-3 max-w-xs text-sm leading-6 text-white/70">
               Usable materials shouldn't end up in landfill. StockOut connects
@@ -68,6 +81,13 @@ export function SiteFooter() {
                     </Link>
                   </li>
                 ))}
+                {c.title === "Legal" && (
+                  <li>
+                    <button type="button" onClick={openSettings} className="cursor-pointer transition-colors hover:text-white hover:underline underline-offset-4">
+                      Cookie settings
+                    </button>
+                  </li>
+                )}
                 {c.title === "Marketplace" && (
                   <li>
                     <button type="button" onClick={() => openRfq({ source: "footer" })} className="cursor-pointer transition-colors hover:text-white hover:underline underline-offset-4">

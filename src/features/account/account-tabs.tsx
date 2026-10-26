@@ -1,19 +1,21 @@
 import { NavLink, useLocation } from "react-router";
 import { cn } from "@/lib/utils/cn";
 
-/** Inside the seller portal the same pages show at /seller/profile and /seller/security, with only those two tabs. */
+/** Inside the seller portal the same pages show at /seller/profile and /seller/security, with only the account tabs. */
 export function AccountTabs() {
   const inSeller = useLocation().pathname.startsWith("/seller");
   const tabs = inSeller
     ? [
         { to: "/seller/profile", label: "Profile", end: true },
         { to: "/seller/security", label: "Security", end: true },
+        { to: "/seller/privacy", label: "Privacy", end: true },
       ]
     : [
         { to: "/account", label: "Profile", end: true },
         { to: "/account/orders", label: "My orders", end: false },
         { to: "/account/security", label: "Security", end: false },
         { to: "/account/saved-searches", label: "Saved searches", end: false },
+        { to: "/account/privacy", label: "Privacy", end: false },
       ];
   return (
     <nav aria-label="Account sections" className="mb-4 flex gap-2 overflow-x-auto border-b border-border px-0 sm:px-3">

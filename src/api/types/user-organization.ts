@@ -98,8 +98,11 @@ export type PlatformInvitationStatus = 'Pending' | 'Accepted' | 'Revoked' | 'Exp
 /** Setting value type. C#: Domain.Constants.PlatformSettingValueTypes / CK_PLATFORM_SETTING_ValueType. */
 export type PlatformSettingValueType = 'BOOLEAN' | 'INTEGER' | 'DECIMAL' | 'STRING';
 
-/** Seller (organization) type. C#: MarketplaceSellerService.BecomeSellerAsync validation. */
-export type SellerType = 'INDIVIDUAL' | 'BUSINESS';
+/**
+ * Seller (organization) type. C#: MarketplaceSellerService.BecomeSellerAsync. DEC-010: new sellers must be
+ * 'BUSINESS' or 'CORPORATE' ('INDIVIDUAL' → MARKETPLACE_SELLER_INDIVIDUAL_NOT_PERMITTED); INDIVIDUAL stays for old records.
+ */
+export type SellerType = 'INDIVIDUAL' | 'BUSINESS' | 'CORPORATE';
 
 /** Seller organization status (SQL 024). */
 export type SellerStatus = 'ACTIVE' | 'SUSPENDED';
@@ -110,8 +113,8 @@ export type SellerVerificationStatus = 'UNVERIFIED' | 'PENDING' | 'VERIFIED' | '
 /** Seller onboarding status (SQL 024). UNDER_REVIEW is accepted but never set by this service. */
 export type SellerOnboardingStatus = 'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'COMPLETED';
 
-/** Seller document verification status. Only 'UNVERIFIED' is written by this service. */
-export type SellerDocumentVerificationStatus = 'UNVERIFIED';
+/** Seller document verification status (PA-1B.1-R2 per-document review). */
+export type SellerDocumentVerificationStatus = 'UNVERIFIED' | 'VERIFIED' | 'REJECTED';
 
 /** Admin review action. C#: AdminMarketplaceSellersController.VerifySeller (case-sensitive). */
 export type AdminSellerReviewAction = 'APPROVE' | 'REJECT';
@@ -567,6 +570,79 @@ export interface MarketplaceSellerDto {
   updatedAtUtc: IsoDateTime;
   /** base64 of an 8-byte SQL rowversion; send back as expectedRowVersion */
   rowVersion: string;
+  // PA-1B.1 business profile (optional: absent on older deployments and the admin list)
+  tradeLicenseNumber?: string | null;
+  issuingAuthority?: string | null;
+  tradeLicenseIssuedAtUtc?: IsoDateTime | null;
+  /** DEC-011: required (and in the future) before submission and approval. */
+  tradeLicenseExpiresAtUtc?: IsoDateTime | null;
+  isVatRegistered?: boolean;
+  taxRegistrationNumber?: string | null;
+  hasVatDeclaration?: boolean;
+  signatoryName?: string | null;
+  signatoryEmail?: string | null;
+  signatoryPhone?: string | null;
+  signatoryAuthorityRole?: string | null;
+  businessContactEmail?: string | null;
+  businessContactPhone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateOrEmirate?: string | null;
+  postalCode?: string | null;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankIban?: string | null;
+  bankSwiftCode?: string | null;
+  bankBeneficiaryName?: string | null;
+  rejectionReason?: string | null;
+  suspensionReason?: string | null;
+  canList?: boolean;
+  mandatoryDocumentsComplete?: boolean;
+  /** KYC categories still missing: TRADE_LICENSE, VAT_CERTIFICATE_OR_DECLARATION, SIGNATORY_ID_AND_AUTHORITY (or the SIGNATORY_IDENTITY / SIGNATORY_AUTHORITY_PROOF parts), BANK_IBAN_LETTER. */
+  missingDocumentCategories?: string[];
+  pendingPolicies?: string[];
+}
+
+/** C#: Contracts.Marketplace.UpdateSellerProfileRequest — PUT /marketplace/sellers/{id}/profile (owner). Null fields are left unchanged. */
+export interface UpdateSellerProfileRequest {
+  legalName?: string | null;
+  displayName?: string | null;
+  tradeLicenseNumber?: string | null;
+  issuingAuthority?: string | null;
+  tradeLicenseIssuedAtUtc?: IsoDateTime | null;
+  tradeLicenseExpiresAtUtc?: IsoDateTime | null;
+  isVatRegistered?: boolean | null;
+  /** 15 digits when VAT registered (SELLER_TRN_INVALID). */
+  taxRegistrationNumber?: string | null;
+  hasVatDeclaration?: boolean | null;
+  signatoryName?: string | null;
+  signatoryEmail?: string | null;
+  signatoryPhone?: string | null;
+  signatoryAuthorityRole?: string | null;
+  businessContactEmail?: string | null;
+  businessContactPhone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateOrEmirate?: string | null;
+  postalCode?: string | null;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  /** UAE IBAN: AE + 21 characters (SELLER_IBAN_INVALID). */
+  bankIban?: string | null;
+  bankSwiftCode?: string | null;
+  bankBeneficiaryName?: string | null;
+  expectedRowVersion?: string | null;
+}
+
+/** C#: Contracts.Marketplace.SellerEligibilityResponse — GET /marketplace/sellers/{id}/eligibility. */
+export interface SellerEligibilityResponse {
+  sellerId: Guid;
+  eligible: boolean;
+  verificationStatus: string;
+  canList: boolean;
+  reason: string | null;
 }
 
 /** C#: Contracts.Marketplace.AdminSellerReviewRequest (used by /verify and /suspend). */
@@ -611,7 +687,11 @@ export interface CreateSellerDocumentRequest {
   fileAssetId: Guid;
   documentNumber?: string | null;
   issuedAt?: IsoDateTime | null;
+  /** Must not be in the past (DOCUMENT_EXPIRED). */
   expiresAt?: IsoDateTime | null;
+  /** Combined signatory documents (SIGNATORY_POA_OR_PASSPORT / SIGNATORY_COMBINED) must declare both; others are derived from the type. */
+  containsSignatoryId?: boolean | null;
+  containsSignatoryAuthorityProof?: boolean | null;
 }
 
 /** C#: Contracts.Marketplace.SellerDocumentResponse. */
@@ -625,6 +705,13 @@ export interface SellerDocumentResponse {
   expiresAt: IsoDateTime | null;
   verificationStatus: SellerDocumentVerificationStatus;
   createdAtUtc: IsoDateTime;
+  reviewRemark?: string | null;
+  containsSignatoryId?: boolean | null;
+  containsSignatoryAuthorityProof?: boolean | null;
+  verifiedSignatoryId?: boolean | null;
+  verifiedSignatoryAuthorityProof?: boolean | null;
+  reviewedByUserId?: Guid | null;
+  reviewedAtUtc?: IsoDateTime | null;
 }
 
 /** Response data of DELETE seller document (C#: Result<bool>). NOTE: endpoint currently returns 404 on success. */

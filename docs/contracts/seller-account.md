@@ -152,3 +152,31 @@ Inventory-media responses are `{ data: … }`, with no `success` field (`Contrac
 5. `countryCode` and `defaultCurrency` have no format validation. The procedure parameters are `VARCHAR(3)`, so SQL Server will silently truncate longer values.
 6. Membership checks treat an unknown seller id as 403 E4, not 404.
 7. There is no seller profile update, logo, member invite or management, or unsuspend endpoint.
+
+
+## 7. PA-1B.1 seller KYC extension (26 Oct 2026)
+
+Source: `Contracts/Marketplace/MarketplaceSellerRequests.cs`, `MarketplaceSellerDto.cs`, `KycValidationHelper.cs`, `MarketplaceSellerService.cs`.
+Errors are ProblemDetails with a top-level `code` (mapped in `features/seller/lib/errors.ts`).
+
+- **Create seller:** `sellerType` must be `BUSINESS` or `CORPORATE` (DEC-010). `INDIVIDUAL` → `MARKETPLACE_SELLER_INDIVIDUAL_NOT_PERMITTED`. The form only creates `BUSINESS`; old individual sellers still display.
+- **`PUT /api/v1/marketplace/sellers/{id}/profile`** (owner): legal/display name, `tradeLicenseNumber`, `issuingAuthority`, `tradeLicenseIssuedAtUtc`, `tradeLicenseExpiresAtUtc` (required by the UI, future), `isVatRegistered` + 15-digit `taxRegistrationNumber` or `hasVatDeclaration`, signatory, business contact, address, bank (UAE IBAN `AE` + 21), `expectedRowVersion` (read fresh before saving). SQL uses `ISNULL(@x, col)`, so null = unchanged; the UI sends `""` for cleared optional fields. Codes: `SELLER_IBAN_INVALID`, `SELLER_TRN_INVALID`, `DUPLICATE_TRADE_LICENSE` (409), `INVALID_ROW_VERSION`, `MARKETPLACE_SELLER_VERSION_CONFLICT`.
+- **Seller DTO additions:** the profile fields above, `rejectionReason`, `canList`, `mandatoryDocumentsComplete`, `missingDocumentCategories` (`TRADE_LICENSE`, `VAT_CERTIFICATE_OR_DECLARATION`, `SIGNATORY_ID_AND_AUTHORITY` or `SIGNATORY_IDENTITY` / `SIGNATORY_AUTHORITY_PROOF`, `BANK_IBAN_LETTER`), `pendingPolicies`.
+- **Documents:** explicit types per category (VAT registered → `VAT_CERTIFICATE` / `VAT_REGISTRATION_CERTIFICATE` / `TAX_REGISTRATION_CERTIFICATE` / `TRN_CERTIFICATE`; not registered → `VAT_NON_REGISTRATION_DECLARATION` / `NON_VAT_DECLARATION` / `VAT_DECLARATION`; signatory ID `SIGNATORY_EMIRATES_ID` / `SIGNATORY_PASSPORT`; authority `SIGNATORY_POA` / `BOARD_RESOLUTION` / `MEMORANDUM_OF_ASSOCIATION` / `ARTICLES_OF_ASSOCIATION`; combined `SIGNATORY_POA_OR_PASSPORT` with `containsSignatoryId` / `containsSignatoryAuthorityProof` declared; bank `BANK_IBAN_LETTER` / `IBAN_CERTIFICATE` / `BANK_ACCOUNT_LETTER`). Expired files → `DOCUMENT_EXPIRED`. Response adds `reviewRemark`, declared and reviewer-verified signatory flags, `reviewedAtUtc`; status `UNVERIFIED | VERIFIED | REJECTED`. The generic `VAT_CERTIFICATE_OR_DECLARATION` shows "Needs classification"; free-text types from before the checklist don't count towards a category.
+- **Submit:** `MANDATORY_DOCUMENTS_INCOMPLETE`, `SELLER_LICENCE_EXPIRED`, `POLICY_ACCEPTANCE_REQUIRED` (re-opens the policy gate), `POLICY_CONFIGURATION_ERROR`.
+- **`GET /api/v1/marketplace/sellers/{id}/eligibility`** → `{ sellerId, eligible, verificationStatus, canList, reason }`. Catalog only enforces it at publication, so drafts stay allowed; the portal shows "Your listings can't go live yet" with `reason` when `canList` is false.
+
+## 8. PA-1A policies and consent (26 Oct 2026)
+
+Source: `Contracts/Policies/PolicyContracts.cs`, `PoliciesController.cs`, `PrivacyPreferencesController.cs`, `UsersController.cs`, `PolicyService.cs`. All enveloped.
+
+| Endpoint | Auth | UI |
+|---|---|---|
+| `GET /api/v1/policies?lang=en`, `GET /api/v1/policies/{code}?lang=en` | public | `/legal` hub, `/legal/:slug` reader (Markdown rendered without HTML injection), footer "Legal" column |
+| `GET /api/v1/policies/me/pending?lang=en` | session | Post-login / restored-session gate (blocking dialog, full text, revision, effective date, content hash) |
+| `POST /api/v1/policies/me/accept` `{ policyRevisionId, affirmativeAcceptance: true, contentHash }` | session | Gate "Accept and continue" — box never pre-ticked. `STALE_REVISION_SUPERSEDED` (409) / `CONTENT_HASH_MISMATCH` → reload and show "recently updated"; `REVISION_NOT_YET_EFFECTIVE`, `AFFIRMATIVE_ACCEPTANCE_REQUIRED` shown inline |
+| `GET /api/v1/policies/me/acceptances` | session | Account → Privacy → Accepted policies |
+| `GET/PUT /api/v1/privacy/cookie-preferences` (`anonymousToken` for guests, `stk_cookie_token` in localStorage) | optional | Cookie banner (until a choice is saved: id is all zeros), Cookie settings dialog, footer "Cookie settings" |
+| `GET/PUT /api/v1/users/me/communication-preferences` `{ marketingEmail, marketingSms, consentSource: "PROFILE" }` | session | Account → Privacy → Marketing messages (opt-in) |
+
+Seller-only policies (`audience: SELLER`, e.g. `STK-POL-INS-001`) are only asked of users with a seller account. Arabic: `lang=ar` returns no revisions yet, so no language switch is shown (no machine translations).

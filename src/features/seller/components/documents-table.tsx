@@ -14,6 +14,7 @@ import type { SellerDocumentResponse } from "@/api/types/user-organization";
 import { sellerAccountErrorMessage } from "../lib/errors";
 import { sellerKeys } from "../lib/queries";
 import { FileDownloadAction } from "./file-link";
+import { GENERIC_VAT_TYPE, categoryOf, kycTypeLabel, signatoryParts } from "../lib/kyc";
 import { toast } from "sonner";
 
 export function useSellerDocuments(sellerId: string) {
@@ -22,6 +23,8 @@ export function useSellerDocuments(sellerId: string) {
 
 /** Free-text types typed by sellers stay as written; backend-style codes (TRADE_LICENSE) are made readable. */
 export function documentTypeLabel(type: string): string {
+  const known = kycTypeLabel(type);
+  if (known) return known;
   if (!/^[A-Z0-9_]+$/.test(type)) return type;
   return humanize(type).replace(/\b(Vat|Id|Trn|Moa|Uae)\b/g, (w) => w.toUpperCase());
 }
@@ -85,7 +88,12 @@ export function DocumentsTable({ sellerId, canDelete, emptyAction }: { sellerId:
             d.issuedAt ? `Issued ${formatDate(d.issuedAt)}` : null,
             d.expiresAt ? `${expired ? "Expired" : "Expires"} ${formatDate(d.expiresAt)}` : null,
             `Added ${formatDate(d.createdAtUtc)}`,
+            d.reviewedAtUtc ? `Reviewed ${formatDate(d.reviewedAtUtc)}` : null,
           ].filter(Boolean);
+          const parts = categoryOf(d.documentType) === "SIGNATORY" ? signatoryParts(d) : null;
+          const partsLabel = parts && [parts.id && "Signatory ID", parts.authority && "Authority proof"].filter(Boolean).join(" + ");
+          const generic = d.documentType.toUpperCase() === GENERIC_VAT_TYPE;
+          const legacy = !categoryOf(d.documentType) && d.documentType.toUpperCase() !== "OTHER";
           return (
             <li key={d.sellerDocumentId} className="flex flex-wrap items-center gap-x-3 gap-y-2 p-3 sm:flex-nowrap sm:p-4">
               <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-surface-muted text-foreground ring-1 ring-border" aria-hidden>
@@ -96,12 +104,24 @@ export function DocumentsTable({ sellerId, canDelete, emptyAction }: { sellerId:
                   <p className="truncate text-sm font-medium text-foreground">{documentTypeLabel(d.documentType)}</p>
                   <StatusBadge value={d.verificationStatus} />
                   {expired && <Badge tone="danger">Expired</Badge>}
+                  {partsLabel && <Badge tone="neutral">{partsLabel}</Badge>}
+                  {generic && <Badge tone="warning">Needs classification</Badge>}
                 </div>
                 <p className="mt-0.5 text-xs text-muted-foreground">{meta.join(" · ")}</p>
+                {d.verificationStatus === "REJECTED" && (
+                  <p className="mt-1 text-xs text-danger">Rejected{d.reviewRemark ? `: ${d.reviewRemark}` : ""}. Upload a corrected document.</p>
+                )}
+                {d.verificationStatus === "VERIFIED" && d.reviewRemark && <p className="mt-1 text-xs text-muted-foreground">Reviewer note: {d.reviewRemark}</p>}
+                {generic && d.verificationStatus !== "REJECTED" && (
+                  <p className="mt-1 text-xs text-muted-foreground">Uploaded as a general VAT document — our reviewers will classify it, or you can upload it again with the exact type.</p>
+                )}
+                {legacy && d.verificationStatus === "UNVERIFIED" && (
+                  <p className="mt-1 text-xs text-muted-foreground">Uploaded before the document checklist — it doesn't count towards a requirement. Re-upload it under the right requirement.</p>
+                )}
               </div>
               <div className="ml-auto flex shrink-0 gap-1.5">
                 <FileDownloadAction fileId={d.fileAssetId} label="Open document" />
-                {canDelete && (
+                {canDelete && d.verificationStatus !== "VERIFIED" && (
                   <RowAction label="Delete document" tone="danger" onClick={() => setToDelete(d)}>
                     <TrashIcon />
                   </RowAction>

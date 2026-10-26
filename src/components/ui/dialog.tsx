@@ -18,6 +18,7 @@ export function DialogContent({
   size = "md",
   footer,
   onInteractOutside,
+  dismissible = true,
 }: {
   title: React.ReactNode;
   description?: React.ReactNode;
@@ -26,13 +27,16 @@ export function DialogContent({
   size?: "sm" | "md" | "lg" | "xl";
   footer?: React.ReactNode;
   onInteractOutside?: (event: Event) => void;
+  /** false: no close button, Escape and outside clicks do nothing (blocking prompts). */
+  dismissible?: boolean;
 }) {
   const width = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl", xl: "max-w-4xl" }[size];
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className={overlay} />
       <DialogPrimitive.Content
-        onInteractOutside={onInteractOutside}
+        onInteractOutside={dismissible ? onInteractOutside : (e) => e.preventDefault()}
+        onEscapeKeyDown={dismissible ? undefined : (e) => e.preventDefault()}
         className={cn(
           "fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-surface shadow-raised focus:outline-none",
           width,
@@ -48,9 +52,11 @@ export function DialogContent({
               <DialogPrimitive.Description className="sr-only">{typeof title === "string" ? title : "Dialog"}</DialogPrimitive.Description>
             )}
           </div>
-          <DialogPrimitive.Close className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-mr-2 -mt-1")} aria-label="Close">
-            <XIcon />
-          </DialogPrimitive.Close>
+          {dismissible && (
+            <DialogPrimitive.Close className={cn(buttonVariants({ variant: "ghost", size: "icon-sm" }), "-mr-2 -mt-1")} aria-label="Close">
+              <XIcon />
+            </DialogPrimitive.Close>
+          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-6">{children}</div>
         {footer && <div className="flex flex-wrap justify-end gap-2 border-t border-border px-6 py-4">{footer}</div>}

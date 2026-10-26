@@ -81,6 +81,39 @@ const MESSAGES: Record<string, string> = {
   STORAGE_UNAVAILABLE: "File storage is temporarily unavailable. Please try again.",
 };
 
+/** user-organization seller account / KYC codes (ProblemDetails `code`, PA-1B.1). */
+const ACCOUNT_MESSAGES: Record<string, string> = {
+  MARKETPLACE_SELLER_ACCESS_DENIED: "You're not an active member of this seller account.",
+  MARKETPLACE_SELLER_INDIVIDUAL_NOT_PERMITTED: "Only registered companies can open a seller account. Individual seller accounts aren't accepted.",
+  MARKETPLACE_SELLER_TYPE_INVALID: "Choose a business seller account.",
+  MARKETPLACE_SELLER_LEGAL_NAME_REQUIRED: "Enter the company's legal name as it appears on the trade licence.",
+  MARKETPLACE_SELLER_DISPLAY_NAME_REQUIRED: "Enter the name buyers will see.",
+  MARKETPLACE_SELLER_COUNTRY_CODE_REQUIRED: "Enter the country code.",
+  MARKETPLACE_SELLER_DEFAULT_CURRENCY_REQUIRED: "Enter the default currency.",
+  MARKETPLACE_SELLER_NOT_FOUND: "The seller account was not found.",
+  MARKETPLACE_SELLER_VERSION_CONFLICT: "Your business details changed since you opened them. We reloaded them — review and try again.",
+  MARKETPLACE_SELLER_TRANSITION_INVALID: "That isn't possible in the account's current state (for example it's already submitted or verified).",
+  INVALID_ROW_VERSION: "Your business details changed since you opened them. Reload and try again.",
+  DUPLICATE_TRADE_LICENSE: "A company with this trade licence number and issuing authority is already registered on StockOut. If it's your company, ask its account owner to add you.",
+  SELLER_IBAN_INVALID: "Enter a valid UAE IBAN: AE followed by 21 characters (23 in total).",
+  SELLER_TRN_INVALID: "Enter the 15-digit Tax Registration Number (TRN).",
+  SELLER_LICENCE_EXPIRED: "Your trade licence expiry date is missing or in the past. Update the licence dates in your business profile.",
+  TRADE_LICENCE_EXPIRED: "Your trade licence has expired. Upload the renewed licence and update its dates.",
+  DOCUMENT_EXPIRED: "This document has already expired. Upload a current one.",
+  MANDATORY_DOCUMENTS_INCOMPLETE: "Some required documents are missing. Upload one for every item in the checklist, then submit again.",
+  MANDATORY_KYC_DOCUMENTS_INCOMPLETE: "Some required documents are missing. Upload one for every item in the checklist, then submit again.",
+  COMBINED_DOCUMENT_ELEMENTS_DECLARATION_REQUIRED: "For a combined signatory document, tick what the file contains (identity, authority proof, or both).",
+  POLICY_ACCEPTANCE_REQUIRED: "Please accept the current marketplace policies first — we've opened them for you.",
+  POLICY_CONFIGURATION_ERROR: "Submissions are temporarily unavailable while the marketplace policies are being updated. Please try again later.",
+  MARKETPLACE_SELLER_DOCUMENT_NOT_FOUND: "That document no longer exists. Refresh the list.",
+  MARKETPLACE_SELLER_DOCUMENT_FILE_INVALID: "Your file uploaded, but the server couldn't verify it, so the document wasn't saved. Please try again.",
+  FILE_NOT_AVAILABLE: "The uploaded file isn't available yet. Wait a moment and try again.",
+  INVENTORY_MEDIA_UNAVAILABLE: "File storage is temporarily unavailable. Please try again shortly.",
+  INVENTORY_MEDIA_TIMEOUT: "File storage took too long to respond. Please try again.",
+  INVENTORY_MEDIA_BAD_GATEWAY: "File storage is temporarily unavailable. Please try again shortly.",
+  REJECTION_REASON_REQUIRED: "A reason is required.",
+};
+
 export function errorCode(error: unknown): string | undefined {
   return isApiError(error) ? error.code : undefined;
 }
@@ -106,12 +139,12 @@ export function sellerErrorMessage(error: unknown): string {
 }
 
 /**
- * user-organization seller-account errors: ProblemDetails with no code and empty detail (E2), or { code } 403 (E4).
- * Map by status; `conflict` lets the caller describe what a 409 means for that action.
+ * user-organization seller-account errors: ProblemDetails with a `code` (PA-1B.1) or { code } 403.
+ * Known codes get a specific message; otherwise map by status. `conflict` describes what a 409 means for that action.
  */
 export function sellerAccountErrorMessage(error: unknown, conflict = "This record changed. Refresh and try again."): string {
   if (!isApiError(error)) return getErrorMessage(error);
-  if (error.code === "MARKETPLACE_SELLER_ACCESS_DENIED") return "You're not an active member of this seller account.";
+  if (error.code && ACCOUNT_MESSAGES[error.code]) return ACCOUNT_MESSAGES[error.code];
   switch (error.status) {
     case 400: {
       if (error.hasFieldErrors) return "Some fields are missing or invalid. Check the form and try again.";

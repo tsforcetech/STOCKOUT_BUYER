@@ -7,6 +7,8 @@ import type {
   MarketplaceCurrentActorResponse,
   MarketplaceSellerDto,
   SellerDocumentResponse,
+  SellerEligibilityResponse,
+  UpdateSellerProfileRequest,
   UserProfileResponse,
   UpdateUserProfileRequest,
 } from "@/api/types/user-organization";
@@ -30,6 +32,9 @@ export const marketplaceService = {
 
   createSeller: (body: CreateSellerRequest) => post<MarketplaceSellerDto>("/api/v1/marketplace/sellers", body),
   seller: (sellerId: string, signal?: AbortSignal) => get<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}`, signal),
+  updateSellerProfile: async (sellerId: string, body: UpdateSellerProfileRequest) =>
+    unwrapData<MarketplaceSellerDto>(await http.put<Envelope<MarketplaceSellerDto>>(`/api/v1/marketplace/sellers/${seg(sellerId)}/profile`, body)),
+  eligibility: (sellerId: string, signal?: AbortSignal) => get<SellerEligibilityResponse>(`/api/v1/marketplace/sellers/${seg(sellerId)}/eligibility`, signal),
   submitSeller: (sellerId: string, expectedRowVersion: string) => post<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}/submit`, { expectedRowVersion }),
 
   documents: (sellerId: string, signal?: AbortSignal) => get<SellerDocumentResponse[]>(`/api/v1/marketplace/sellers/${seg(sellerId)}/documents`, signal),

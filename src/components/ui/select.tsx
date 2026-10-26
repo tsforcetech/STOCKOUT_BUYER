@@ -26,7 +26,8 @@ function textOf(node: React.ReactNode): string {
 function collectOptions(children: React.ReactNode, out: Option[] = []): Option[] {
   React.Children.forEach(children, (child) => {
     if (!React.isValidElement<{ children?: React.ReactNode; value?: unknown; disabled?: boolean }>(child)) return;
-    if (child.type === React.Fragment) {
+    // <optgroup> is flattened: the styled list shows its options in order (group labels aren't rendered).
+    if (child.type === React.Fragment || child.type === "optgroup") {
       collectOptions(child.props.children, out);
       return;
     }
