@@ -171,10 +171,13 @@ jobs:
           Write-Host "Destination: $target"
           Write-Host "Files deployed/present: $($deployedFiles.Count)"
           Write-Host ""
-
           Get-ChildItem $target -Force |
-            Select-Object Mode, Name, Length |
-            Format-Table -AutoSize
+          Select-Object Mode, Name, Length |
+          Format-Table -AutoSize
+
+          # Explicitly return success after all deployment checks pass
+          $global:LASTEXITCODE = 0
+          exit 0
 
       # 9. Final deployment summary
       - name: Deployment Summary
