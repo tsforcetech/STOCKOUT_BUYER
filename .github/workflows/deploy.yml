@@ -1,45 +1,98 @@
-
-name: Inspect Stockout Repository
+```yaml
+name: Build and Deploy Stockout Buyer DEV
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
 
 permissions:
   contents: read
 
+concurrency:
+  group: stockout-dev-deployment
+  cancel-in-progress: false
+
 jobs:
-  inspect:
+  build-deploy:
+    name: Build and deploy to Windows server
     runs-on: [self-hosted, Windows, X64]
+    timeout-minutes: 30
+
+    defaults:
+      run:
+        shell: powershell
+
     steps:
-      - name: Checkout repository
+      - name: Checkout source
         uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - name: Inspect project files
-        shell: powershell
+      - name: Check Node and npm
         run: |
-          Write-Host "===== ROOT FILES ====="
-          Get-ChildItem -Force |
+          node --version
+          npm --version
+          if (!(Test-Path "package.json")) {
+            throw "package.json not found in repository root."
+          }
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test -- --run
+
+      - name: Build production website
+        env:
+          VITE_API_BASE_URL: https://stockout.flowb.io
+        run: |
+          npm run build
+          if (!(Test-Path "dist\index.html")) {
+            throw "Production build failed: dist\index.html not found."
+          }
+          Write-Host "Production build contents:"
+          Get-ChildItem dist -Force
+
+      - name: Deploy build to STOCKOUT_DEV
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE "dist"
+          $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
+
+          if (!(Test-Path $source)) {
+            throw "Build output directory not found: $source"
+          }
+
+          if (!(Test-Path $target)) {
+            New-Item -ItemType Directory -Path $target -Force |
+              Out-Null
+          }
+
+          if (!(Test-Path (Join-Path $target "index.html"))) {
+            Write-Host "No existing deployment detected."
+          }
+
+          # Copy only the built website, not the source repository.
+          & robocopy $source $target /E /R:2 /W:2
+          $code = $LASTEXITCODE
+
+          if ($code -ge 8) {
+            throw "Robocopy deployment failed with exit code $code."
+          }
+
+          if (!(Test-Path (Join-Path $target "index.html"))) {
+            throw "Deployment verification failed: index.html missing."
+          }
+
+          Write-Host "Deployment successful: $target"
+          Get-ChildItem $target -Force |
             Select-Object Mode, Name, Length |
             Format-Table -AutoSize
-
-          Write-Host "===== PROJECT CONFIGURATION FILES ====="
-          Get-ChildItem -Recurse -File -Force |
-            Where-Object {
-              $_.FullName -notmatch '\\(\.git|node_modules|dist|build|\.next)\\' -and
-              $_.Name -match '^(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|vite\.config\..*|next\.config\..*|angular\.json|webpack\.config\..*|tsconfig\.json|README.*|.*\.csproj|.*\.sln)$'
-            } |
-            Select-Object -First 100 FullName |
-            Format-Table -AutoSize
-
-          Write-Host "===== ROOT README CONTENT ====="
-          $readme = Get-ChildItem -File -Force |
-            Where-Object { $_.Name -match '^README' } |
-            Select-Object -First 1
-
-          if ($readme) {
-            Get-Content $readme.FullName -TotalCount 150
-          } else {
-            Write-Host "No root README found."
-          }
+```
