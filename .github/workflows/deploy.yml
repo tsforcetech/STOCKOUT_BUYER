@@ -1,5 +1,5 @@
 
-name: Deploy Stockout Source to Windows Server
+name: Inspect Stockout Repository
 
 on:
   workflow_dispatch:
@@ -7,99 +7,39 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: stockout-dev-deployment
-  cancel-in-progress: false
-
 jobs:
-  deploy-source:
-    name: Copy source to STOCKOUT_DEV
+  inspect:
     runs-on: [self-hosted, Windows, X64]
-    timeout-minutes: 15
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
-          path: source
-          clean: true
           persist-credentials: false
 
-      - name: Validate source
+      - name: Inspect project files
         shell: powershell
         run: |
-          $source = Join-Path $env:GITHUB_WORKSPACE "source"
-
-          if (!(Test-Path $source)) {
-            throw "Source directory not found: $source"
-          }
-
-          if (!(Test-Path (Join-Path $source "package.json"))) {
-            Write-Host "Warning: package.json was not found at the repository root."
-          }
-
-          Write-Host "Source directory: $source"
-          Get-ChildItem $source -Force |
+          Write-Host "===== ROOT FILES ====="
+          Get-ChildItem -Force |
             Select-Object Mode, Name, Length |
             Format-Table -AutoSize
 
-      - name: Copy source to deployment folder
-        shell: powershell
-        run: |
-          $source = Join-Path $env:GITHUB_WORKSPACE "source"
-          $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
-
-          if (!(Test-Path $target)) {
-            New-Item -ItemType Directory -Path $target -Force |
-              Out-Null
-          }
-
-          # Copy source files without copying Git metadata.
-          # Existing destination files are retained unless overwritten.
-          & robocopy $source $target /E /R:2 /W:2 /XD "$source\.git"
-
-          $code = $LASTEXITCODE
-
-          # Robocopy exit codes below 8 indicate success or non-fatal differences.
-          if ($code -ge 8) {
-            throw "Robocopy failed with exit code $code"
-          }
-
-          Write-Host "Robocopy completed with exit code $code"
-          Write-Host "Deployment directory: $target"
-
-      
-      - name: Copy source to deployment folder
-        shell: powershell
-        run: |
-          $source = Join-Path $env:GITHUB_WORKSPACE "source"
-          $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
-
-          if (!(Test-Path $source)) {
-            throw "Source directory not found: $source"
-          }
-
-          if (!(Test-Path $target)) {
-            New-Item -ItemType Directory -Path $target -Force |
-              Out-Null
-          }
-
-          Write-Host "Copying from: $source"
-          Write-Host "Copying to:   $target"
-
-          & robocopy $source $target /E /R:2 /W:2 /XD "$source\.git"
-          $code = $LASTEXITCODE
-
-          if ($code -ge 8) {
-            throw "Robocopy failed with exit code $code"
-          }
-
-          $files = Get-ChildItem $target -Force -Recurse -File
-
-          if ($files.Count -eq 0) {
-            throw "Copy verification failed: destination contains no files."
-          }
-
-          Write-Host "Copy completed. Destination file count: $($files.Count)"
-          $files | Select-Object -First 30 FullName, Length |
+          Write-Host "===== PROJECT CONFIGURATION FILES ====="
+          Get-ChildItem -Recurse -File -Force |
+            Where-Object {
+              $_.FullName -notmatch '\\(\.git|node_modules|dist|build|\.next)\\' -and
+              $_.Name -match '^(package\.json|package-lock\.json|yarn\.lock|pnpm-lock\.yaml|vite\.config\..*|next\.config\..*|angular\.json|webpack\.config\..*|tsconfig\.json|README.*|.*\.csproj|.*\.sln)$'
+            } |
+            Select-Object -First 100 FullName |
             Format-Table -AutoSize
+
+          Write-Host "===== ROOT README CONTENT ====="
+          $readme = Get-ChildItem -File -Force |
+            Where-Object { $_.Name -match '^README' } |
+            Select-Object -First 1
+
+          if ($readme) {
+            Get-Content $readme.FullName -TotalCount 150
+          } else {
+            Write-Host "No root README found."
+          }
