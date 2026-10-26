@@ -1,8 +1,9 @@
-```yaml
+
 name: Build and Deploy Stockout Buyer DEV
 
 on:
   workflow_dispatch:
+
   push:
     branches:
       - main
@@ -16,7 +17,7 @@ concurrency:
 
 jobs:
   build-deploy:
-    name: Build and deploy to Windows server
+    name: Build and Deploy to Windows Server
     runs-on: [self-hosted, Windows, X64]
     timeout-minutes: 30
 
@@ -25,49 +26,102 @@ jobs:
         shell: powershell
 
     steps:
-      - name: Checkout source
+      # 1. Download the latest repository source
+      - name: Checkout Source
         uses: actions/checkout@v6
         with:
           persist-credentials: false
+          clean: true
 
-      - name: Check Node and npm
+      # 2. Verify Node.js and npm
+      - name: Check Node.js and npm
         run: |
+          Write-Host "Checking Node.js and npm versions..."
+
           node --version
           npm --version
+
           if (!(Test-Path "package.json")) {
-            throw "package.json not found in repository root."
+            throw "package.json not found in the repository root."
           }
 
-      - name: Install dependencies
-        run: npm ci
+          if (!(Test-Path "package-lock.json")) {
+            throw "package-lock.json not found in the repository root."
+          }
 
-      - name: Type-check
-        run: npm run typecheck
+      # 3. Install exact dependencies from package-lock.json
+      - name: Install Dependencies
+        run: |
+          npm ci
 
+          if ($LASTEXITCODE -ne 0) {
+            throw "npm ci failed."
+          }
+
+      # 4. TypeScript validation
+      - name: Type Check
+        run: |
+          npm run typecheck
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Type checking failed."
+          }
+
+      # 5. ESLint validation
       - name: Lint
-        run: npm run lint
+        run: |
+          npm run lint
 
-      - name: Run unit tests
-        run: npm test -- --run
+          if ($LASTEXITCODE -ne 0) {
+            throw "Linting failed."
+          }
 
-      - name: Build production website
+      # 6. Run unit and integration tests
+      - name: Run Tests
+        run: |
+          npm test -- --run
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "Tests failed."
+          }
+
+      # 7. Build the production frontend
+      - name: Build Production Website
         env:
           VITE_API_BASE_URL: https://stockout.flowb.io
         run: |
           npm run build
-          if (!(Test-Path "dist\index.html")) {
-            throw "Production build failed: dist\index.html not found."
-          }
-          Write-Host "Production build contents:"
-          Get-ChildItem dist -Force
 
-      - name: Deploy build to STOCKOUT_DEV
+          if ($LASTEXITCODE -ne 0) {
+            throw "Production build failed."
+          }
+
+          $buildIndex = Join-Path $env:GITHUB_WORKSPACE "dist\index.html"
+
+          if (!(Test-Path $buildIndex)) {
+            throw "Build verification failed: dist\index.html not found."
+          }
+
+          Write-Host "Production build generated successfully."
+          Get-ChildItem (Join-Path $env:GITHUB_WORKSPACE "dist") -Force |
+            Select-Object Mode, Name, Length |
+            Format-Table -AutoSize
+
+      # 8. Deploy the built files to the Windows server directory
+      - name: Deploy to STOCKOUT_DEV
         run: |
           $source = Join-Path $env:GITHUB_WORKSPACE "dist"
           $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
 
+          Write-Host "Source: $source"
+          Write-Host "Destination: $target"
+
           if (!(Test-Path $source)) {
-            throw "Build output directory not found: $source"
+            throw "Build output directory does not exist: $source"
+          }
+
+          if (!(Test-Path (Join-Path $source "index.html"))) {
+            throw "The build output does not contain index.html."
           }
 
           if (!(Test-Path $target)) {
@@ -75,24 +129,66 @@ jobs:
               Out-Null
           }
 
-          if (!(Test-Path (Join-Path $target "index.html"))) {
-            Write-Host "No existing deployment detected."
+          # Verify the runner can write to the deployment directory.
+          $permissionTest = Join-Path $target ".deployment-write-test"
+
+          try {
+            Set-Content -Path $permissionTest -Value "write test" -ErrorAction Stop
+            Remove-Item $permissionTest -Force -ErrorAction Stop
+          }
+          catch {
+            throw "The runner cannot write to $target. Grant Modify permission to NT AUTHORITY\NETWORK SERVICE. Details: $($_.Exception.Message)"
           }
 
-          # Copy only the built website, not the source repository.
-          & robocopy $source $target /E /R:2 /W:2
-          $code = $LASTEXITCODE
+          # Copy production output only; do not copy source files or node_modules.
+          # /E copies subdirectories, including empty ones.
+          # /R and /W limit retries.
+          # /XF web.config prevents overwriting an existing server configuration.
+          & robocopy $source $target /E /R:2 /W:2 /XF web.config
 
-          if ($code -ge 8) {
-            throw "Robocopy deployment failed with exit code $code."
+          $robocopyExitCode = $LASTEXITCODE
+
+          # Robocopy exit codes 0-7 indicate success or non-fatal differences.
+          if ($robocopyExitCode -ge 8) {
+            throw "Robocopy failed with exit code $robocopyExitCode."
           }
 
-          if (!(Test-Path (Join-Path $target "index.html"))) {
-            throw "Deployment verification failed: index.html missing."
+          # Verify that the deployed site contains index.html.
+          $deployedIndex = Join-Path $target "index.html"
+
+          if (!(Test-Path $deployedIndex)) {
+            throw "Deployment verification failed: $deployedIndex not found."
           }
 
-          Write-Host "Deployment successful: $target"
+          $deployedFiles = @(
+            Get-ChildItem $target -Recurse -File -Force
+          )
+
+          if ($deployedFiles.Count -eq 0) {
+            throw "Deployment verification failed: destination contains no files."
+          }
+
+          Write-Host ""
+          Write-Host "============================================"
+          Write-Host "DEPLOYMENT SUCCESSFUL"
+          Write-Host "============================================"
+          Write-Host "Destination: $target"
+          Write-Host "Files deployed/present: $($deployedFiles.Count)"
+          Write-Host ""
+
           Get-ChildItem $target -Force |
             Select-Object Mode, Name, Length |
             Format-Table -AutoSize
-```
+
+      # 9. Final deployment summary
+      - name: Deployment Summary
+        if: success()
+        run: |
+          Write-Host "Stockout Buyer DEV deployment completed successfully."
+          Write-Host "Path: C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
+
+      - name: Report Failure
+        if: failure()
+        run: |
+          Write-Host "Stockout Buyer DEV deployment failed."
+          Write-Host "Review the failed step above before retrying."
