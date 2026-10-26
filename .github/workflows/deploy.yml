@@ -179,12 +179,17 @@ jobs:
       # 9. Final deployment summary
       - name: Deployment Summary
         if: success()
+        shell: powershell
         run: |
           Write-Host "Stockout Buyer DEV deployment completed successfully."
           Write-Host "Path: C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
+          exit 0
 
       - name: Report Failure
         if: failure()
+        shell: powershell
         run: |
           Write-Host "Stockout Buyer DEV deployment failed."
-          Write-Host "Review the failed step above before retrying."
+          Write-Host "Review the first failed step above."
+          exit 0
+      
