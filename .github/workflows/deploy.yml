@@ -68,23 +68,38 @@ jobs:
           Write-Host "Robocopy completed with exit code $code"
           Write-Host "Deployment directory: $target"
 
-      - name: Verify copied files
+      
+      - name: Copy source to deployment folder
         shell: powershell
         run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE "source"
           $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
 
-          if (!(Test-Path $target)) {
-            throw "Deployment directory does not exist: $target"
+          if (!(Test-Path $source)) {
+            throw "Source directory not found: $source"
           }
 
-          $files = Get-ChildItem $target -Force
+          if (!(Test-Path $target)) {
+            New-Item -ItemType Directory -Path $target -Force |
+              Out-Null
+          }
+
+          Write-Host "Copying from: $source"
+          Write-Host "Copying to:   $target"
+
+          & robocopy $source $target /E /R:2 /W:2 /XD "$source\.git"
+          $code = $LASTEXITCODE
+
+          if ($code -ge 8) {
+            throw "Robocopy failed with exit code $code"
+          }
+
+          $files = Get-ChildItem $target -Force -Recurse -File
 
           if ($files.Count -eq 0) {
-            throw "Deployment directory is empty."
+            throw "Copy verification failed: destination contains no files."
           }
 
-          Write-Host "Files and folders copied:"
-          $files | Select-Object Mode, Name, Length |
+          Write-Host "Copy completed. Destination file count: $($files.Count)"
+          $files | Select-Object -First 30 FullName, Length |
             Format-Table -AutoSize
-
-          Write-Host "Source copy verification completed."
