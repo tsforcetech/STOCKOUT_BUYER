@@ -10,6 +10,7 @@ import type {
 } from "@/api/types/identity";
 import type { MarketplaceCurrentActorResponse } from "@/api/types/user-organization";
 import { decodeJwtPayload, REFRESH_KEY, tokenStore } from "./token-store";
+import { loadCurrentIdentity } from "./current-identity";
 
 export type AuthStatus = "initializing" | "authenticated" | "anonymous";
 
@@ -123,7 +124,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadAccess = React.useCallback(async () => {
     // Identity profile (identity-access) and marketplace contexts (user-organization) load in parallel.
-    const [me] = await Promise.all([authService.me(), loadActor()]);
+    const [me] = await Promise.all([loadCurrentIdentity(() => marketplaceService.myProfile()), loadActor()]);
     setUser(me);
   }, [loadActor]);
 
