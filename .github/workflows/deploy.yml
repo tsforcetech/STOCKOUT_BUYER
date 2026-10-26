@@ -1,0 +1,40 @@
+
+name: Download Stockout Source to Windows Server
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  download-source:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          path: source
+
+      - name: Copy source to deployment folder
+        shell: powershell
+        run: |
+          $source = Join-Path $env:GITHUB_WORKSPACE "source"
+          $target = "C:\SHARACO\STOCKOUT\STOCKOUT_DEV"
+
+          if (!(Test-Path $target)) {
+            New-Item -ItemType Directory -Path $target -Force | Out-Null
+          }
+
+          # Copy repository files, including hidden files.
+          # Preserve existing files not present in the repository.
+          robocopy $source $target /E /XD .git
+
+          $code = $LASTEXITCODE
+          if ($code -ge 8) {
+            throw "Robocopy failed with exit code $code"
+          }
+
+          Write-Host "Source copied successfully to $target"
+          Get-ChildItem $target -Force |
+            Select-Object Mode, Name, Length
