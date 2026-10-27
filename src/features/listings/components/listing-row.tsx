@@ -1,3 +1,4 @@
+import { sellerLabel } from "@/lib/seller-code";
 import { Link } from "react-router";
 import { stockLabel } from "../lib/stock";
 import { cn } from "@/lib/utils/cn";
@@ -19,7 +20,7 @@ export function listingSnapshot(item: ListingSearchCard): ListingSnapshot {
     currency: item.currency,
     unitSymbol: item.quantityUnitSymbol,
     imageUrl: assetUrl(item.primaryImage?.cdnUrl),
-    sellerName: item.seller.displayName,
+    sellerName: sellerLabel(item.seller.sellerId),
     place: item.location.city || item.location.stateOrEmirate || null,
   };
 }
@@ -69,7 +70,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
             </Link>
           </h3>
           <p className="flex min-w-0 items-center gap-1 text-xs text-body">
-            <span className="truncate">{item.seller.displayName}</span>
+            <span className="truncate">{sellerLabel(item.seller.sellerId)}</span>
             {item.seller.isVerified && <SellerTick />}
             <VerifiedTag className="ml-1" />
             {item.conditionName && <span className="shrink-0 rounded-full border border-foreground/80 px-2 py-px text-[11px] font-semibold text-foreground">{item.conditionName}</span>}

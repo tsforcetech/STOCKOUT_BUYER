@@ -1,3 +1,4 @@
+import { sellerLabel } from "@/lib/seller-code";
 import * as React from "react";
 import { Link, useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
@@ -61,7 +62,7 @@ function snapshotOf(l: PublicListingDetailResponse): ListingSnapshot {
     currency: l.currency,
     unitSymbol: unitOf(l) || null,
     imageUrl: sortedImages(l)[0]?.cdnUrl ?? null,
-    sellerName: l.seller.displayName,
+    sellerName: sellerLabel(l.seller.sellerId),
     place: placeOf(l) || null,
   };
 }
@@ -156,7 +157,7 @@ export default function ListingDetailPage() {
   const cartListing: AddToCartListing = {
     listingId: l.listingId,
     title: l.title,
-    sellerName: l.seller.displayName,
+    sellerName: sellerLabel(l.seller.sellerId),
     basePrice: l.basePrice,
     currency: l.currency,
     unitSymbol: unit || null,
@@ -273,7 +274,7 @@ export default function ListingDetailPage() {
                 </span>
                 <div className="min-w-0">
                   <p className="flex items-center gap-1 text-sm font-medium text-foreground">
-                    <span className="truncate">{l.seller.displayName}</span>
+                    <span className="truncate">{sellerLabel(l.seller.sellerId)}</span>
                     {l.seller.isVerified && <SealCheckIcon className="size-4 shrink-0 text-success" weight="fill" aria-label="Verified" />}
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -324,7 +325,7 @@ export default function ListingDetailPage() {
         select={otherSellers}
         viewAllHref={searchHref({ q: sameItemQuery(l.title), categoryId: l.categoryId })}
       />
-      <ListingRail title={`More from ${l.seller.displayName}`} query={{ sellerId: l.seller.sellerId, sort: "date_desc" }} viewAllHref={searchHref({ sellerId: l.seller.sellerId })} />
+      <ListingRail title="More from this seller" query={{ sellerId: l.seller.sellerId, sort: "date_desc" }} viewAllHref={searchHref({ sellerId: l.seller.sellerId })} />
       <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={searchHref({ categoryId: l.categoryId })} />
       <ListingMobileBar listing={cartListing} panelRef={panelRef} endRef={endRef} />
     </>

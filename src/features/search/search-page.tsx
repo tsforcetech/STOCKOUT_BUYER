@@ -1,3 +1,4 @@
+import { sellerCode } from "@/lib/seller-code";
 import * as React from "react";
 import { useSearchParams } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
@@ -113,10 +114,7 @@ export default function SearchPage() {
     options.path[options.path.length - 1]?.name ??
     data?.facets.categories.find((c) => c.categoryId === state.categoryId)
       ?.categoryName;
-  const sellerName = state.sellerId
-    ? data?.items.find((i) => i.seller.sellerId === state.sellerId)?.seller
-        .displayName
-    : undefined;
+  const sellerName = state.sellerId ? `seller ${sellerCode(state.sellerId)}` : undefined;
   const heading = state.q
     ? `Results for “${state.q}”`
     : state.sellerId && !state.categoryId
@@ -139,7 +137,7 @@ export default function SearchPage() {
     state.attr.length;
   const chips = appliedFilterChips(state, data?.facets, {
     category: categoryName,
-    seller: sellerName,
+    seller: state.sellerId ? sellerCode(state.sellerId) : undefined,
     attribute: (code) =>
       options.requirements?.attributes.find(
         (a) => a.code.toLowerCase() === code.toLowerCase(),

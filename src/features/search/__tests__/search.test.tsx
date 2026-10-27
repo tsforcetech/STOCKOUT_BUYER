@@ -136,13 +136,15 @@ describe("SearchPage", () => {
   });
 
   it("filters by seller: sends sellerId, names the seller and hides Save search", async () => {
-    const item = { ...card("1", "Copper cable"), seller: { sellerId: "s-9", displayName: "Sharaco", entityType: "BUSINESS", isVerified: true } };
+    const item = { ...card("1", "Copper cable"), seller: { sellerId: "3934b874-33be-474d-9e12-247a0290c77e", displayName: "Sharaco", entityType: "BUSINESS", isVerified: true } };
     const { calls } = mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: () => ({ body: response([item]) }) }]);
-    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?sellerId=s-9");
-    expect(await screen.findByRole("heading", { level: 1, name: "Stock from Sharaco" })).toBeInTheDocument();
-    expect(calls.find((c) => c.url.pathname === "/api/v1/search/listings")!.url.searchParams.get("sellerId")).toBe("s-9");
+    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }], "/search?sellerId=3934b874-33be-474d-9e12-247a0290c77e");
+    // B2B: the seller's company name never reaches buyers, only its public code.
+    expect(await screen.findByRole("heading", { level: 1, name: "Stock from seller SO-3934B8" })).toBeInTheDocument();
+    expect(screen.queryByText(/Sharaco/)).not.toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname === "/api/v1/search/listings")!.url.searchParams.get("sellerId")).toBe("3934b874-33be-474d-9e12-247a0290c77e");
     expect(screen.queryByRole("button", { name: /Save search/ })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Remove filter: Seller: Sharaco" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove filter: Seller: SO-3934B8" }));
     expect(router.state.location.search).not.toContain("sellerId");
   });
 

@@ -1,3 +1,4 @@
+import { safeSellerLabel } from "@/lib/seller-code";
 import { Link } from "react-router";
 import { InfoIcon, LockSimpleIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import { ListingImage } from "@/components/common/listing-image";
@@ -28,7 +29,10 @@ export default function CartPage() {
   }
 
   const bySeller = new Map<string, CartItem[]>();
-  for (const i of cart.items) bySeller.set(i.sellerName, [...(bySeller.get(i.sellerName) ?? []), i]);
+  for (const i of cart.items) {
+    const key = safeSellerLabel(i.sellerName);
+    bySeller.set(key, [...(bySeller.get(key) ?? []), i]);
+  }
 
   const totals = cartTotals(cart.items, live);
 

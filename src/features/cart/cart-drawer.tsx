@@ -1,3 +1,4 @@
+import { safeSellerLabel } from "@/lib/seller-code";
 import { Link, useNavigate } from "react-router";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { ShoppingCartSimpleIcon, TrashIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
@@ -66,7 +67,7 @@ export function CartDrawer() {
                           {item.title}
                         </Link>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
-                          {item.sellerName} · {formatMoney(price, currency)}
+                          {safeSellerLabel(item.sellerName)} · {formatMoney(price, currency)}
                           {item.unitSymbol ? ` / ${item.unitSymbol}` : ""}
                         </p>
                         {s?.unavailable ? (

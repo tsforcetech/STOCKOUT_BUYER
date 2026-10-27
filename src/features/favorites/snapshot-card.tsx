@@ -1,3 +1,4 @@
+import { safeSellerLabel } from "@/lib/seller-code";
 import { Link } from "react-router";
 import { ListingImage } from "@/components/common/listing-image";
 import type { ListingSnapshot } from "@/lib/favorites/favorites-context";
@@ -13,7 +14,7 @@ export function SnapshotCard({ listing }: { listing: ListingSnapshot }) {
         <div className="flex flex-1 flex-col gap-1 p-3.5">
           <p className="line-clamp-2 font-heading text-sm font-bold leading-5 text-foreground group-hover:underline">{listing.title}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {listing.sellerName}
+            {safeSellerLabel(listing.sellerName)}
             {listing.place ? ` · ${listing.place}` : ""}
           </p>
           {listing.price !== null && (

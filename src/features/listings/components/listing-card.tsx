@@ -1,3 +1,4 @@
+import { sellerLabel } from "@/lib/seller-code";
 import { Link } from "react-router";
 import { stockLabel } from "../lib/stock";
 import { cn } from "@/lib/utils/cn";
@@ -88,7 +89,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
               ))}
             </ul>
           <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted-foreground">
-            <span className="truncate">{item.seller.displayName}</span>
+            <span className="truncate">{sellerLabel(item.seller.sellerId)}</span>
             {item.seller.isVerified && <SellerTick />}
           </p>
           <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2.5">
@@ -116,7 +117,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
           currency: item.currency,
           unitSymbol: item.quantityUnitSymbol,
           imageUrl: item.primaryImage?.cdnUrl ?? null,
-          sellerName: item.seller.displayName,
+          sellerName: sellerLabel(item.seller.sellerId),
           place: place ?? null,
         }}
       />
