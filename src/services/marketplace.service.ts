@@ -8,6 +8,7 @@ import type {
   MarketplaceSellerDto,
   SellerDocumentResponse,
   SellerEligibilityResponse,
+  BuyerEligibilityResponse,
   UpdateSellerProfileRequest,
   UserProfileResponse,
   UpdateUserProfileRequest,
@@ -35,6 +36,8 @@ export const marketplaceService = {
   updateSellerProfile: async (sellerId: string, body: UpdateSellerProfileRequest) =>
     unwrapData<MarketplaceSellerDto>(await http.put<Envelope<MarketplaceSellerDto>>(`/api/v1/marketplace/sellers/${seg(sellerId)}/profile`, body)),
   eligibility: (sellerId: string, signal?: AbortSignal) => get<SellerEligibilityResponse>(`/api/v1/marketplace/sellers/${seg(sellerId)}/eligibility`, signal),
+  /** BK-1: buying needs no buyer KYC; this only says whether this account may buy. Not a checkout API. */
+  buyerEligibility: (signal?: AbortSignal) => get<BuyerEligibilityResponse>("/api/v1/marketplace/buyer/eligibility", signal),
   submitSeller: (sellerId: string, expectedRowVersion: string) => post<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}/submit`, { expectedRowVersion }),
 
   documents: (sellerId: string, signal?: AbortSignal) => get<SellerDocumentResponse[]>(`/api/v1/marketplace/sellers/${seg(sellerId)}/documents`, signal),

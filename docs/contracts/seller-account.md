@@ -180,3 +180,14 @@ Source: `Contracts/Policies/PolicyContracts.cs`, `PoliciesController.cs`, `Priva
 | `GET/PUT /api/v1/users/me/communication-preferences` `{ marketingEmail, marketingSms, consentSource: "PROFILE" }` | session | Account → Privacy → Marketing messages (opt-in) |
 
 Seller-only policies (`audience: SELLER`, e.g. `STK-POL-INS-001`) are only asked of users with a seller account. Arabic: `lang=ar` returns no revisions yet, so no language switch is shown (no machine translations).
+
+
+## 9. PA-1B.2 organization, invitations, business changes; BK-1 buyer eligibility (27 Oct 2026)
+
+Verified against controllers at backend `af75e58`. Full route table, the guide-vs-code differences and the live UAT are in `docs/UAT_2026-10-27.md`.
+
+- `GET /api/v1/organizations/me/memberships`, `GET /organizations/{id}/my-permissions` (UI gates on these permission codes), `GET /organizations/{id}/members`.
+- Member actions use **memberId**: `PUT …/members/{memberId}/role {roleCode, expectedRowVersion}`, `POST …/suspend {reason, expectedRowVersion}`, `POST …/reactivate {expectedRowVersion}`, `DELETE …/members/{memberId}?expectedRowVersion=`, `POST …/transfer-ownership {newOwnerMemberId}`.
+- Invitations: `GET/POST /organizations/{id}/invitations {email, roleCode: Admin|Manager|Staff}`, `POST …/{invitationId}/resend`, `POST …/{invitationId}/revoke {reason}`; public `GET /organization-invitations/{token}/preview`, signed-in `POST /organization-invitations/{token}/accept`.
+- Business changes: `GET/POST /organizations/{id}/business-changes {changeCategory, reason, effectiveDate, proposedValues}`, `GET …/{requestId}`, `POST …/{requestId}/documents {documentType, mediaAssetId, fileName, fileSize, mimeType}`, `POST …/{requestId}/submit`. `reportingDeadlineUtc` / `isOverdue` come from the server's UAE calendar.
+- BK-1: `GET /api/v1/marketplace/buyer/eligibility` → `{buyerId, eligible, verificationStatus, canPurchase, reason}`. Never treat an error or `UNAVAILABLE` as allowed; it is not a checkout API.

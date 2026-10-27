@@ -15,6 +15,8 @@ import {
   StorefrontIcon,
   UploadSimpleIcon,
   UserIcon,
+  UsersThreeIcon,
+  ClipboardTextIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
@@ -44,6 +46,8 @@ const NAV = [
     to: "/seller/business",
     icon: IdentificationCardIcon,
   },
+  { label: "Team", to: "/seller/team", icon: UsersThreeIcon },
+  { label: "Business changes", to: "/seller/business-changes", icon: ClipboardTextIcon },
   { label: "My profile", to: "/seller/profile", icon: UserIcon },
   { label: "Security", to: "/seller/security", icon: LockKeyIcon },
 ];

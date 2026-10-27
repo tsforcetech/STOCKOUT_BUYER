@@ -1,6 +1,7 @@
 import { Link } from "react-router";
 import { InfoIcon, LockSimpleIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import { ListingImage } from "@/components/common/listing-image";
+import { BuyerEligibilityNote } from "./components/buyer-eligibility";
 import { Button } from "@/components/ui/button";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
@@ -118,6 +119,7 @@ export default function CartPage() {
           <Button size="lg" variant="secondary" className="mt-5 w-full rounded-full" disabled aria-describedby="checkout-note">
             <LockSimpleIcon /> Checkout · coming soon
           </Button>
+          <BuyerEligibilityNote className="mt-3" />
           <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
             <span className="font-medium text-foreground">Online checkout is coming soon.</span> Ordering and payments open once StockOut's order and payment
             services go live. Your cart is saved on this device until then.

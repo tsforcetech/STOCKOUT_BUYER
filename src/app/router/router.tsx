@@ -37,6 +37,7 @@ export const routes: RouteObject[] = [
           { path: "saved", lazy: page(() => import("@/features/favorites/saved-page")) },
           { path: "legal", lazy: page(() => import("@/features/legal/legal-hub-page")) },
           { path: "legal/:slug", lazy: page(() => import("@/features/legal/policy-page")) },
+          { path: "invitations/:token", lazy: page(() => import("@/features/organization/invitation-page")) },
           {
             element: <RequireAuth />,
             children: [
@@ -75,6 +76,8 @@ export const routes: RouteObject[] = [
                   { path: "profile", lazy: page(() => import("@/features/account/profile-page")) },
                   { path: "security", lazy: page(() => import("@/features/account/security-page")) },
                   { path: "privacy", lazy: page(() => import("@/features/account/privacy-page")) },
+                  { path: "team", lazy: page(() => import("@/features/organization/team-page")) },
+                  { path: "business-changes", lazy: page(() => import("@/features/organization/business-changes-page")) },
                   { path: "listings", lazy: page(() => import("@/features/seller/listings-page")) },
                   { path: "listings/new", lazy: page(() => import("@/features/seller/listing-new-page")) },
                   { path: "listings/bulk", lazy: page(() => import("@/features/seller/bulk/bulk-upload-page")) },

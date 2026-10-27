@@ -177,7 +177,7 @@ export interface UserProfileResponse {
 
 /**
  * C#: Contracts.Requests.UpdateUserProfileRequest (record).
- * NOTE: sending profileImageAssetId=null does not clear it in DB (ISNULL) but deletes the old file.
+ * profileImageAssetId: omit to keep the photo, null to remove it (C6 / F2-K, Optional<Guid?>), or a new file id.
  */
 export interface UpdateUserProfileRequest {
   /** [Required] */
@@ -634,6 +634,19 @@ export interface UpdateSellerProfileRequest {
   bankSwiftCode?: string | null;
   bankBeneficiaryName?: string | null;
   expectedRowVersion?: string | null;
+}
+
+/**
+ * C#: Contracts.Marketplace.BuyerEligibilityResponse — GET /marketplace/buyer/eligibility (BK-1, 27 Oct).
+ * Any active signed-in user can buy without buyer KYC (verificationStatus "NOT_REQUIRED"); denied for
+ * SUSPENDED / LOCKED / DISABLED, and UNAVAILABLE when the identity check can't run (never treat that as allowed).
+ */
+export interface BuyerEligibilityResponse {
+  buyerId: Guid;
+  eligible: boolean;
+  verificationStatus: string;
+  canPurchase: boolean;
+  reason: string | null;
 }
 
 /** C#: Contracts.Marketplace.SellerEligibilityResponse — GET /marketplace/sellers/{id}/eligibility. */
