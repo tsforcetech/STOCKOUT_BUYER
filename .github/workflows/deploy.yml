@@ -7,6 +7,8 @@ on:
   push:
     branches:
       - main
+      # The branch the DEV site is built from today; every push here redeploys DEV.
+      - feature/marketplace-web
 
 permissions:
   contents: read
@@ -142,13 +144,39 @@ jobs:
           # /XF web.config prevents overwriting an existing server configuration.
           & robocopy $source $target /E /R:2 /W:2 /XF web.config
 
-          # First deploy only: install the SPA fallback (web.config URL Rewrite rule) so refreshing a deep link such
-          # as /seller/listings serves index.html instead of a 404. An existing server web.config is never replaced.
+          # SPA fallback (web.config) so refreshing a deep link such as /seller serves index.html instead of a 404.
+          # Installed when missing, and kept up to date when the server's copy is one this workflow installed
+          # (it carries the "single-page app fallback" comment). A hand-made server web.config is never replaced.
           $sourceConfig = Join-Path $source "web.config"
           $targetConfig = Join-Path $target "web.config"
-          if ((Test-Path $sourceConfig) -and !(Test-Path $targetConfig)) {
-            Copy-Item $sourceConfig $targetConfig
-            Write-Host "Installed web.config (SPA fallback)."
+          if (Test-Path $sourceConfig) {
+            # Refuse a config IIS can't load: a broken web.config takes the whole site down (HTTP 500.19).
+            try { [xml](Get-Content $sourceConfig -Raw) | Out-Null }
+            catch { throw "dist\web.config is not valid XML: $($_.Exception.Message)" }
+            $sourceText = Get-Content $sourceConfig -Raw
+            $usesRewrite = ($sourceText -replace '(?s)<!--.*?-->', '') -match '<rewrite>'
+            $rewriteInstalled = Test-Path (Join-Path $env:windir "System32\inetsrv\rewrite.dll")
+            if ($usesRewrite -and !$rewriteInstalled) {
+              throw "web.config uses <rewrite> but the IIS URL Rewrite module is not installed on this server."
+            }
+
+            if (!(Test-Path $targetConfig)) {
+              Copy-Item $sourceConfig $targetConfig
+              Write-Host "Installed web.config (SPA fallback)."
+            }
+            elseif ((Get-Content $targetConfig -Raw) -match 'single-page app fallback') {
+              if ((Get-FileHash $sourceConfig).Hash -ne (Get-FileHash $targetConfig).Hash) {
+                Copy-Item $targetConfig "$targetConfig.bak" -Force
+                Copy-Item $sourceConfig $targetConfig -Force
+                Write-Host "Updated web.config (SPA fallback). Previous copy saved as web.config.bak."
+              }
+              else {
+                Write-Host "web.config is up to date."
+              }
+            }
+            else {
+              Write-Warning "Server web.config was not installed by this workflow; left unchanged. Merge the SPA fallback from dist\web.config by hand if deep links return 404."
+            }
           }
 
           $robocopyExitCode = $LASTEXITCODE
