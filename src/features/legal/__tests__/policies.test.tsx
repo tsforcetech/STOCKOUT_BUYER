@@ -98,6 +98,92 @@ describe("pending policy gate", () => {
     expect(accepted).toEqual([{ policyRevisionId: "r-STK-POL-WEB-001", affirmativeAcceptance: true, contentHash: "hash-STK-POL-WEB-001" }]);
   });
 
+  it("accepts every pending policy with one agreement and one button", async () => {
+    sessionStorage.setItem("stockout.market.rt", "rt-1");
+    let pending = [summary("STK-POL-WEB-001", "Platform Terms of Use"), summary("STK-POL-PRV-001", "Privacy Policy"), summary("STK-POL-AUP-001", "Acceptable Use Policy")];
+    const accepted: Array<{ policyRevisionId: string; contentHash: string }> = [];
+    mockFetch([
+      ...sessionRoutes(),
+      { method: "GET", path: "/api/v1/policies/me/pending", respond: () => ok(pending) },
+      { method: "GET", path: /^\/api\/v1\/policies\/STK-POL-[A-Z]+-001$/, respond: ({ url }) => {
+          const code = url.pathname.split("/").pop()!;
+          return ok(detail(code, pending.find((p) => p.policyCode === code)?.title ?? code));
+        } },
+      { method: "GET", path: "/api/v1/policies", respond: () => ok([]) },
+      { method: "GET", path: "/api/v1/privacy/cookie-preferences", respond: () => ok(CHOSEN) },
+      {
+        method: "POST",
+        path: "/api/v1/policies/me/accept",
+        respond: ({ body }) => {
+          const b = body as { policyRevisionId: string; contentHash: string };
+          accepted.push(b);
+          pending = pending.filter((p) => p.policyRevisionId !== b.policyRevisionId);
+          return ok({ acceptanceId: `a-${accepted.length}` });
+        },
+      },
+    ]);
+    const user = userEvent.setup();
+    renderWithApp([{ element: <RootLayout />, children: [{ path: "/", element: <div>home</div> }] }], "/");
+
+    const dialog = await screen.findByRole("dialog", { name: "Review and accept" });
+    const list = await within(dialog).findByRole("list", { name: "Policies to accept" });
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
+    expect(within(dialog).getAllByRole("checkbox")).toHaveLength(1);
+    const accept = within(dialog).getByRole("button", { name: "Accept all and continue" });
+    expect(accept).toBeDisabled();
+    await user.click(within(dialog).getByRole("checkbox", { name: /agree to all 3 policies/ }));
+    await user.click(accept);
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(accepted.map((a) => [a.policyRevisionId, a.contentHash])).toEqual([
+      ["r-STK-POL-WEB-001", "hash-STK-POL-WEB-001"],
+      ["r-STK-POL-PRV-001", "hash-STK-POL-PRV-001"],
+      ["r-STK-POL-AUP-001", "hash-STK-POL-AUP-001"],
+    ]);
+  });
+
+  it("records the sign-up agreement on first sign-in and only asks about policies changed since", async () => {
+    sessionStorage.setItem("stockout.market.rt", "rt-1");
+    // Agreed at sign-up: terms Rev. 00 and privacy Rev. 00. Privacy has since been replaced by a new revision.
+    localStorage.setItem(
+      "stockout.market.signup-consent",
+      JSON.stringify([
+        {
+          userId: "u-1",
+          agreedAtUtc: new Date().toISOString(),
+          revisions: [
+            { policyCode: "STK-POL-WEB-001", policyRevisionId: "r-STK-POL-WEB-001", contentHash: "hash-STK-POL-WEB-001" },
+            { policyCode: "STK-POL-PRV-001", policyRevisionId: "r-old", contentHash: "hash-old" },
+          ],
+        },
+      ]),
+    );
+    let pending = [summary("STK-POL-WEB-001", "Platform Terms of Use"), summary("STK-POL-PRV-001", "Privacy Policy", { revisionCode: "Rev. 01" })];
+    const accepted: string[] = [];
+    mockFetch([
+      ...sessionRoutes(),
+      { method: "GET", path: "/api/v1/policies/me/pending", respond: () => ok(pending) },
+      { method: "GET", path: "/api/v1/policies/STK-POL-PRV-001", respond: () => ok(detail("STK-POL-PRV-001", "Privacy Policy", { revisionCode: "Rev. 01" })) },
+      { method: "GET", path: "/api/v1/policies", respond: () => ok([]) },
+      { method: "GET", path: "/api/v1/privacy/cookie-preferences", respond: () => ok(CHOSEN) },
+      {
+        method: "POST",
+        path: "/api/v1/policies/me/accept",
+        respond: ({ body }) => {
+          const id = (body as { policyRevisionId: string }).policyRevisionId;
+          accepted.push(id);
+          pending = pending.filter((p) => p.policyRevisionId !== id);
+          return ok({ acceptanceId: "a" });
+        },
+      },
+    ]);
+    renderWithApp([{ element: <RootLayout />, children: [{ path: "/", element: <div>home</div> }] }], "/");
+    const dialog = await screen.findByRole("dialog", { name: "Review and accept" });
+    expect(accepted).toEqual(["r-STK-POL-WEB-001"]);
+    expect(await within(dialog).findByText(/STK-POL-PRV-001 · Rev\. 01/)).toBeInTheDocument();
+    expect(within(dialog).queryByText("Platform Terms of Use")).not.toBeInTheDocument();
+    expect(localStorage.getItem("stockout.market.signup-consent")).toBeNull();
+  });
+
   it("asks for the latest version when the revision was superseded", async () => {
     sessionStorage.setItem("stockout.market.rt", "rt-1");
     let rev = "Rev. 00";

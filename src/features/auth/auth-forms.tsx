@@ -11,6 +11,9 @@ import { useAuth, type MfaChallenge } from "@/lib/auth/auth-context";
 import { authService, registrationService } from "@/services/auth.service";
 import { getErrorMessage, isApiError } from "@/lib/api/errors";
 import { MIN_PASSWORD_LENGTH } from "@/api/types/registration";
+import { appliesTo } from "@/features/legal/policy-gate";
+import { policyPath, usePolicies } from "@/features/legal/queries";
+import { saveSignupConsent } from "@/features/legal/signup-consent";
 
 /**
  * Login, registration and forgot-password forms shared by the full pages (/login, /register, /forgot-password)
@@ -267,6 +270,9 @@ export function RegisterForm({
 }) {
   const [pending, setPending] = React.useState<{ userId: string; email: string } | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
+  // Mandatory policies every user must accept (buyer + seller audience "ALL"); the sign-up box covers exactly these.
+  const policies = usePolicies();
+  const signupPolicies = (policies.data ?? []).filter((p) => appliesTo(p, false));
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: { firstName: "", lastName: "", email: "", mobile: "", password: "", confirm: "", terms: false as unknown as true },
@@ -284,6 +290,8 @@ export function RegisterForm({
         mobile: normaliseMobile(v.mobile),
         password: v.password,
       });
+      // Remembered so the first sign-in records this agreement instead of asking again (see signup-consent.ts).
+      saveSignupConsent(res.userId, signupPolicies);
       setPending({ userId: res.userId, email: res.email });
     } catch (error) {
       const detail = isApiError(error) && typeof (error.body as { detail?: unknown })?.detail === "string" ? (error.body as { detail: string }).detail : "";
@@ -323,7 +331,24 @@ export function RegisterForm({
         <div>
           <label className="flex items-start gap-2 text-sm text-body">
             <input type="checkbox" className="mt-0.5 size-4 accent-[var(--action-border)]" {...form.register("terms")} />
-            <span>I agree to the StockOut terms of use and privacy policy.</span>
+            <span>
+              {signupPolicies.length ? (
+                <>
+                  I have read and agree to the StockOut{" "}
+                  {signupPolicies.map((p, i) => (
+                    <React.Fragment key={p.policyCode}>
+                      {i > 0 && (i === signupPolicies.length - 1 ? " and " : ", ")}
+                      <Link to={policyPath(p.policyCode)} target="_blank" rel="noopener" className={linkClass}>
+                        {p.name || p.title}
+                      </Link>
+                    </React.Fragment>
+                  ))}
+                  .
+                </>
+              ) : (
+                "I agree to the StockOut terms of use and privacy policy."
+              )}
+            </span>
           </label>
           {err.terms && (
             <p className="mt-1 text-xs text-danger-soft-foreground" role="alert">
