@@ -223,6 +223,9 @@ export default function SellerBulkUploadPage() {
       title="Bulk upload"
         description="Create many draft listings at once from a CSV file — with stock and a photo for each."
       />
+      <Notice tone="info" className="mb-4" title="There's a new way to import">
+        <Link to="/seller/listings/import" className="underline underline-offset-4">Bulk import</Link> checks your whole Excel file and ZIP of photos on the server and creates the drafts for you. This older CSV uploader stays available for now.
+      </Notice>
     </>
   );
 

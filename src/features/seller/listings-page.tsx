@@ -222,8 +222,8 @@ export default function SellerListingsPage() {
           enabled && (
             <>
               <Button asChild variant="secondary">
-                <Link to="/seller/listings/bulk">
-                  <UploadSimpleIcon /> Bulk upload
+                <Link to="/seller/listings/import">
+                  <UploadSimpleIcon /> Bulk import
                 </Link>
               </Button>
               <Button asChild variant="action">
@@ -370,8 +370,8 @@ export default function SellerListingsPage() {
                     enabled && (
                       <>
                         <Button asChild variant="secondary">
-                          <Link to="/seller/listings/bulk">
-                            <UploadSimpleIcon /> Bulk upload
+                          <Link to="/seller/listings/import">
+                            <UploadSimpleIcon /> Bulk import
                           </Link>
                         </Button>
                         <Button asChild variant="action">

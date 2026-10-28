@@ -37,9 +37,9 @@ const NAV = [
     label: "Listings",
     to: "/seller/listings",
     icon: ListNumbersIcon,
-    notUnder: "/seller/listings/bulk",
+    notUnder: "/seller/listings/import",
   },
-  { label: "Bulk upload", to: "/seller/listings/bulk", icon: UploadSimpleIcon },
+  { label: "Bulk import", to: "/seller/listings/import", icon: UploadSimpleIcon },
   { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
   {
     label: "Business & verification",
@@ -97,7 +97,7 @@ function SellerAccountMenu() {
             {initials(name)}
           </span>
           <span className="hidden max-w-36 truncate text-sm font-medium text-foreground md:block">{name}</span>
-          <CaretDownIcon className="size-4 text-muted-foreground" />
+          <CaretDownIcon className="hidden size-4 text-muted-foreground sm:block" />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -222,7 +222,7 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               end={item.end}
               onClick={onNavigate}
               className={({ isActive: matched }) => {
-                // "Listings" covers its editor pages but not the separate Bulk upload page.
+                // "Listings" covers its editor pages but not the separate Bulk import pages.
                 const notUnder = "notUnder" in item ? item.notUnder : undefined;
                 const isActive =
                   matched && !(notUnder && pathname.startsWith(notUnder));
@@ -285,7 +285,7 @@ export function SellerLayout() {
           to="/"
           className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-secondary-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-muted"
         >
-          <ArrowLeftIcon className="size-4" />{" "}
+          <ArrowLeftIcon className="hidden size-4 sm:block" />{" "}
           <span className="hidden sm:inline">Back to marketplace</span>
           <span className="sm:hidden">Shop</span>
         </Link>
