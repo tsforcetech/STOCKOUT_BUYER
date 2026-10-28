@@ -19,7 +19,7 @@ import { AddDocumentDialog, type UploadCategory } from "./components/add-documen
 import { BusinessProfileDialog } from "./components/business-profile-dialog";
 import { KycChecklist } from "./components/kyc-checklist";
 import { ListingEligibilityNotice } from "./components/listing-access-notice";
-import { kycBlockerHints, kycChecklist, licenceProblem } from "./lib/kyc";
+import { kycBlockerHints, kycChecklist, licenceFromDocuments, licenceProblem } from "./lib/kyc";
 import { DocumentsTable, useSellerDocuments } from "./components/documents-table";
 import { Notice } from "./components/notice";
 import { OnboardingSteps, onboardingStepIndex } from "./components/onboarding-steps";
@@ -232,7 +232,7 @@ export default function SellerBusinessPage() {
         vatRegistered={!!seller?.isVatRegistered}
         onOpenChange={(o) => !o && setAdding(null)}
       />
-      {seller && <BusinessProfileDialog seller={seller} open={editingProfile} onOpenChange={setEditingProfile} />}
+      {seller && <BusinessProfileDialog seller={seller} open={editingProfile} onOpenChange={setEditingProfile} licenceHint={licenceFromDocuments(docs.data ?? [])} />}
       <ConfirmDialog
         open={confirmSubmit}
         onOpenChange={setConfirmSubmit}

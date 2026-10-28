@@ -7,7 +7,8 @@ import { filesService } from "@/services/files.service";
 import type { MarketplaceSellerDto, SellerDocumentResponse } from "@/api/types/user-organization";
 import { AddDocumentDialog } from "../components/add-document-dialog";
 import { BusinessProfileDialog } from "../components/business-profile-dialog";
-import { kycBlockerHints, kycChecklist, licenceProblem } from "../lib/kyc";
+import { kycBlockerHints, kycChecklist, licenceFromDocuments, licenceProblem } from "../lib/kyc";
+import { KycChecklist } from "../components/kyc-checklist";
 import { QueryClient } from "@tanstack/react-query";
 import { sellerKeys } from "../lib/queries";
 
@@ -82,6 +83,34 @@ describe("KYC blocker hints", () => {
     expect(kycBlockerHints(seller(), [doc("BANK_IBAN_LETTER", { expiresAt: "2020-01-01T00:00:00Z" })]).join(" ")).toMatch(/expired on 01\/01\/2020/);
     expect(kycBlockerHints(seller(), [doc("Trade licence")]).join(" ")).toMatch(/without a recognised document type/);
     expect(kycBlockerHints(seller({ missingDocumentCategories: [] }), [doc("TRADE_LICENSE")])).toEqual([]);
+  });
+});
+
+describe("Checklist profile fixes", () => {
+  it("sends a declared-but-unconfirmed VAT row to the profile instead of asking for another upload", async () => {
+    const onEditProfile = vi.fn();
+    const onUpload = vi.fn();
+    const s = seller({ missingDocumentCategories: ["VAT_CERTIFICATE_OR_DECLARATION"] });
+    renderWithApp([{ path: "/", element: <KycChecklist seller={s} docs={[doc("VAT_NON_REGISTRATION_DECLARATION")]} canEdit onUpload={onUpload} onEditProfile={onEditProfile} /> }], "/");
+    const row = (await screen.findByText("VAT non-registration declaration")).closest("li")!;
+    expect(within(row).getByText("Uploaded · confirm in profile")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: /Upload/ })).not.toBeInTheDocument();
+    await userEvent.click(within(row).getByRole("button", { name: "Confirm in profile" }));
+    expect(onEditProfile).toHaveBeenCalled();
+    expect(onUpload).not.toHaveBeenCalled();
+  });
+
+  it("pre-fills empty licence fields from the newest uploaded trade licence", async () => {
+    const hint = licenceFromDocuments([
+      doc("TRADE_LICENSE", { sellerDocumentId: "old", createdAtUtc: "2026-09-01T00:00:00", expiresAt: "2027-01-01T00:00:00Z" }),
+      doc("TRADE_LICENSE", { sellerDocumentId: "new", createdAtUtc: "2026-10-28T00:00:00", documentNumber: "CN-1234", expiresAt: "2028-11-29T00:00:00Z" }),
+    ]);
+    expect(hint).toEqual({ number: "CN-1234", issuedAt: undefined, expiresAt: "2028-11-29T00:00:00Z" });
+    renderWithApp([{ path: "/", element: <BusinessProfileDialog seller={seller()} open onOpenChange={() => {}} licenceHint={hint} /> }], "/");
+    const dialog = await screen.findByRole("dialog", { name: "Business profile" });
+    expect(within(dialog).getByLabelText(/Licence expires on/)).toHaveValue("2028-11-29");
+    expect(within(dialog).getByLabelText(/Trade licence no/)).toHaveValue("CN-1234");
+    expect(within(dialog).getByText(/filled in from the trade licence you uploaded/)).toBeInTheDocument();
   });
 });
 

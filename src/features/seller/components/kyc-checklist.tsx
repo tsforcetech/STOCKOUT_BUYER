@@ -49,9 +49,13 @@ export function KycChecklist({
                 <StateBadge state={state} />
                 {r.needsClassification && <Badge tone="warning">Needs classification</Badge>}
               </div>
-              <p className="text-xs text-muted-foreground">{r.hint}</p>
+              <p className={r.profileFix ? "text-xs text-warning-soft-foreground" : "text-xs text-muted-foreground"}>{r.profileFix ?? r.hint}</p>
             </div>
-            {canEdit && state !== "verified" && (
+            {canEdit && r.profileFix ? (
+              <Button variant="action" size="sm" onClick={onEditProfile}>
+                Confirm in profile
+              </Button>
+            ) : canEdit && state !== "verified" && (
               <Button variant={state === "missing" || state === "rejected" ? "action" : "secondary"} size="sm" onClick={() => onUpload(r.key.startsWith("SIGNATORY") ? "SIGNATORY" : (r.key as UploadCategory))}>
                 <UploadSimpleIcon /> Upload
               </Button>
@@ -63,10 +67,11 @@ export function KycChecklist({
   );
 }
 
-type RowState = "missing" | "rejected" | "uploaded" | "verified" | "done";
+type RowState = "missing" | "rejected" | "uploaded" | "verified" | "done" | "profile";
 
 function rowState(r: CategoryStatus): RowState {
   if (r.verified) return "verified";
+  if (r.profileFix) return "profile";
   if (r.rejected) return "rejected";
   if (r.missing) return "missing";
   return "uploaded";
@@ -76,7 +81,7 @@ function StatusIcon({ state }: { state: RowState }) {
   const cls = "size-6 shrink-0";
   if (state === "verified" || state === "done") return <CheckCircleIcon className={`${cls} text-success`} weight="fill" aria-hidden />;
   if (state === "rejected") return <XCircleIcon className={`${cls} text-danger`} weight="fill" aria-hidden />;
-  if (state === "uploaded") return <ClockIcon className={`${cls} text-warning`} aria-hidden />;
+  if (state === "uploaded" || state === "profile") return <ClockIcon className={`${cls} text-warning`} aria-hidden />;
   if (state === "missing") return <WarningCircleIcon className={`${cls} text-muted-foreground`} aria-hidden />;
   return <CircleIcon className={cls} aria-hidden />;
 }
@@ -89,6 +94,8 @@ function StateBadge({ state }: { state: RowState }) {
       return <Badge tone="danger">Rejected — upload again</Badge>;
     case "uploaded":
       return <Badge tone="warning">Uploaded</Badge>;
+    case "profile":
+      return <Badge tone="warning">Uploaded · confirm in profile</Badge>;
     case "missing":
       return <Badge tone="neutral">Missing</Badge>;
     default:

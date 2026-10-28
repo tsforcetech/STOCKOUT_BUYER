@@ -102,7 +102,19 @@ const FIELD_FOR_CODE: Record<string, keyof FormValues> = {
   DUPLICATE_TRADE_LICENSE: "tradeLicenseNumber",
 };
 
-export function BusinessProfileDialog({ seller, open, onOpenChange }: { seller: MarketplaceSellerDto; open: boolean; onOpenChange: (open: boolean) => void }) {
+export function BusinessProfileDialog({
+  seller,
+  open,
+  onOpenChange,
+  licenceHint,
+}: {
+  seller: MarketplaceSellerDto;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  /** From the uploaded trade licence: fills empty licence fields so the seller only has to check them. */
+  licenceHint?: { number?: string; issuedAt?: string; expiresAt?: string } | null;
+}) {
+  const [prefilled, setPrefilled] = React.useState(false);
   const qc = useQueryClient();
   const [formError, setFormError] = React.useState<string | null>(null);
   const form = useForm<FormValues, unknown, Values>({ resolver: zodResolver(schema), defaultValues: toForm(seller) });
@@ -112,7 +124,24 @@ export function BusinessProfileDialog({ seller, open, onOpenChange }: { seller: 
 
   React.useEffect(() => {
     if (open) {
-      form.reset(toForm(seller));
+      const values = toForm(seller);
+      let filled = false;
+      if (licenceHint) {
+        if (!values.tradeLicenseExpiresAtUtc && licenceHint.expiresAt) {
+          values.tradeLicenseExpiresAtUtc = isoToDateInput(licenceHint.expiresAt);
+          filled = true;
+        }
+        if (!values.tradeLicenseIssuedAtUtc && licenceHint.issuedAt) {
+          values.tradeLicenseIssuedAtUtc = isoToDateInput(licenceHint.issuedAt);
+          filled = true;
+        }
+        if (!values.tradeLicenseNumber && licenceHint.number) {
+          values.tradeLicenseNumber = licenceHint.number;
+          filled = true;
+        }
+      }
+      form.reset(values);
+      setPrefilled(filled);
       setFormError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the dialog opens
@@ -177,6 +206,11 @@ export function BusinessProfileDialog({ seller, open, onOpenChange }: { seller: 
       >
         <form id="business-profile-form" onSubmit={onSubmit} noValidate className="space-y-6">
           <FormError message={formError} />
+          {prefilled && (
+            <p role="status" className="rounded-md bg-info-soft px-3 py-2 text-sm text-info-soft-foreground">
+              Licence details were filled in from the trade licence you uploaded. Check them before saving.
+            </p>
+          )}
           <Section title="Company and licence">
             {field("legalName", "Legal name", { required: true, hint: "Exactly as on the trade licence.", max: 200 })}
             {field("displayName", "Display name", { required: true, hint: "Shown to buyers.", max: 200 })}

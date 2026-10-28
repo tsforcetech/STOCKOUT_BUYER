@@ -114,6 +114,8 @@ export interface CategoryStatus {
   rejected: boolean;
   /** A generic VAT document the reviewer still has to classify. */
   needsClassification?: boolean;
+  /** Files are uploaded but only count after this change in the business profile (not another upload). */
+  profileFix?: string;
 }
 
 /** Per-category view for the checklist. Signatory is split into its two required parts. */
@@ -138,6 +140,7 @@ export function kycChecklist(seller: MarketplaceSellerDto, docs: SellerDocumentR
       missing: missing.has("VAT_CERTIFICATE_OR_DECLARATION"),
       ...summarise(vatDocs),
       needsClassification: live.some((d) => d.documentType.toUpperCase() === GENERIC_VAT_TYPE),
+      profileFix: vatProfileFix(seller, live, missing.has("VAT_CERTIFICATE_OR_DECLARATION")),
     },
     {
       key: "SIGNATORY_ID",
@@ -197,6 +200,26 @@ export function kycBlockerHints(seller: MarketplaceSellerDto, docs: SellerDocume
     if (missing.has(code) && all.length > 0 && all.every((d) => d.verificationStatus === "REJECTED")) hints.push(`Your ${name} was rejected by the reviewer. Upload a new one.`);
   }
   return [...new Set(hints)];
+}
+
+/** The VAT file is there but the profile's VAT status stops it counting (KycValidationHelper). */
+function vatProfileFix(seller: MarketplaceSellerDto, live: SellerDocumentResponse[], vatMissing: boolean): string | undefined {
+  if (!vatMissing) return undefined;
+  const vat = live.filter((d) => categoryOf(d.documentType) === "VAT");
+  const hasDecl = vat.some((d) => isVatTypeAllowed(d.documentType, false));
+  const hasCert = vat.some((d) => isVatTypeAllowed(d.documentType, true));
+  if (!seller.isVatRegistered && hasDecl && !seller.hasVatDeclaration) return "Declaration uploaded. Confirm in your business profile that the business isn't VAT registered.";
+  if (!seller.isVatRegistered && hasCert && !hasDecl) return "Certificate uploaded. Mark the business as VAT registered (with its TRN) in your business profile.";
+  return undefined;
+}
+
+/** Licence number and dates from the newest uploaded trade licence, to pre-fill an empty business profile. */
+export function licenceFromDocuments(docs: SellerDocumentResponse[]): { number?: string; issuedAt?: string; expiresAt?: string } | null {
+  const d = docs
+    .filter((x) => categoryOf(x.documentType) === "TRADE_LICENSE" && x.verificationStatus !== "REJECTED")
+    .sort((a, b) => Date.parse(b.createdAtUtc) - Date.parse(a.createdAtUtc))[0];
+  if (!d) return null;
+  return { number: d.documentNumber ?? undefined, issuedAt: d.issuedAt ?? undefined, expiresAt: d.expiresAt ?? undefined };
 }
 
 /** Licence expiry is required and must be in the future (DEC-011). */
