@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import RegisterPage from "../register-page";
 import { RedirectIfAuthenticated } from "@/lib/auth/guards";
@@ -61,16 +61,17 @@ describe("RegisterPage", () => {
     expect(localStorage.getItem("stockout.market.rt")).toBe("rt-9");
   });
 
-  it("names and links each mandatory policy and remembers the exact revisions agreed to", async () => {
+  it("links one Terms & Policies page and remembers the exact revisions agreed to", async () => {
     const pol = (code: string, name: string, audience = "ALL") => ({ policyDocumentId: `d-${code}`, policyCode: code, name, description: null, audience, isMandatory: true, policyRevisionId: `r-${code}`, revisionCode: "Rev. 00", languageCode: "en", effectiveFromUtc: "2026-10-21T00:00:00", publishedAtUtc: "2026-10-21T00:00:00", status: "PUBLISHED", title: name, contentHash: `h-${code}` });
-    mockFetch([
+    const { calls } = mockFetch([
       { method: "GET", path: "/api/v1/policies", respond: () => ({ body: { success: true, data: [pol("STK-POL-WEB-001", "Platform Terms of Use"), pol("STK-POL-PRV-001", "Privacy Policy"), pol("STK-POL-INS-001", "Inspection Terms", "SELLER")] } }) },
       { method: "POST", path: "/api/v1/auth/register", respond: () => ({ status: 201, body: { userId: "u-9", email: "sami@example.com", mobile: "+971501234567", status: "PendingVerification", message: "ok" } }) },
     ]);
     renderWithApp(routes, "/register");
-    expect(await screen.findByRole("link", { name: "Platform Terms of Use" })).toHaveAttribute("href", "/legal/terms");
-    expect(screen.getByRole("link", { name: "Privacy Policy" })).toHaveAttribute("href", "/legal/privacy");
-    expect(screen.queryByRole("link", { name: "Inspection Terms" })).not.toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Terms & Policies" })).toHaveAttribute("href", "/legal");
+    expect(screen.queryByRole("link", { name: "Privacy Policy" })).not.toBeInTheDocument();
+    // The mandatory list must be loaded before submitting, or nothing is remembered.
+    await waitFor(() => expect(calls.some((c) => c.url.pathname === "/api/v1/policies")).toBe(true));
     await fill();
     await userEvent.click(screen.getByRole("button", { name: "Create account" }));
     expect(await screen.findByLabelText("Verification code")).toBeInTheDocument();

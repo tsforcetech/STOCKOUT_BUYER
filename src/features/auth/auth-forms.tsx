@@ -12,7 +12,7 @@ import { authService, registrationService } from "@/services/auth.service";
 import { getErrorMessage, isApiError } from "@/lib/api/errors";
 import { MIN_PASSWORD_LENGTH } from "@/api/types/registration";
 import { appliesTo } from "@/features/legal/policy-gate";
-import { policyPath, usePolicies } from "@/features/legal/queries";
+import { usePolicies } from "@/features/legal/queries";
 import { saveSignupConsent } from "@/features/legal/signup-consent";
 
 /**
@@ -332,22 +332,12 @@ export function RegisterForm({
           <label className="flex items-start gap-2 text-sm text-body">
             <input type="checkbox" className="mt-0.5 size-4 accent-[var(--action-border)]" {...form.register("terms")} />
             <span>
-              {signupPolicies.length ? (
-                <>
-                  I have read and agree to the StockOut{" "}
-                  {signupPolicies.map((p, i) => (
-                    <React.Fragment key={p.policyCode}>
-                      {i > 0 && (i === signupPolicies.length - 1 ? " and " : ", ")}
-                      <Link to={policyPath(p.policyCode)} target="_blank" rel="noopener" className={linkClass}>
-                        {p.name || p.title}
-                      </Link>
-                    </React.Fragment>
-                  ))}
-                  .
-                </>
-              ) : (
-                "I agree to the StockOut terms of use and privacy policy."
-              )}
+              I have read and agree to the StockOut{" "}
+              {/* One link to /legal, which lists every policy; the agreement covers all mandatory ones (signupPolicies). */}
+              <Link to="/legal" target="_blank" rel="noopener" className={linkClass}>
+                Terms &amp; Policies
+              </Link>
+              .
             </span>
           </label>
           {err.terms && (
