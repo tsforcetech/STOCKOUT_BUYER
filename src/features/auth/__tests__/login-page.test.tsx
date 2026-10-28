@@ -77,4 +77,30 @@ describe("returning to the seller portal", () => {
     await userEvent.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByText("Seller portal home")).toBeInTheDocument();
   });
+
+  it("sends an unverified account to the email-code step and signs in once the code is confirmed", async () => {
+    let verified = false;
+    const { calls } = mockFetch([
+      {
+        method: "POST",
+        path: "/api/v1/auth/login",
+        respond: () =>
+          verified
+            ? { body: { accessToken: "a.eyJzaWQiOiJzMSJ9.c", refreshToken: "rt", expiresIn: 900, tokenType: "Bearer", mfaRequired: false, mfaChallengeToken: null } }
+            : { status: 403, body: { title: "Account Not Verified", status: 403, code: "ACCOUNT_NOT_VERIFIED", detail: "Verify your email address before signing in." } },
+      },
+      { method: "POST", path: "/api/v1/auth/verification/email/send", respond: () => ({ body: { message: "sent" } }) },
+      { method: "POST", path: "/api/v1/auth/verification/email/confirm", respond: () => ((verified = true), { body: { message: "Email verified successfully." } }) },
+      ...sessionRoutes().slice(1),
+    ]);
+    renderWithApp(routes, "/login");
+    await userEvent.type(await screen.findByLabelText("Email"), "New@Example.com");
+    await userEvent.type(screen.getByLabelText("Password"), "a-long-password-1");
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await userEvent.type(await screen.findByLabelText("Verification code"), "112233");
+    expect(calls.find((c) => c.url.pathname.endsWith("/email/send"))?.body).toEqual({ email: "new@example.com" });
+    await userEvent.click(screen.getByRole("button", { name: "Verify and continue" }));
+    expect(await screen.findByText("Home page")).toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname.endsWith("/email/confirm"))?.body).toEqual({ email: "new@example.com", token: "112233" });
+  });
 });

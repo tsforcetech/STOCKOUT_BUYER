@@ -84,6 +84,26 @@ describe("RegisterPage", () => {
     localStorage.clear();
   });
 
+  it("lets someone who closed the code screen finish verifying the same email", async () => {
+    const { calls } = mockFetch([
+      { method: "POST", path: "/api/v1/auth/register", respond: () => ({ status: 409, body: { title: "Conflict", status: 409, detail: "Email already registered." } }) },
+      { method: "POST", path: "/api/v1/auth/verification/email/send", respond: () => ({ body: { message: "sent" } }) },
+      { method: "POST", path: "/api/v1/auth/verification/email/confirm", respond: () => ({ body: { message: "Email verified successfully." } }) },
+      { method: "POST", path: "/api/v1/auth/login", respond: () => ({ body: { accessToken: "a.eyJzaWQiOiJzOSJ9.c", refreshToken: "rt-9", expiresIn: 900, tokenType: "Bearer", mfaRequired: false, mfaChallengeToken: null } }) },
+      ...sessionRoutes().slice(1),
+    ]);
+    renderWithApp(routes, "/register");
+    await fill();
+    await userEvent.click(screen.getByRole("button", { name: "Create account" }));
+    await userEvent.click(await screen.findByRole("button", { name: "Verify this email" }));
+    await userEvent.type(await screen.findByLabelText("Verification code"), "445566");
+    await userEvent.click(screen.getByRole("button", { name: "Verify and continue" }));
+    expect(await screen.findByText("Home")).toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname.endsWith("/email/send"))?.body).toEqual({ email: "sami@example.com" });
+    expect(calls.find((c) => c.url.pathname.endsWith("/email/confirm"))?.body).toEqual({ email: "sami@example.com", token: "445566" });
+    expect(calls.find((c) => c.url.pathname === "/api/v1/auth/login")?.body).toEqual({ emailOrMobile: "sami@example.com", password: "a-long-password-1" });
+  });
+
   it("shows a field error when the email is already registered", async () => {
     mockFetch([{ method: "POST", path: "/api/v1/auth/register", respond: () => ({ status: 409, body: { title: "Conflict", status: 409, detail: "Email already registered." } }) }]);
     renderWithApp(routes, "/register");

@@ -3,7 +3,7 @@ import { Link } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormError, FormField } from "@/components/forms/form-field";
 import { PasswordInput } from "@/components/forms/password-input";
@@ -83,6 +83,16 @@ const credentialsSchema = z.object({
 type Credentials = z.infer<typeof credentialsSchema>;
 
 /** Identity returns ProblemDetails without an error code; map by status + title (see contract). */
+/**
+ * The account exists but its email was never verified. Today's backend still lets these sign in (see
+ * STOCKOUT_BACKEND_FIX_UNVERIFIED_LOGIN.md); with the fix it answers 403 "Account Not Verified" / ACCOUNT_NOT_VERIFIED.
+ */
+export function isUnverifiedLogin(error: unknown): boolean {
+  if (!isApiError(error) || error.status !== 403) return false;
+  const title = typeof (error.body as { title?: unknown } | undefined)?.title === "string" ? (error.body as { title: string }).title : "";
+  return error.code === "ACCOUNT_NOT_VERIFIED" || /not verified|pending ?verification/i.test(`${title} ${error.message}`);
+}
+
 export function loginErrorMessage(error: unknown): string {
   if (!isApiError(error)) return getErrorMessage(error);
   const title = typeof (error.body as { title?: unknown } | undefined)?.title === "string" ? (error.body as { title: string }).title : "";
@@ -115,6 +125,7 @@ export function LoginForm({
 }) {
   const { signIn } = useAuth();
   const [challenge, setChallenge] = React.useState<MfaChallenge | null>(null);
+  const [unverified, setUnverified] = React.useState<{ email: string; password: string } | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
   const form = useForm<Credentials>({ resolver: zodResolver(credentialsSchema), defaultValues: { emailOrMobile: defaultEmail, password: "" } });
 
@@ -125,12 +136,17 @@ export function LoginForm({
       if (result.kind === "mfa-required") setChallenge(result.challenge);
       else onDone();
     } catch (error) {
+      if (isUnverifiedLogin(error) && values.emailOrMobile.includes("@")) {
+        setUnverified({ email: values.emailOrMobile.trim().toLowerCase(), password: values.password });
+        return;
+      }
       setFormError(loginErrorMessage(error));
       form.setValue("password", "");
     }
   });
 
   if (challenge) return <MfaStep Frame={Frame} challenge={challenge} onBack={() => setChallenge(null)} onDone={onDone} />;
+  if (unverified) return <VerifyStep Frame={Frame} email={unverified.email} password={unverified.password} sendFirst onDone={onDone} onBack={() => setUnverified(null)} />;
 
   return (
     <Frame title={title} subtitle={subtitle}>
@@ -268,7 +284,8 @@ export function RegisterForm({
   onDone: () => void;
   login: AuthLink;
 }) {
-  const [pending, setPending] = React.useState<{ userId: string; email: string } | null>(null);
+  const [pending, setPending] = React.useState<{ userId?: string; email: string; password?: string; resume?: boolean } | null>(null);
+  const [emailTaken, setEmailTaken] = React.useState<{ email: string; password: string } | null>(null);
   const [formError, setFormError] = React.useState<string | null>(null);
   // Mandatory policies every user must accept (buyer + seller audience "ALL"); the sign-up box covers exactly these.
   const policies = usePolicies();
@@ -295,19 +312,43 @@ export function RegisterForm({
       setPending({ userId: res.userId, email: res.email });
     } catch (error) {
       const detail = isApiError(error) && typeof (error.body as { detail?: unknown })?.detail === "string" ? (error.body as { detail: string }).detail : "";
-      if (isApiError(error) && error.status === 409 && /email/i.test(detail)) form.setError("email", { message: "An account with this email already exists. Try logging in." });
+      if (isApiError(error) && error.status === 409 && /email/i.test(detail)) {
+        form.setError("email", { message: "An account with this email already exists. Try logging in." });
+        // It may be this person's own sign-up whose code screen was closed: let them finish verifying it.
+        setEmailTaken({ email: v.email.trim().toLowerCase(), password: v.password });
+      }
       else if (isApiError(error) && error.status === 409 && /mobile/i.test(detail)) form.setError("mobile", { message: "This mobile number is already registered." });
       else setFormError(getErrorMessage(error));
     }
   });
 
-  if (pending) return <VerifyStep Frame={Frame} userId={pending.userId} email={pending.email} onDone={onDone} />;
+  if (pending)
+    return (
+      <VerifyStep
+        Frame={Frame}
+        userId={pending.userId}
+        email={pending.email}
+        password={pending.password}
+        sendFirst={pending.resume}
+        onDone={onDone}
+        onBack={pending.resume ? () => setPending(null) : undefined}
+        login={login}
+      />
+    );
 
   const err = form.formState.errors;
   return (
     <Frame title="Create your account" subtitle={subtitle}>
       <form onSubmit={onSubmit} noValidate className="w-full space-y-5">
         <FormError message={formError} />
+        {emailTaken && (
+          <p role="status" className="rounded-md bg-info-soft px-3 py-2 text-sm text-info-soft-foreground">
+            Started signing up with {emailTaken.email} but didn&apos;t enter the code?{" "}
+            <button type="button" className="cursor-pointer font-medium underline underline-offset-4" onClick={() => setPending({ email: emailTaken.email, password: emailTaken.password, resume: true })}>
+              Verify this email
+            </button>
+          </p>
+        )}
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
           <FormField label="First name" htmlFor="firstName" required error={err.firstName?.message}>
             <Input autoComplete="given-name" {...form.register("firstName")} />
@@ -360,13 +401,58 @@ export function RegisterForm({
   );
 }
 
-function VerifyStep({ Frame, userId, email, onDone }: { Frame: AuthFrame; userId: string; email: string; onDone: () => void }) {
-  const { signInWithTokens } = useAuth();
+/**
+ * Email code step. Right after sign-up (userId known) the code goes to registration/confirm, which also signs the user
+ * in. When resuming an unfinished sign-up (code screen closed, or login refused as unverified) only the email is known:
+ * a new code is sent, confirmed via email/confirm (activates the account), then the user is signed in with the
+ * password they just typed, or sent to log in.
+ */
+function VerifyStep({
+  Frame,
+  userId,
+  email,
+  password,
+  sendFirst,
+  onDone,
+  onBack,
+  login,
+}: {
+  Frame: AuthFrame;
+  /** Where "Go to log in" leads after verifying without signing in; defaults to onBack. */
+  login?: AuthLink;
+  userId?: string;
+  email: string;
+  password?: string;
+  sendFirst?: boolean;
+  onDone: () => void;
+  onBack?: () => void;
+}) {
+  const { signInWithTokens, signIn } = useAuth();
   const [code, setCode] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [info, setInfo] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
-  const [cooldown, setCooldown] = useCooldown(60);
+  const [verifiedNoLogin, setVerifiedNoLogin] = React.useState(false);
+  const [cooldown, setCooldown] = useCooldown(sendFirst ? 0 : 60);
+  const sent = React.useRef(false);
+
+  const resend = React.useCallback(async () => {
+    setError(null);
+    try {
+      await registrationService.resendEmail(email);
+      setInfo("If this account still needs verifying, a new code is on its way.");
+      setCooldown(60);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  }, [email, setCooldown]);
+
+  React.useEffect(() => {
+    if (sendFirst && !sent.current) {
+      sent.current = true;
+      void resend();
+    }
+  }, [sendFirst, resend]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -377,9 +463,24 @@ function VerifyStep({ Frame, userId, email, onDone }: { Frame: AuthFrame; userId
     setBusy(true);
     setError(null);
     try {
-      const tokens = await registrationService.confirm(userId, code);
-      await signInWithTokens(tokens);
-      onDone();
+      if (userId) {
+        await signInWithTokens(await registrationService.confirm(userId, code));
+        onDone();
+        return;
+      }
+      await registrationService.confirmEmail(email, code);
+      if (!password) {
+        setVerifiedNoLogin(true);
+        return;
+      }
+      try {
+        const result = await signIn(email, password);
+        if (result.kind === "signed-in") onDone();
+        else setVerifiedNoLogin(true);
+      } catch {
+        // Verified, but the password typed here isn't the account's (e.g. a second sign-up attempt): log in normally.
+        setVerifiedNoLogin(true);
+      }
     } catch (err) {
       setError(isApiError(err) && err.status === 400 ? "That code is incorrect or has expired. Request a new one below." : getErrorMessage(err));
       setCode("");
@@ -388,19 +489,24 @@ function VerifyStep({ Frame, userId, email, onDone }: { Frame: AuthFrame; userId
     }
   };
 
-  const resend = async () => {
-    setError(null);
-    try {
-      await registrationService.resendEmail(email);
-      setInfo("If your account still needs verifying, a new code is on its way.");
-      setCooldown(60);
-    } catch (err) {
-      setError(getErrorMessage(err));
-    }
-  };
+  if (verifiedNoLogin) {
+    return (
+      <Frame title="Email verified" subtitle={<>{email} is verified. Log in with the password you chose when you signed up.</>}>
+        {login ? (
+          <SwitchLink link={login} className={buttonVariants({ size: "lg", className: "w-full" })}>
+            Go to log in
+          </SwitchLink>
+        ) : (
+          <Button size="lg" className="w-full" onClick={onBack ?? onDone}>
+            Go to log in
+          </Button>
+        )}
+      </Frame>
+    );
+  }
 
   return (
-    <Frame title="Verify your email" subtitle={<>We sent a 6-digit code to {email}.</>}>
+    <Frame title="Verify your email" subtitle={<>{sendFirst ? "We've sent" : "We sent"} a 6-digit code to {email}.</>}>
       <form onSubmit={submit} noValidate className="w-full space-y-6">
         <FormError message={error} />
         {!error && <Info message={info} />}
@@ -410,10 +516,15 @@ function VerifyStep({ Frame, userId, email, onDone }: { Frame: AuthFrame; userId
         <Button type="submit" size="lg" className="w-full" loading={busy}>
           Verify and continue
         </Button>
-        <div className="text-center text-sm">
-          <button type="button" onClick={resend} disabled={cooldown > 0} className="cursor-pointer text-foreground underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline">
+        <div className="flex justify-center gap-4 text-sm">
+          <button type="button" onClick={() => void resend()} disabled={cooldown > 0} className="cursor-pointer text-foreground underline underline-offset-4 disabled:cursor-not-allowed disabled:text-muted-foreground disabled:no-underline">
             {cooldown > 0 ? `Resend code in ${cooldown}s` : "Resend code"}
           </button>
+          {onBack && (
+            <button type="button" onClick={onBack} className="cursor-pointer text-muted-foreground underline underline-offset-4">
+              Back
+            </button>
+          )}
         </div>
       </form>
     </Frame>
