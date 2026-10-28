@@ -15,6 +15,7 @@ import { BackLink } from "../components/back-link";
 import { useActiveSeller } from "../lib/queries";
 import { DropZone } from "../bulk/drop-zone";
 import { importErrorMessage, importKeys, isUncertain, saveBlob, statusLabel } from "./shared";
+import { OwnSheetMapper, type ConvertedSheet } from "./own-sheet-mapper";
 
 /**
  * E2 seller bulk import, step 1: download the server's template, pick the filled .xlsx (and an optional .zip of
@@ -27,6 +28,9 @@ export default function SellerImportPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [excel, setExcel] = React.useState<File | null>(null);
+  // "own": the seller's own sheet, matched and converted in the browser; "template": the StockOut template as-is.
+  const [mode, setMode] = React.useState<"own" | "template">("own");
+  const [converted, setConverted] = React.useState<ConvertedSheet | null>(null);
   const [zip, setZip] = React.useState<File | null>(null);
   const [fileError, setFileError] = React.useState<string | null>(null);
   const [stage, setStage] = React.useState<null | "create" | "excel" | "zip" | "validate">(null);
@@ -108,34 +112,89 @@ export default function SellerImportPage() {
   return (
     <div className="space-y-4">
       <BackLink to="/seller/listings">Listings</BackLink>
-      <PageHeader title="Bulk import" description="Create many listing drafts at once from the StockOut Excel template, with an optional ZIP of product photos." />
+      <PageHeader title="Bulk import" description="Create many listing drafts at once from your own Excel or CSV, or from the StockOut template, with an optional ZIP of product photos." />
       {!enabled ? (
         <ListingAccessNotice seller={seller} />
       ) : (
         <>
           <SectionCard>
-            <h2 className="font-heading text-lg font-bold text-foreground">1. Download the template</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Fill in the <strong>Products</strong> sheet. The template lists the required columns and the allowed values. Reference each photo by its path inside your ZIP.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <Button variant="secondary" onClick={() => void downloadTemplate()} loading={templateState === "loading"}>
-                <DownloadSimpleIcon /> Download template (.xlsx)
-              </Button>
-              {templateError && <p className="text-sm text-danger" role="alert">{templateError}</p>}
+            <h2 className="font-heading text-lg font-bold text-foreground">1. Your product list</h2>
+            <fieldset className="mt-3 grid gap-3 sm:grid-cols-2">
+              <legend className="sr-only">How do you want to import?</legend>
+              {(
+                [
+                  ["own", "Use my own Excel or CSV", "Upload the stock list you already have. You match its columns to ours once; we remember it next time."],
+                  ["template", "Use the StockOut template", "Download our template, fill it in, and upload it."],
+                ] as const
+              ).map(([value, title, desc]) => (
+                <label key={value} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border p-3 has-[:checked]:border-ink has-[:checked]:bg-surface-muted">
+                  <input
+                    type="radio"
+                    name="import-mode"
+                    value={value}
+                    checked={mode === value}
+                    disabled={busy}
+                    className="mt-1 accent-[var(--ink)]"
+                    onChange={() => {
+                      setMode(value);
+                      setExcel(null);
+                      setConverted(null);
+                      setFileError(null);
+                    }}
+                  />
+                  <span>
+                    <span className="block text-sm font-medium text-foreground">{title}</span>
+                    <span className="text-xs text-muted-foreground">{desc}</span>
+                  </span>
+                </label>
+              ))}
+            </fieldset>
+
+            <div className="mt-5">
+              {mode === "own" ? (
+                <OwnSheetMapper
+                  disabled={busy}
+                  onReady={(r) => {
+                    setConverted(r);
+                    setExcel(r.file);
+                  }}
+                  onClear={() => {
+                    setConverted(null);
+                    setExcel(null);
+                  }}
+                />
+              ) : (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <Button variant="secondary" onClick={() => void downloadTemplate()} loading={templateState === "loading"}>
+                      <DownloadSimpleIcon /> Download template (.xlsx)
+                    </Button>
+                    {templateError && <p className="text-sm text-danger" role="alert">{templateError}</p>}
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Fill in the <strong>Products</strong> sheet. The template lists the required columns and the allowed values. Reference each photo by its path inside your ZIP.
+                  </p>
+                  <FileSlot file={excel} onClear={() => setExcel(null)} disabled={busy}>
+                    <DropZone id="import-excel" label="Filled-in template (required)" hint="The StockOut template, .xlsx up to 50 MB" accept=".xlsx" icon={FileXlsIcon} buttonLabel="Choose spreadsheet" onFiles={pickExcel} filter={false} disabled={busy} />
+                  </FileSlot>
+                </div>
+              )}
             </div>
           </SectionCard>
 
           <SectionCard>
-            <h2 className="font-heading text-lg font-bold text-foreground">2. Upload your files</h2>
+            <h2 className="font-heading text-lg font-bold text-foreground">2. Photos and upload</h2>
             <p className="mb-4 mt-1 text-sm text-muted-foreground">We check every row before anything is created. Nothing is listed until you confirm, and imported listings start as drafts.</p>
             <div className="grid gap-4 md:grid-cols-2">
-              <FileSlot file={excel} onClear={() => setExcel(null)} disabled={busy}>
-                <DropZone id="import-excel" label="Spreadsheet (required)" hint="The filled-in template, .xlsx up to 50 MB" accept=".xlsx" icon={FileXlsIcon} buttonLabel="Choose spreadsheet" onFiles={pickExcel} filter={false} disabled={busy} />
-              </FileSlot>
               <FileSlot file={zip} onClear={() => setZip(null)} disabled={busy}>
-                <DropZone id="import-zip" label="Product images (optional)" hint="One .zip up to 100 MB. Folder paths must match the sheet." accept=".zip" icon={FileZipIcon} buttonLabel="Choose ZIP" onFiles={pickZip} filter={false} disabled={busy} />
+                <DropZone id="import-zip" label="Product images (optional)" hint="One .zip up to 100 MB. Paths must match the image names in your sheet." accept=".zip" icon={FileZipIcon} buttonLabel="Choose ZIP" onFiles={pickZip} filter={false} disabled={busy} />
               </FileSlot>
+              {mode === "own" && (
+                <div className="rounded-lg border border-border p-3 text-sm">
+                  <p className="font-medium text-foreground">Product list</p>
+                  <p className="text-muted-foreground">{converted ? `${formatNumber(converted.rows)} products from ${converted.sourceName}` : "Match your columns above, then press “Use these products”."}</p>
+                </div>
+              )}
             </div>
             {fileError && <p className="mt-3 text-sm text-danger" role="alert">{fileError}</p>}
             {error && (

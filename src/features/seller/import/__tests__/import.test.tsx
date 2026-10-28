@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
+import readExcelFile from "read-excel-file/universal";
+import { readAs } from "../mapping";
 import { routes } from "@/app/router/router";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch, type MockRoute } from "@/test/http";
@@ -11,6 +13,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   sessionStorage.clear();
+  localStorage.clear();
 });
 
 const SELLER = "11111111-1111-1111-1111-111111111111";
@@ -135,13 +138,14 @@ describe("E2 bulk import", () => {
     renderWithApp(routes, "/seller/listings/import");
     expect(await screen.findByRole("heading", { name: "Bulk import" })).toBeInTheDocument();
     expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
+    await user.click(screen.getByRole("radio", { name: /Use the StockOut template/ }));
 
     // Wrong type is refused before anything is sent.
-    await user.upload(screen.getByLabelText(/Spreadsheet \(required\)/), new File(["a,b"], "stock.csv", { type: "text/csv" }));
+    await user.upload(screen.getByLabelText(/Filled-in template \(required\)/), new File(["a,b"], "stock.csv", { type: "text/csv" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/\.xlsx/);
     expect(screen.getByRole("button", { name: /Upload and check/ })).toBeDisabled();
 
-    await user.upload(screen.getByLabelText(/Spreadsheet \(required\)/), new File(["xlsx"], "stock.xlsx"));
+    await user.upload(screen.getByLabelText(/Filled-in template \(required\)/), new File(["xlsx"], "stock.xlsx"));
     await user.upload(screen.getByLabelText(/Product images/), new File(["zip"], "photos.zip"));
     await user.click(screen.getByRole("button", { name: /Upload and check/ }));
 
@@ -218,10 +222,58 @@ describe("E2 bulk import", () => {
     ]);
     const user = userEvent.setup();
     renderWithApp(routes, "/seller/listings/import");
-    await user.upload(await screen.findByLabelText(/Spreadsheet \(required\)/), new File(["xlsx"], "stock.xlsx"));
+    await user.click(await screen.findByRole("radio", { name: /Use the StockOut template/ }));
+    await user.upload(await screen.findByLabelText(/Filled-in template \(required\)/), new File(["xlsx"], "stock.xlsx"));
     await user.click(screen.getByRole("button", { name: /Upload and check/ }));
     expect(await screen.findByText(/File storage for imports is temporarily unavailable/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open this import" })).toHaveAttribute("href", `/seller/listings/import/${JOB}`);
+  });
+
+  it("converts the seller's own sheet into the template after they match the columns", async () => {
+    let uploaded: File | null = null;
+    setup([
+      { method: "GET", path: BASE, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) },
+      {
+        method: "GET",
+        path: "/api/v1/catalog/categories",
+        respond: () => ({ body: { success: true, data: [{ categoryId: "c-pumps", slug: "pumps", parentCategoryId: null, name: "Pumps", children: [{ categoryId: "11111111-2222-3333-4444-555555555555", slug: "centrifugal", parentCategoryId: "c-pumps", name: "Centrifugal Pumps", children: [] }] }] } }),
+      },
+      { method: "POST", path: BASE, respond: () => ({ status: 201, body: jobDto("CREATED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/upload-excel`, respond: ({ body }) => ((uploaded = (body as FormData).get("file") as File), { body: jobDto("EXCEL_UPLOADED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/validate`, respond: () => ({ body: jobDto("VALIDATED") }) },
+      { method: "GET", path: `${BASE}/${JOB}/results`, respond: () => ({ body: results("VALIDATED", { failedRows: 0 }) }) },
+      { method: "GET", path: `${BASE}/${JOB}/preview`, respond: () => ({ body: preview("VALIDATED", []) }) },
+    ]);
+    const csv = "Stock list Oct 2026,,,,\r\nItem Code,Item Description,UOM,Qty,Rate (AED)\r\nEM-001,PPR pipe 25mm,MTR,120,\"1,250.50\"\r\nEM-002,Gate valve 2 inch,PCS,40,85\r\n";
+    const user = userEvent.setup({ applyAccept: false });
+    renderWithApp(routes, "/seller/listings/import");
+    expect(await screen.findByRole("radio", { name: /Use my own Excel or CSV/ })).toBeChecked();
+    await user.upload(screen.getByLabelText(/Your spreadsheet/), new File([csv], "ledger.csv", { type: "text/csv" }));
+
+    // Headings found in row 2; codes, names, units, quantities and prices matched automatically.
+    expect(await screen.findByTestId("mapping-counts")).toHaveTextContent("2 products found · 0 complete · 2 missing required values");
+    expect(screen.getByText(/Still to match: Category/)).toBeInTheDocument();
+
+    // Category: one for every row.
+    await user.click(screen.getByRole("combobox", { name: "Source for Category" }));
+    await user.click(await screen.findByRole("option", { name: "Same for every row…" }));
+    await user.click(screen.getByRole("combobox", { name: "Category for every row" }));
+    await user.click(await screen.findByRole("option", { name: "Pumps › Centrifugal Pumps" }));
+    expect(screen.getByTestId("mapping-counts")).toHaveTextContent("2 products found · 2 complete · 0 missing required values");
+
+    await user.click(screen.getByRole("button", { name: "Use these 2 products" }));
+    expect(await screen.findByText("2 products ready to upload.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+    await waitFor(() => expect(uploaded).not.toBeNull());
+    expect(uploaded!.name).toBe("stockout_import_from_your_sheet.xlsx");
+    const sheets = (await readExcelFile(await readAs(uploaded!, "arrayBuffer"))) as Array<{ sheet: string; data: unknown[][] }>;
+    expect(sheets[0].sheet).toBe("Products");
+    expect(sheets[0].data[1].slice(0, 3)).toEqual(["EM-001", "PPR pipe 25mm", "11111111-2222-3333-4444-555555555555"]);
+    expect(sheets[0].data[1][6]).toBe(1250.5);
+    expect(sheets[0].data[1][10]).toBe(120);
+    expect(sheets[0].data[1][11]).toBe("MTR");
+    // The matching is remembered for the next file with the same headings.
+    expect(localStorage.getItem("stockout.import.mappings")).toContain("item code");
   });
 
   it("is locked for members who aren't the seller owner", async () => {
