@@ -142,7 +142,8 @@ export function AddDocumentDialog({
         ...(COMBINED_TYPES.has(v.documentType) ? { containsSignatoryId: v.containsId, containsSignatoryAuthorityProof: v.containsAuthority } : {}),
       });
     },
-    invalidate: [sellerKeys.documents(sellerId)],
+    // The seller record holds the server's missing-categories list and completeness flag, so it must reload too.
+    invalidate: [sellerKeys.documents(sellerId), sellerKeys.seller(sellerId), sellerKeys.eligibility(sellerId)],
     successMessage: "Document added.",
     onSuccess: () => onOpenChange(false),
   });

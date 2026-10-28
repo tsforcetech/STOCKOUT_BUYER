@@ -47,7 +47,12 @@ export function DocumentsTable({ sellerId, canDelete, emptyAction }: { sellerId:
       if (fresh.some((d) => d.sellerDocumentId === doc.sellerDocumentId)) throw new Error("The document could not be deleted. Please try again.");
     },
     successMessage: "Document deleted.",
-    onSuccess: () => setToDelete(null),
+    onSuccess: () => {
+      setToDelete(null);
+      // Completeness (missingDocumentCategories) lives on the seller record.
+      void qc.invalidateQueries({ queryKey: sellerKeys.seller(sellerId) });
+      void qc.invalidateQueries({ queryKey: sellerKeys.eligibility(sellerId) });
+    },
   });
 
   const list = docs.data ?? [];

@@ -19,7 +19,7 @@ import { AddDocumentDialog, type UploadCategory } from "./components/add-documen
 import { BusinessProfileDialog } from "./components/business-profile-dialog";
 import { KycChecklist } from "./components/kyc-checklist";
 import { ListingEligibilityNotice } from "./components/listing-access-notice";
-import { licenceProblem } from "./lib/kyc";
+import { kycBlockerHints, kycChecklist, licenceProblem } from "./lib/kyc";
 import { DocumentsTable, useSellerDocuments } from "./components/documents-table";
 import { Notice } from "./components/notice";
 import { OnboardingSteps, onboardingStepIndex } from "./components/onboarding-steps";
@@ -57,7 +57,12 @@ export default function SellerBusinessPage() {
   const licence = seller ? licenceProblem(seller) : null;
   // Older deployments don't report completeness; then at least one document is required, as before.
   const docsComplete = seller?.mandatoryDocumentsComplete ?? docCount > 0;
-  const blockers = seller ? [licence, docsComplete ? null : "Upload a document for every item in the checklist."].filter((b): b is string => !!b) : [];
+  // Name the real reason when files are uploaded but the server still counts a category as missing.
+  const hints = seller && !docsComplete ? kycBlockerHints(seller, docs.data ?? []) : [];
+  const emptyCategory = seller && !docsComplete ? kycChecklist(seller, docs.data ?? []).some((c) => c.missing && c.docs.length === 0) : false;
+  const blockers = seller
+    ? [licence, ...hints, emptyCategory || (!docsComplete && !hints.length) ? "Upload a document for every item in the checklist." : null].filter((b): b is string => !!b)
+    : [];
 
   const submit = useApiMutation({
     toastOnError: false,

@@ -7,7 +7,9 @@ import { filesService } from "@/services/files.service";
 import type { MarketplaceSellerDto, SellerDocumentResponse } from "@/api/types/user-organization";
 import { AddDocumentDialog } from "../components/add-document-dialog";
 import { BusinessProfileDialog } from "../components/business-profile-dialog";
-import { kycChecklist, licenceProblem } from "../lib/kyc";
+import { kycBlockerHints, kycChecklist, licenceProblem } from "../lib/kyc";
+import { QueryClient } from "@tanstack/react-query";
+import { sellerKeys } from "../lib/queries";
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -71,7 +73,38 @@ describe("KYC checklist", () => {
   });
 });
 
+describe("KYC blocker hints", () => {
+  it("explains uploaded files the server doesn't count, instead of asking to upload again", () => {
+    const vatOnly = seller({ missingDocumentCategories: ["VAT_CERTIFICATE_OR_DECLARATION"] });
+    expect(kycBlockerHints(vatOnly, [doc("VAT_NON_REGISTRATION_DECLARATION")]).join(" ")).toMatch(/doesn't yet confirm the business isn't VAT registered/);
+    expect(kycBlockerHints({ ...vatOnly, isVatRegistered: true }, [doc("VAT_DECLARATION")]).join(" ")).toMatch(/VAT\/TRN certificate is needed/);
+    expect(kycBlockerHints(vatOnly, [doc("TRN_CERTIFICATE")]).join(" ")).toMatch(/certificate you uploaded doesn't count/);
+    expect(kycBlockerHints(seller(), [doc("BANK_IBAN_LETTER", { expiresAt: "2020-01-01T00:00:00Z" })]).join(" ")).toMatch(/expired on 01\/01\/2020/);
+    expect(kycBlockerHints(seller(), [doc("Trade licence")]).join(" ")).toMatch(/without a recognised document type/);
+    expect(kycBlockerHints(seller({ missingDocumentCategories: [] }), [doc("TRADE_LICENSE")])).toEqual([]);
+  });
+});
+
 describe("Add document dialog", () => {
+  it("reloads the seller record after an upload so the checklist and Submit reflect the server's new completeness", async () => {
+    const upload = vi.spyOn(filesService, "upload").mockResolvedValue({ fileId: "f-9" } as Awaited<ReturnType<typeof filesService.upload>>);
+    const invalidate = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    mockFetch([
+      { method: "POST", path: "/api/v1/marketplace/sellers/s-1/documents", respond: () => ({ body: { success: true, data: doc("VAT_DECLARATION") } }) },
+      { method: "GET", path: "/api/v1/marketplace/sellers/s-1/documents", respond: () => ({ body: { success: true, data: [] } }) },
+    ]);
+    const user = userEvent.setup();
+    renderWithApp([{ path: "/", element: <AddDocumentDialog sellerId="s-1" open onOpenChange={() => {}} vatRegistered={false} initialCategory="VAT" /> }], "/");
+    const dialog = await screen.findByRole("dialog");
+    await user.click(within(dialog).getByRole("combobox", { name: /Document type/ }));
+    await user.click(await screen.findByRole("option", { name: "VAT declaration" }));
+    await user.upload(dialog.querySelector('input[type="file"]') as HTMLInputElement, new File(["x"], "decl.pdf", { type: "application/pdf" }));
+    await user.click(screen.getByRole("button", { name: "Upload & add" }));
+    await waitFor(() => expect(invalidate.mock.calls.some(([f]) => JSON.stringify(f?.queryKey) === JSON.stringify(sellerKeys.seller("s-1")))).toBe(true));
+    invalidate.mockRestore();
+    upload.mockRestore();
+  });
+
   it("only offers declarations for a non-VAT business and requires combined signatory files to declare their contents", async () => {
     const upload = vi.spyOn(filesService, "upload").mockResolvedValue({ fileId: "f-9" } as Awaited<ReturnType<typeof filesService.upload>>);
     let posted: Record<string, unknown> | null = null;

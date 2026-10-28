@@ -157,6 +157,48 @@ export function kycChecklist(seller: MarketplaceSellerDto, docs: SellerDocumentR
   ];
 }
 
+/**
+ * Why categories the seller has uploaded files for still count as missing on the server
+ * (KycValidationHelper.EvaluateSubmissionCompleteness): VAT files only count when they match the profile's VAT status
+ * (a declaration also needs the profile's "not VAT registered" confirmation), expired and rejected files are ignored,
+ * and files saved with a type the server doesn't recognise never count.
+ */
+export function kycBlockerHints(seller: MarketplaceSellerDto, docs: SellerDocumentResponse[]): string[] {
+  const missing = new Set((seller.missingDocumentCategories ?? []).map((c) => c.toUpperCase()));
+  const now = Date.now();
+  const hints: string[] = [];
+  const label = (d: SellerDocumentResponse) => kycTypeLabel(d.documentType) ?? d.documentType;
+  const usable = docs.filter((d) => d.verificationStatus !== "REJECTED" && !(d.expiresAt && Date.parse(d.expiresAt) <= now));
+
+  for (const d of docs) {
+    if (d.verificationStatus !== "REJECTED" && d.expiresAt && Date.parse(d.expiresAt) <= now)
+      hints.push(`"${label(d)}" expired on ${new Date(d.expiresAt).toLocaleDateString("en-GB")}, so it doesn't count. Upload a current one, or correct the expiry date if it was entered wrongly.`);
+  }
+  const unknown = docs.filter((d) => d.verificationStatus !== "REJECTED" && !categoryOf(d.documentType) && d.documentType.toUpperCase() !== "OTHER");
+  for (const d of unknown) hints.push(`"${d.documentType}" was saved without a recognised document type, so it doesn't count. Upload it again and choose its type.`);
+
+  if (missing.has("VAT_CERTIFICATE_OR_DECLARATION")) {
+    const vat = usable.filter((d) => categoryOf(d.documentType) === "VAT");
+    const hasDecl = vat.some((d) => isVatTypeAllowed(d.documentType, false));
+    const hasCert = vat.some((d) => isVatTypeAllowed(d.documentType, true));
+    if (seller.isVatRegistered && hasDecl && !hasCert)
+      hints.push("Your business profile says the business is VAT registered, so a VAT/TRN certificate is needed. The declaration you uploaded doesn't count. Upload the certificate, or correct the VAT status in the business profile.");
+    else if (!seller.isVatRegistered && hasCert && !hasDecl)
+      hints.push("Your business profile says the business isn't VAT registered, so the VAT certificate you uploaded doesn't count. If you are registered, set that in the business profile and add your TRN.");
+    else if (!seller.isVatRegistered && hasDecl && !seller.hasVatDeclaration)
+      hints.push("Your VAT declaration is uploaded, but the business profile doesn't yet confirm the business isn't VAT registered. Open Business profile and tick that confirmation.");
+  }
+  for (const [code, name] of [
+    ["TRADE_LICENSE", "trade licence"],
+    ["BANK_IBAN_LETTER", "bank letter"],
+  ] as const) {
+    const cat = code === "TRADE_LICENSE" ? "TRADE_LICENSE" : "BANK";
+    const all = docs.filter((d) => categoryOf(d.documentType) === cat);
+    if (missing.has(code) && all.length > 0 && all.every((d) => d.verificationStatus === "REJECTED")) hints.push(`Your ${name} was rejected by the reviewer. Upload a new one.`);
+  }
+  return [...new Set(hints)];
+}
+
 /** Licence expiry is required and must be in the future (DEC-011). */
 export function licenceProblem(seller: MarketplaceSellerDto): string | null {
   if (!seller.tradeLicenseExpiresAtUtc) return "Add your trade licence expiry date in the business profile.";
