@@ -15,7 +15,7 @@ import { formatDate, humanize } from "@/lib/utils/format";
 import { isApiError } from "@/lib/api/errors";
 import { usePolicyGate } from "@/features/legal/policy-gate";
 import { marketplaceService } from "@/services/marketplace.service";
-import { AddDocumentDialog, type UploadCategory } from "./components/add-document-dialog";
+import { AddDocumentDialog, type SignatoryPart, type UploadCategory } from "./components/add-document-dialog";
 import { BusinessProfileDialog } from "./components/business-profile-dialog";
 import { KycChecklist } from "./components/kyc-checklist";
 import { ListingEligibilityNotice } from "./components/listing-access-notice";
@@ -45,7 +45,7 @@ export default function SellerBusinessPage() {
   const { reloadActor } = useAuth();
   const account = useSellerAccount(sellerId);
   const docs = useSellerDocuments(sellerId);
-  const [adding, setAdding] = React.useState<UploadCategory | null>(null);
+  const [adding, setAdding] = React.useState<{ category: UploadCategory; part?: SignatoryPart } | null>(null);
   const [editingProfile, setEditingProfile] = React.useState(false);
   const { recheck } = usePolicyGate();
   const [confirmSubmit, setConfirmSubmit] = React.useState(false);
@@ -80,7 +80,7 @@ export default function SellerBusinessPage() {
   });
 
   const addButton = ownerActive && (
-    <Button variant="action" onClick={() => setAdding("TRADE_LICENSE")}>
+    <Button variant="action" onClick={() => setAdding({ category: "TRADE_LICENSE" })}>
       <PlusIcon /> Add document
     </Button>
   );
@@ -115,7 +115,7 @@ export default function SellerBusinessPage() {
                   <h2 className="font-heading text-lg font-bold text-foreground">Verification checklist</h2>
                   <p className="text-sm text-muted-foreground">Everything our reviewers need. Each item must be uploaded before you can submit.</p>
                 </div>
-                <KycChecklist seller={seller} docs={docs.data ?? []} canEdit={ownerActive} onUpload={setAdding} onEditProfile={() => setEditingProfile(true)} />
+                <KycChecklist seller={seller} docs={docs.data ?? []} canEdit={ownerActive} onUpload={(category, part) => setAdding({ category, part })} onEditProfile={() => setEditingProfile(true)} />
               </SectionCard>
             )}
 
@@ -228,7 +228,8 @@ export default function SellerBusinessPage() {
       <AddDocumentDialog
         sellerId={sellerId}
         open={adding !== null}
-        initialCategory={adding ?? "TRADE_LICENSE"}
+        initialCategory={adding?.category ?? "TRADE_LICENSE"}
+        signatoryPart={adding?.part}
         vatRegistered={!!seller?.isVatRegistered}
         onOpenChange={(o) => !o && setAdding(null)}
       />

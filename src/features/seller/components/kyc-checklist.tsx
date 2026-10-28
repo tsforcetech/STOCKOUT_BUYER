@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/misc";
 import type { MarketplaceSellerDto, SellerDocumentResponse } from "@/api/types/user-organization";
 import { kycChecklist, licenceProblem, type CategoryStatus } from "../lib/kyc";
-import type { UploadCategory } from "./add-document-dialog";
+import type { SignatoryPart, UploadCategory } from "./add-document-dialog";
 
 /**
  * The submission requirements (PA-1B.1): business profile with a valid licence expiry, plus the four document
@@ -19,7 +19,7 @@ export function KycChecklist({
   seller: MarketplaceSellerDto;
   docs: SellerDocumentResponse[];
   canEdit: boolean;
-  onUpload: (category: UploadCategory) => void;
+  onUpload: (category: UploadCategory, part?: SignatoryPart) => void;
   onEditProfile: () => void;
 }) {
   const rows = kycChecklist(seller, docs);
@@ -56,7 +56,9 @@ export function KycChecklist({
                 Confirm in profile
               </Button>
             ) : canEdit && state !== "verified" && (
-              <Button variant={state === "missing" || state === "rejected" ? "action" : "secondary"} size="sm" onClick={() => onUpload(r.key.startsWith("SIGNATORY") ? "SIGNATORY" : (r.key as UploadCategory))}>
+              <Button variant={state === "missing" || state === "rejected" ? "action" : "secondary"} size="sm" onClick={() =>
+                  r.key === "SIGNATORY_ID" ? onUpload("SIGNATORY", "ID") : r.key === "SIGNATORY_AUTHORITY" ? onUpload("SIGNATORY", "AUTHORITY") : onUpload(r.key as UploadCategory)
+                }>
                 <UploadSimpleIcon /> Upload
               </Button>
             )}

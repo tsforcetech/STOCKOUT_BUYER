@@ -36,6 +36,8 @@ const LIMIT = FILE_LIMITS.SELLER_DOCUMENT;
 const ACCEPTED = LIMIT.accept.split(",");
 
 export type UploadCategory = KycCategory | "OTHER";
+/** Which signatory element the seller is adding, when opened from that checklist row. */
+export type SignatoryPart = "ID" | "AUTHORITY";
 
 const CATEGORIES: Array<{ value: UploadCategory; label: string }> = [
   { value: "TRADE_LICENSE", label: "Trade licence" },
@@ -46,13 +48,24 @@ const CATEGORIES: Array<{ value: UploadCategory; label: string }> = [
 ];
 
 /** Document types offered per category; VAT depends on the profile's VAT status (PA-1B.1-R4). */
-function typeGroups(category: UploadCategory, vatRegistered: boolean): Array<{ label?: string; options: DocTypeOption[] }> {
+function typeGroups(category: UploadCategory, vatRegistered: boolean, part?: SignatoryPart): Array<{ label?: string; options: DocTypeOption[] }> {
   switch (category) {
     case "TRADE_LICENSE":
       return [{ options: TRADE_LICENSE_TYPES }];
     case "VAT":
       return [{ options: vatRegistered ? VAT_REGISTERED_TYPES : VAT_DECLARATION_TYPES }];
     case "SIGNATORY":
+      // Opened from the "Signatory authority" / "Signatory identity" row: only offer what that row needs.
+      if (part === "AUTHORITY")
+        return [
+          { label: "Authority to act for the company", options: SIGNATORY_AUTHORITY_TYPES },
+          { label: "Both in one file", options: SIGNATORY_COMBINED_TYPES },
+        ];
+      if (part === "ID")
+        return [
+          { label: "Identity", options: SIGNATORY_ID_TYPES },
+          { label: "Both in one file", options: SIGNATORY_COMBINED_TYPES },
+        ];
       return [
         { label: "Identity", options: SIGNATORY_ID_TYPES },
         { label: "Authority to act for the company", options: SIGNATORY_AUTHORITY_TYPES },
@@ -89,7 +102,17 @@ const schema = z
 
 type FormValues = z.input<typeof schema>;
 type Values = z.output<typeof schema>;
-const empty = (category: UploadCategory): FormValues => ({ category, documentType: "", documentNumber: "", issuedAt: "", expiresAt: "", containsId: false, containsAuthority: false, file: null });
+const PART_DEFAULT: Record<SignatoryPart, string> = { AUTHORITY: "SIGNATORY_POA", ID: "SIGNATORY_EMIRATES_ID" };
+const empty = (category: UploadCategory, part?: SignatoryPart): FormValues => ({
+  category,
+  documentType: category === "SIGNATORY" && part ? PART_DEFAULT[part] : "",
+  documentNumber: "",
+  issuedAt: "",
+  expiresAt: "",
+  containsId: false,
+  containsAuthority: false,
+  file: null,
+});
 
 export function AddDocumentDialog({
   sellerId,
@@ -97,6 +120,7 @@ export function AddDocumentDialog({
   onOpenChange,
   vatRegistered = false,
   initialCategory = "TRADE_LICENSE",
+  signatoryPart,
 }: {
   sellerId: string;
   open: boolean;
@@ -104,22 +128,23 @@ export function AddDocumentDialog({
   /** From the business profile: decides which VAT document types are accepted. */
   vatRegistered?: boolean;
   initialCategory?: UploadCategory;
+  signatoryPart?: SignatoryPart;
 }) {
   const [formError, setFormError] = React.useState<string | null>(null);
   const [progress, setProgress] = React.useState<number | null>(null);
   // Keeps an uploaded file so a failed "add document" call can be retried without uploading again.
   const uploaded = React.useRef<{ file: File; fileId: string } | null>(null);
-  const form = useForm<FormValues, unknown, Values>({ resolver: zodResolver(schema), defaultValues: empty(initialCategory) });
+  const form = useForm<FormValues, unknown, Values>({ resolver: zodResolver(schema), defaultValues: empty(initialCategory, signatoryPart) });
   const errors = form.formState.errors;
 
   React.useEffect(() => {
     if (open) {
-      form.reset(empty(initialCategory));
+      form.reset(empty(initialCategory, signatoryPart));
       setFormError(null);
       setProgress(null);
       uploaded.current = null;
     }
-  }, [open, form, initialCategory]);
+  }, [open, form, initialCategory, signatoryPart]);
 
   const add = useApiMutation({
     toastOnError: false,
@@ -166,7 +191,7 @@ export function AddDocumentDialog({
   const documentType = form.watch("documentType");
   const containsId = form.watch("containsId");
   const containsAuthority = form.watch("containsAuthority");
-  const groups = typeGroups(category, vatRegistered);
+  const groups = typeGroups(category, vatRegistered, category === initialCategory ? signatoryPart : undefined);
 
   return (
     <Dialog open={open} onOpenChange={(o) => !busy && onOpenChange(o)}>

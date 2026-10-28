@@ -134,6 +134,17 @@ describe("Add document dialog", () => {
     upload.mockRestore();
   });
 
+  it("opened from the Signatory authority row, offers only authority documents with power of attorney preselected", async () => {
+    mockFetch([{ method: "GET", path: "/api/v1/marketplace/sellers/s-1/documents", respond: () => ({ body: { success: true, data: [] } }) }]);
+    renderWithApp([{ path: "/", element: <AddDocumentDialog sellerId="s-1" open onOpenChange={() => {}} initialCategory="SIGNATORY" signatoryPart="AUTHORITY" /> }], "/");
+    const dialog = await screen.findByRole("dialog");
+    const values = Array.from(dialog.querySelectorAll("select option")).map((o) => (o as HTMLOptionElement).value).filter((v) => v && !v.startsWith("__"));
+    expect(values).toContain("SIGNATORY_POA");
+    expect(values).not.toContain("SIGNATORY_EMIRATES_ID");
+    expect(values).not.toContain("SIGNATORY_PASSPORT");
+    expect((dialog.querySelector("select") as HTMLSelectElement).value).toBe("SIGNATORY_POA");
+  });
+
   it("only offers declarations for a non-VAT business and requires combined signatory files to declare their contents", async () => {
     const upload = vi.spyOn(filesService, "upload").mockResolvedValue({ fileId: "f-9" } as Awaited<ReturnType<typeof filesService.upload>>);
     let posted: Record<string, unknown> | null = null;
