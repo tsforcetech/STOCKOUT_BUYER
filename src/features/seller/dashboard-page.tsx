@@ -64,7 +64,7 @@ export default function SellerDashboardPage() {
         actions={
           enabled && (
             <Button asChild variant="action">
-              <Link to="/seller/listings/new">
+              <Link to="/seller/listings/quick">
                 <PlusIcon /> New listing
               </Link>
             </Button>
@@ -98,7 +98,7 @@ export default function SellerDashboardPage() {
                   action={
                     enabled && (
                       <Button asChild variant="action">
-                        <Link to="/seller/listings/new">
+                        <Link to="/seller/listings/quick">
                           <PlusIcon /> New listing
                         </Link>
                       </Button>
@@ -114,7 +114,7 @@ export default function SellerDashboardPage() {
             <nav aria-label="Quick actions" className="flex flex-col gap-2">
               {enabled && (
                 <Button asChild variant="action" className="justify-start">
-                  <Link to="/seller/listings/new">
+                  <Link to="/seller/listings/quick">
                     <PlusIcon /> Create a listing
                   </Link>
                 </Button>

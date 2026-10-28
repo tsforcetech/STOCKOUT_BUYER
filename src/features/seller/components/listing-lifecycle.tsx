@@ -1,8 +1,7 @@
 import * as React from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/ui/dialog";
-import { ReasonDialog } from "@/components/forms/reason-dialog";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { newId } from "@/lib/utils/id";
 import { sellerListingsService } from "@/services/seller-listings.service";
@@ -30,59 +29,74 @@ const SUCCESS: Record<LifecycleAction, string> = {
   archive: "Listing archived.",
 };
 
-/**
- * Submit / pause / resume / archive with confirmation. Each action re-reads the listing first so it sends the
- * latest listing rowVersion (and current draft version id for submit).
- */
+/** Re-reads the listing (latest rowVersion / draft id) and runs one lifecycle action. Returns the new rowVersion. */
+export async function runLifecycleAction(qc: QueryClient, sellerId: string, action: LifecycleAction, listingId: string, idempotencyKey: string = newId()): Promise<string> {
+  try {
+    const detail = await qc.fetchQuery({ queryKey: sellerKeys.detail(sellerId, listingId), queryFn: ({ signal }) => sellerListingsService.detail(sellerId, listingId, signal), staleTime: 0 });
+    const rv = detail.rowVersion;
+    let rowVersion: string;
+    switch (action) {
+      case "submit": {
+        if (!detail.currentDraftVersionId) throw new Error("This listing has no draft to submit.");
+        rowVersion = (await sellerListingsService.submit(sellerId, listingId, { listingVersionId: detail.currentDraftVersionId, expectedRowVersion: rv }, idempotencyKey)).rowVersion;
+        break;
+      }
+      case "pause":
+        rowVersion = (await sellerListingsService.pause(sellerId, listingId, rv, null)).rowVersion;
+        break;
+      case "resume":
+        rowVersion = (await sellerListingsService.resume(sellerId, listingId, rv)).rowVersion;
+        break;
+      case "archive":
+        rowVersion = (await sellerListingsService.archive(sellerId, listingId, rv)).rowVersion;
+        break;
+    }
+    patchListingRowVersion(qc, sellerId, listingId, rowVersion);
+    // The listing status changed: refetch the detail so the cards and header show it.
+    void qc.invalidateQueries({ queryKey: sellerKeys.listing(sellerId, listingId) });
+    return rowVersion;
+  } catch (error) {
+    if (isVersionConflict(error)) await qc.invalidateQueries({ queryKey: sellerKeys.listing(sellerId, listingId) });
+    throw error;
+  }
+}
+
+/** Pause and resume are reversible, so they run straight away with an Undo; submit and archive ask first. */
+const INSTANT: ReadonlySet<LifecycleAction> = new Set(["pause", "resume"]);
+const UNDO: Partial<Record<LifecycleAction, LifecycleAction>> = { pause: "resume", resume: "pause" };
+
 export function useListingLifecycle(sellerId: string, onDone?: (action: LifecycleAction) => void) {
   const qc = useQueryClient();
   const [pending, setPending] = React.useState<Pending | null>(null);
 
   const mutation = useApiMutation({
     toastOnError: false,
-    mutationFn: async ({ action, target, idempotencyKey, remarks }: Pending & { remarks?: string | null }) => {
-      const id = target.listingId;
-      try {
-        const detail = await qc.fetchQuery({ queryKey: sellerKeys.detail(sellerId, id), queryFn: ({ signal }) => sellerListingsService.detail(sellerId, id, signal), staleTime: 0 });
-        const rv = detail.rowVersion;
-        switch (action) {
-          case "submit": {
-            if (!detail.currentDraftVersionId) throw new Error("This listing has no draft to submit.");
-            return (await sellerListingsService.submit(sellerId, id, { listingVersionId: detail.currentDraftVersionId, expectedRowVersion: rv }, idempotencyKey)).rowVersion;
-          }
-          case "pause":
-            return (await sellerListingsService.pause(sellerId, id, rv, remarks ?? null)).rowVersion;
-          case "resume":
-            return (await sellerListingsService.resume(sellerId, id, rv)).rowVersion;
-          case "archive":
-            return (await sellerListingsService.archive(sellerId, id, rv)).rowVersion;
-        }
-      } catch (error) {
-        if (isVersionConflict(error)) await qc.invalidateQueries({ queryKey: sellerKeys.listing(sellerId, id) });
-        throw error;
-      }
-    },
-    onSuccess: (rowVersion, vars) => {
-      patchListingRowVersion(qc, sellerId, vars.target.listingId, rowVersion);
+    mutationFn: ({ action, target, idempotencyKey }: Pending) => runLifecycleAction(qc, sellerId, action, target.listingId, idempotencyKey),
+    onSuccess: (_rowVersion, vars) => {
       void qc.invalidateQueries({ queryKey: sellerKeys.listings(sellerId) });
-      toast.success(SUCCESS[vars.action]);
+      const undo = UNDO[vars.action];
+      toast.success(SUCCESS[vars.action], {
+        action: undo ? { label: "Undo", onClick: () => mutation.mutate({ action: undo, target: vars.target, idempotencyKey: newId() }, { onError: (error) => toast.error(sellerErrorMessage(error)) }) } : undefined,
+      });
       setPending(null);
       onDone?.(vars.action);
     },
   });
 
-  const run = (remarks?: string | null) => {
+  const run = () => {
     if (!pending) return;
-    mutation.mutate({ ...pending, remarks }, { onError: (error) => toast.error(sellerErrorMessage(error)) });
+    mutation.mutate(pending, { onError: (error) => toast.error(sellerErrorMessage(error)) });
   };
 
-  const { reset } = mutation;
+  const { reset, mutate } = mutation;
   const open = React.useCallback(
     (action: LifecycleAction, target: LifecycleTarget) => {
       reset();
-      setPending({ action, target, idempotencyKey: newId() });
+      const next = { action, target, idempotencyKey: newId() };
+      if (INSTANT.has(action)) mutate(next, { onError: (error) => toast.error(sellerErrorMessage(error)) });
+      else setPending(next);
     },
-    [reset],
+    [reset, mutate],
   );
 
   const close = (o: boolean) => {
@@ -104,28 +118,6 @@ export function useListingLifecycle(sellerId: string, onDone?: (action: Lifecycl
           </>
         }
         confirmLabel="Submit for review"
-        loading={mutation.isPending}
-        onConfirm={() => run()}
-      />
-      <ReasonDialog
-        open={pending?.action === "pause"}
-        onOpenChange={close}
-        tone="primary"
-        required={false}
-        title="Pause listing?"
-        description={`“${title}” will be hidden from buyers until you resume it. Buyer reservations already made are not affected.`}
-        reasonLabel="Remarks (optional)"
-        confirmLabel="Pause listing"
-        loading={mutation.isPending}
-        onConfirm={(remarks) => run(remarks || null)}
-      />
-      <ConfirmDialog
-        open={pending?.action === "resume"}
-        onOpenChange={close}
-        tone="primary"
-        title="Resume listing?"
-        description={`“${title}” will go live again. This needs a verified seller account, stock above 0 and a primary image. Listings suspended by the marketplace team can't be resumed by you.`}
-        confirmLabel="Resume listing"
         loading={mutation.isPending}
         onConfirm={() => run()}
       />

@@ -82,6 +82,7 @@ export const routes: RouteObject[] = [
                   { path: "business-changes", lazy: page(() => import("@/features/organization/business-changes-page")) },
                   { path: "listings", lazy: page(() => import("@/features/seller/listings-page")) },
                   { path: "listings/new", lazy: page(() => import("@/features/seller/listing-new-page")) },
+                  { path: "listings/quick", lazy: page(() => import("@/features/seller/listing-quick-page")) },
                   { path: "listings/import", lazy: page(() => import("@/features/seller/import/import-page")) },
                   { path: "listings/import/:jobId", lazy: page(() => import("@/features/seller/import/import-job-page")) },
                   // Older client-side CSV uploader, kept reachable for sellers mid-way through it; new imports use E2 above.

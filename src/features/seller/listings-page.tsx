@@ -37,6 +37,7 @@ import {
   canManageListings,
 } from "./components/listing-access-notice";
 import { useListingLifecycle } from "./components/listing-lifecycle";
+import { BulkBar } from "./components/bulk-bar";
 import { LISTING_VIEWS, SORT_LABELS } from "./lib/listing";
 import { FilterPills } from "@/components/common/filter-pills";
 
@@ -117,6 +118,17 @@ export default function SellerListingsPage() {
   });
 
   const [view, setView] = useListingsView();
+  const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set());
+  const toggleSelect = React.useCallback(
+    (id: string) =>
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      }),
+    [],
+  );
   const statusView =
     LISTING_VIEWS.find((v) => v.key === state.status) ?? LISTING_VIEWS[0]!;
   const all = React.useMemo(() => list.data?.items ?? [], [list.data]);
@@ -133,6 +145,23 @@ export default function SellerListingsPage() {
         totalCount: visible.length,
       }
     : undefined;
+  // Only listings still in the loaded list count as selected (an archive or a refresh may drop some).
+  const selected = React.useMemo(
+    () => all.filter((l) => selectedIds.has(l.listingId)),
+    [all, selectedIds],
+  );
+  const pageIds = data?.items.map((l) => l.listingId) ?? [];
+  const allOnPage =
+    pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const togglePage = () =>
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      for (const id of pageIds) {
+        if (allOnPage) next.delete(id);
+        else next.add(id);
+      }
+      return next;
+    });
   const categoryOptions = React.useMemo(
     () => [...categories.values()],
     [categories],
@@ -142,6 +171,20 @@ export default function SellerListingsPage() {
     ColumnDef<SellerListingListItemResponse, unknown>[]
   >(
     () => [
+      {
+        id: "select",
+        header: () => <span className="sr-only">Select</span>,
+        cell: ({ row }) => (
+          <input
+            type="checkbox"
+            className="size-4 cursor-pointer accent-foreground"
+            checked={selectedIds.has(row.original.listingId)}
+            onChange={() => toggleSelect(row.original.listingId)}
+            onClick={(e) => e.stopPropagation()}
+            aria-label={`Select ${row.original.title}`}
+          />
+        ),
+      },
       ...baseListingColumns(categories),
       {
         id: "actions",
@@ -203,7 +246,7 @@ export default function SellerListingsPage() {
         },
       },
     ],
-    [categories, openLifecycle, navigate],
+    [categories, openLifecycle, navigate, selectedIds, toggleSelect],
   );
 
   const filtered = !!(
@@ -217,7 +260,7 @@ export default function SellerListingsPage() {
       <PageHeader
         eyebrow="Seller portal"
         title="Listings"
-        description="Create, submit and manage your listings. Live listings can be paused or archived; edits are only possible on drafts."
+        description="Click a price or stock figure to change it. Tick listings to pause, resume, send for review, reprice or archive several at once."
         actions={
           enabled && (
             <>
@@ -227,8 +270,8 @@ export default function SellerListingsPage() {
                 </Link>
               </Button>
               <Button asChild variant="action">
-                <Link to="/seller/listings/new">
-                  <PlusIcon /> New listing
+                <Link to="/seller/listings/quick">
+                  <PlusIcon /> Add listing
                 </Link>
               </Button>
             </>
@@ -306,6 +349,17 @@ export default function SellerListingsPage() {
         </div>
         {enabled && data && (filtered || data.totalCount > 0) && (
           <div className="-mt-1 mb-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            {data.items.length > 0 && (
+              <label className="inline-flex cursor-pointer items-center gap-1.5 text-foreground">
+                <input
+                  type="checkbox"
+                  className="size-4 cursor-pointer accent-foreground"
+                  checked={allOnPage}
+                  onChange={togglePage}
+                />
+                Select page
+              </label>
+            )}
             <span aria-live="polite">
               {formatNumber(data.totalCount)}{" "}
               {data.totalCount === 1 ? "listing" : "listings"}
@@ -327,6 +381,13 @@ export default function SellerListingsPage() {
             )}
           </div>
         )}
+        {enabled && selected.length > 0 && (
+          <BulkBar
+            sellerId={sellerId}
+            selected={selected}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        )}
         {view === "grid" ? (
           <ListingsGrid
             sellerId={sellerId}
@@ -336,6 +397,8 @@ export default function SellerListingsPage() {
             onRetry={() => void list.refetch()}
             categoryName={(id) => categories.get(id)?.name}
             onAction={openLifecycle}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
             page={state.page}
             pageSize={state.pageSize}
             totalCount={data?.totalCount ?? 0}
@@ -375,8 +438,8 @@ export default function SellerListingsPage() {
                           </Link>
                         </Button>
                         <Button asChild variant="action">
-                          <Link to="/seller/listings/new">
-                            <PlusIcon /> New listing
+                          <Link to="/seller/listings/quick">
+                            <PlusIcon /> Add listing
                           </Link>
                         </Button>
                       </>
@@ -429,8 +492,8 @@ export default function SellerListingsPage() {
               ) : (
                 enabled && (
                   <Button asChild variant="action">
-                    <Link to="/seller/listings/new">
-                      <PlusIcon /> New listing
+                    <Link to="/seller/listings/quick">
+                      <PlusIcon /> Add listing
                     </Link>
                   </Button>
                 )
@@ -452,6 +515,8 @@ function ListingsGrid({
   onRetry,
   categoryName,
   onAction,
+  selectedIds,
+  onToggleSelect,
   page,
   pageSize,
   totalCount,
@@ -465,6 +530,8 @@ function ListingsGrid({
   onRetry: () => void;
   categoryName: (categoryId: string) => string | undefined;
   onAction: React.ComponentProps<typeof SellerListingCard>["onAction"];
+  selectedIds: Set<string>;
+  onToggleSelect: (listingId: string) => void;
   page: number;
   pageSize: number;
   totalCount: number;
@@ -495,6 +562,8 @@ function ListingsGrid({
                   item={l}
                   categoryName={categoryName(l.categoryId)}
                   onAction={onAction}
+                  selected={selectedIds.has(l.listingId)}
+                  onToggleSelect={onToggleSelect}
                 />
               </li>
             ))}

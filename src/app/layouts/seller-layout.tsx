@@ -240,11 +240,11 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
         ))}
       </ul>
       <Link
-        to="/seller/listings/new"
+        to="/seller/listings/quick"
         onClick={onNavigate}
         className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover"
       >
-        <PlusIcon className="size-4" /> New listing
+        <PlusIcon className="size-4" /> Add listing
       </Link>
     </nav>
   );

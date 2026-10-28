@@ -1,7 +1,8 @@
-import { Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArchiveIcon,
+  CopyIcon,
   MapPinIcon,
   PackageIcon,
   PaperPlaneTiltIcon,
@@ -17,11 +18,15 @@ import { filesService } from "@/services/files.service";
 import { listingsService } from "@/services/listings.service";
 import {
   getSellerListingActions,
+  LISTING_INVENTORY_LIMITS,
+  SELLER_LISTING_LIMITS,
   type SellerListingListItemResponse,
 } from "@/api/types/seller-listings";
 import { formatMoney, formatNumber, timeAgo } from "@/lib/utils/format";
-import { listingState } from "../lib/listing";
+import { decimalPattern, listingState } from "../lib/listing";
+import { setDraftPrice, setStock } from "../lib/listing-quick-edit";
 import { sellerKeys } from "../lib/queries";
+import { InlineNumber } from "./inline-number";
 
 type LifecycleAction = "submit" | "pause" | "resume" | "archive";
 
@@ -35,16 +40,22 @@ export function SellerListingCard({
   item,
   categoryName,
   onAction,
+  selected,
+  onToggleSelect,
 }: {
   sellerId: string;
   item: SellerListingListItemResponse;
   categoryName?: string;
+  selected?: boolean;
+  onToggleSelect?: (listingId: string) => void;
   onAction: (
     action: LifecycleAction,
     target: { listingId: string; title: string },
   ) => void;
 }) {
   const id = item.listingId;
+  const qc = useQueryClient();
+  const navigate = useNavigate();
   const detail = useQuery({
     queryKey: sellerKeys.detail(sellerId, id),
     queryFn: ({ signal }) => sellerListingsService.detail(sellerId, id, signal),
@@ -100,10 +111,18 @@ export function SellerListingCard({
     expiresAtUtc: detail.data?.expiresAtUtc ?? null,
   });
   const target = { listingId: id, title: item.title };
+  // Price can change in place only on a plain draft (not in review); stock on anything not archived.
+  const priceEditable = item.status === "DRAFT" && !!detail.data?.currentDraftVersion && (!item.currentDraftVersionStatus || item.currentDraftVersionStatus === "DRAFT");
+  const stockEditable = can.canEditInventory && !!inventory.data;
   const updated = timeAgo(item.updatedAtUtc ?? item.createdAtUtc);
 
   return (
-    <div className="group flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised">
+    <div className={`group relative flex h-full flex-col overflow-hidden rounded-2xl border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised ${selected ? "border-foreground ring-2 ring-foreground/20" : "border-border"}`}>
+      {onToggleSelect && (
+        <label className="absolute right-2.5 top-2.5 z-10 flex size-7 cursor-pointer items-center justify-center rounded-md bg-surface/95 shadow-raised">
+          <input type="checkbox" className="size-4 cursor-pointer accent-foreground" checked={!!selected} onChange={() => onToggleSelect(id)} aria-label={`Select ${item.title}`} />
+        </label>
+      )}
       <Link to={`/seller/listings/${id}`} className="relative block">
         <ListingImage
           src={imageSrc}
@@ -145,11 +164,24 @@ export function SellerListingCard({
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1">
             <PackageIcon className="size-3.5" />{" "}
-            {stock === undefined
-              ? inventory.isLoading
-                ? "…"
-                : "No stock set"
-              : `${formatNumber(stock)} in stock`}
+            {stockEditable ? (
+              <InlineNumber
+                label={`Stock of ${item.title}`}
+                value={inventory.data?.rowVersion ? inventory.data.onHandQuantity : undefined}
+                display={inventory.data?.rowVersion ? `${formatNumber(stock ?? 0)} in stock` : "Set stock"}
+                pattern={decimalPattern(LISTING_INVENTORY_LIMITS.QUANTITY_DECIMAL_PLACES)}
+                invalidMessage="Enter a quantity of 0 or more, e.g. 120."
+                onSave={(q) => setStock(qc, sellerId, id, q)}
+              />
+            ) : stock === undefined ? (
+              inventory.isLoading ? (
+                "…"
+              ) : (
+                "No stock set"
+              )
+            ) : (
+              `${formatNumber(stock)} in stock`
+            )}
           </span>
           {place && (
             <span className="inline-flex min-w-0 items-center gap-1">
@@ -161,11 +193,22 @@ export function SellerListingCard({
         <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2.5">
           <div>
             <p className="font-heading text-lg font-bold leading-6 text-foreground">
-              {version
-                ? formatMoney(version.basePrice, version.currency)
-                : detail.isLoading
-                  ? "…"
-                  : "—"}
+              {priceEditable && version ? (
+                <InlineNumber
+                  label={`Price of ${item.title}`}
+                  value={version.basePrice}
+                  display={formatMoney(version.basePrice, version.currency)}
+                  pattern={decimalPattern(SELLER_LISTING_LIMITS.PRICE_DECIMAL_PLACES)}
+                  invalidMessage="Enter a price of 0 or more, e.g. 250 or 12.50."
+                  onSave={(p) => setDraftPrice(qc, sellerId, id, p)}
+                />
+              ) : version ? (
+                formatMoney(version.basePrice, version.currency)
+              ) : detail.isLoading ? (
+                "…"
+              ) : (
+                "—"
+              )}
             </p>
             {updated && (
               <p className="text-[11px] text-muted-foreground">
@@ -184,6 +227,9 @@ export function SellerListingCard({
             >
               <PencilSimpleIcon className="size-4" />
             </Link>
+            <RowAction label="Duplicate" onClick={() => navigate(`/seller/listings/quick?from=${id}`)}>
+              <CopyIcon />
+            </RowAction>
             {can.canSubmit && (
               <RowAction
                 label="Submit for review"

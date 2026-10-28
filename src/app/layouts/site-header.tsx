@@ -163,7 +163,7 @@ function CategoryPanel({
 /** dubizzle-style "Place your ad": always-visible lime call to action for selling. */
 export function sellHref(status: string, hasSeller: boolean): string {
   if (status !== "authenticated") return "/seller/onboarding";
-  return hasSeller ? "/seller/listings/new" : "/seller/onboarding";
+  return hasSeller ? "/seller/listings/quick" : "/seller/onboarding";
 }
 
 function SavedButton() {
