@@ -15,8 +15,9 @@ import { BULK_UPLOADABLE_STATUSES, BULK_WORKING_STATUSES, type BulkImportResultR
 import { ListingAccessNotice, canManageListings } from "../components/listing-access-notice";
 import { Notice } from "../components/notice";
 import { BackLink } from "../components/back-link";
+import { Stepper } from "../components/stepper";
 import { sellerKeys, useActiveSeller } from "../lib/queries";
-import { confirmKey, importErrorMessage, importKeys, isUncertain, POLL_MS, rowLabel, saveBlob, statusLabel } from "./shared";
+import { IMPORT_STEPS, confirmKey, importErrorMessage, importKeys, isUncertain, POLL_MS, rowLabel, saveBlob, statusLabel } from "./shared";
 
 const FILTERS = [
   { key: "", label: "All rows" },
@@ -92,6 +93,8 @@ function JobView({ sellerId, jobId }: { sellerId: string; jobId: string }) {
           </div>
         }
       />
+      {/* Finished imports show every step done. */}
+      <Stepper steps={IMPORT_STEPS} current={["COMPLETED", "PARTIALLY_COMPLETED"].includes(r.status) ? IMPORT_STEPS.length + 1 : IMPORT_STEPS.length} />
       <Summary r={r} />
       {working && (
         <SectionCard>
@@ -121,11 +124,11 @@ function Summary({ r }: { r: BulkImportResultResponse }) {
   ];
   return (
     <SectionCard>
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-5">
+      <dl className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {items.map((i) => (
-          <div key={i.label}>
+          <div key={i.label} className="rounded-xl bg-surface-muted px-3 py-3">
             <dt className="text-xs text-muted-foreground">{i.label}</dt>
-            <dd className={cn("font-heading text-2xl font-bold", i.danger ? "text-danger" : "text-foreground")}>{formatNumber(i.value)}</dd>
+            <dd className={cn("font-heading text-2xl font-bold tabular-nums", i.danger ? "text-danger" : "text-foreground")}>{formatNumber(i.value)}</dd>
           </div>
         ))}
       </dl>

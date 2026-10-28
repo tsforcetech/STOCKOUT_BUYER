@@ -10,6 +10,9 @@ export const importKeys = {
   preview: (sellerId: string, jobId: string, status: string, page: number) => ["seller", sellerId, "bulk-imports", jobId, "preview", status, page] as const,
 };
 
+/** The import wizard: the first three steps are on the import page, the last on the job page. */
+export const IMPORT_STEPS = ["Upload your list", "Match columns", "Photos", "Review & import"] as const;
+
 /** How often to ask /progress while the server is validating or creating drafts. */
 export const POLL_MS = 3000;
 

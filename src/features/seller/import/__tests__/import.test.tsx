@@ -3,7 +3,7 @@ import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { toast } from "sonner";
 import readExcelFile from "read-excel-file/universal";
-import { readAs } from "../mapping";
+import { TEMPLATE_HEADERS, readAs, writeTemplate } from "../mapping";
 import { routes } from "@/app/router/router";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch, type MockRoute } from "@/test/http";
@@ -92,6 +92,12 @@ const row = (n: number, status: string, extra: Record<string, unknown> = {}) => 
 });
 const preview = (status: string, rows: unknown[]) => ({ jobId: JOB, sellerId: SELLER, status, totalRows: 3, validRows: 2, failedRows: 1, warningRows: 1, unmatchedZipFiles: [], missingImagesCount: 0, page: 1, pageSize: 50, totalCount: rows.length, rows });
 
+/** A filled-in StockOut template (real .xlsx), as a seller would upload it. */
+async function templateFile(name = "stock.xlsx") {
+  const cells = TEMPLATE_HEADERS.map((_, i) => (i === 0 ? "SKU-1" : i === 1 ? "Copper cable" : i === 6 || i === 10 ? 10 : ""));
+  return new File([await writeTemplate([{ sourceRow: 2, cells, missing: [], notes: [] }])], name);
+}
+
 function setup(extra: MockRoute[]) {
   sessionStorage.setItem("stockout.market.rt", "rt-1");
   return mockFetch([...sessionRoutes([sellerCtx]), ...extra, { method: "GET", path: /\/listings$/, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) }]);
@@ -138,15 +144,16 @@ describe("E2 bulk import", () => {
     renderWithApp(routes, "/seller/listings/import");
     expect(await screen.findByRole("heading", { name: "Bulk import" })).toBeInTheDocument();
     expect(await screen.findByText("No imports yet.")).toBeInTheDocument();
-    await user.click(screen.getByRole("radio", { name: /Use the StockOut template/ }));
 
     // Wrong type is refused before anything is sent.
-    await user.upload(screen.getByLabelText(/Filled-in template \(required\)/), new File(["a,b"], "stock.csv", { type: "text/csv" }));
+    await user.upload(screen.getByLabelText(/Upload your product list/), new File(["x"], "stock.pdf", { type: "application/pdf" }));
     expect(screen.getByRole("alert")).toHaveTextContent(/\.xlsx/);
-    expect(screen.getByRole("button", { name: /Upload and check/ })).toBeDisabled();
 
-    await user.upload(screen.getByLabelText(/Filled-in template \(required\)/), new File(["xlsx"], "stock.xlsx"));
-    await user.upload(screen.getByLabelText(/Product images/), new File(["zip"], "photos.zip"));
+    // A filled-in template is recognised and skips matching.
+    await user.upload(screen.getByLabelText(/Upload your product list/), await templateFile());
+    expect(await screen.findByText(/StockOut template recognised/)).toBeInTheDocument();
+    expect(screen.getByText("1 products")).toBeInTheDocument();
+    await user.upload(screen.getByLabelText(/Product photos/), new File(["zip"], "photos.zip"));
     await user.click(screen.getByRole("button", { name: /Upload and check/ }));
 
     // Job page: rows with their server messages, nothing imported yet.
@@ -222,9 +229,8 @@ describe("E2 bulk import", () => {
     ]);
     const user = userEvent.setup();
     renderWithApp(routes, "/seller/listings/import");
-    await user.click(await screen.findByRole("radio", { name: /Use the StockOut template/ }));
-    await user.upload(await screen.findByLabelText(/Filled-in template \(required\)/), new File(["xlsx"], "stock.xlsx"));
-    await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+    await user.upload(await screen.findByLabelText(/Upload your product list/), await templateFile());
+    await user.click(await screen.findByRole("button", { name: /Upload and check/ }));
     expect(await screen.findByText(/File storage for imports is temporarily unavailable/)).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Open this import" })).toHaveAttribute("href", `/seller/listings/import/${JOB}`);
   });
@@ -247,11 +253,10 @@ describe("E2 bulk import", () => {
     const csv = "Stock list Oct 2026,,,,\r\nItem Code,Item Description,UOM,Qty,Rate (AED)\r\nEM-001,PPR pipe 25mm,MTR,120,\"1,250.50\"\r\nEM-002,Gate valve 2 inch,PCS,40,85\r\n";
     const user = userEvent.setup({ applyAccept: false });
     renderWithApp(routes, "/seller/listings/import");
-    expect(await screen.findByRole("radio", { name: /Use my own Excel or CSV/ })).toBeChecked();
-    await user.upload(screen.getByLabelText(/Your spreadsheet/), new File([csv], "ledger.csv", { type: "text/csv" }));
+    await user.upload(await screen.findByLabelText(/Upload your product list/), new File([csv], "ledger.csv", { type: "text/csv" }));
 
     // Headings found in row 2; codes, names, units, quantities and prices matched automatically.
-    expect(await screen.findByTestId("mapping-counts")).toHaveTextContent("2 products found · 0 complete · 2 missing required values");
+    expect(await screen.findByTestId("mapping-counts")).toHaveTextContent("2 products · 0 ready · 2 need attention");
     expect(screen.getByText(/Still to match: Category/)).toBeInTheDocument();
 
     // Category: one for every row.
@@ -259,10 +264,10 @@ describe("E2 bulk import", () => {
     await user.click(await screen.findByRole("option", { name: "Same for every row…" }));
     await user.click(screen.getByRole("combobox", { name: "Category for every row" }));
     await user.click(await screen.findByRole("option", { name: "Pumps › Centrifugal Pumps" }));
-    expect(screen.getByTestId("mapping-counts")).toHaveTextContent("2 products found · 2 complete · 0 missing required values");
+    expect(screen.getByTestId("mapping-counts")).toHaveTextContent("2 products · 2 ready · 0 need attention");
 
-    await user.click(screen.getByRole("button", { name: "Use these 2 products" }));
-    expect(await screen.findByText("2 products ready to upload.")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Continue with 2/ }));
+    expect(await screen.findByText("2 products")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Upload and check/ }));
     await waitFor(() => expect(uploaded).not.toBeNull());
     expect(uploaded!.name).toBe("stockout_import_from_your_sheet.xlsx");

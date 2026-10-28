@@ -231,3 +231,14 @@ export async function writeTemplate(rows: ConvertedRow[]): Promise<File> {
   const blob = await writeExcelFile(data, { sheet: "Products" }).toBlob();
   return new File([blob], "stockout_import_from_your_sheet.xlsx", { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
 }
+
+/**
+ * Data rows in the "Products" sheet when the file is already the StockOut template (headings in row 1, in the
+ * template's order); null otherwise. A template is uploaded as-is, without matching or conversion.
+ */
+export function templateRowCount(sheets: Sheet[]): number | null {
+  const products = sheets.find((s) => s.name.trim().toLowerCase() === "products");
+  const head = products?.rows[0] ?? [];
+  if (!products || TEMPLATE_HEADERS.some((h, i) => norm(head[i]) !== norm(h))) return null;
+  return products.rows.slice(1).filter((r) => r?.some((c) => !isBlank(c))).length;
+}
