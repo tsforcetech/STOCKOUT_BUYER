@@ -142,6 +142,15 @@ jobs:
           # /XF web.config prevents overwriting an existing server configuration.
           & robocopy $source $target /E /R:2 /W:2 /XF web.config
 
+          # First deploy only: install the SPA fallback (web.config URL Rewrite rule) so refreshing a deep link such
+          # as /seller/listings serves index.html instead of a 404. An existing server web.config is never replaced.
+          $sourceConfig = Join-Path $source "web.config"
+          $targetConfig = Join-Path $target "web.config"
+          if ((Test-Path $sourceConfig) -and !(Test-Path $targetConfig)) {
+            Copy-Item $sourceConfig $targetConfig
+            Write-Host "Installed web.config (SPA fallback)."
+          }
+
           $robocopyExitCode = $LASTEXITCODE
 
           # Robocopy exit codes 0-7 indicate success or non-fatal differences.
