@@ -50,6 +50,7 @@ const MESSAGES: Record<string, string> = {
   INVALID_EXCEL_STRUCTURE: "The workbook has no 'Products' sheet. Download the template and fill in its Products sheet.",
   INVALID_IMAGE_PATH: "The ZIP contains an unsafe or empty file path. Re-create the ZIP with plain folder and file names.",
   IDEMPOTENCY_KEY_REQUIRED: "The import couldn't be confirmed safely. Reload the page and try again.",
+  DURABLE_STORAGE_UNAVAILABLE: "File storage for imports is temporarily unavailable, so your file wasn't uploaded. Nothing was imported; please try again later.",
   BULK_IMPORT_HAS_INVALID_ROWS: "Some rows have errors. Tick “Skip rows with errors” to import only the ready rows, or fix the file and start a new import.",
 };
 

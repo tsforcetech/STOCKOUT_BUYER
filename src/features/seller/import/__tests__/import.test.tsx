@@ -210,6 +210,20 @@ describe("E2 bulk import", () => {
     expect(screen.queryByText("No imports yet.")).not.toBeInTheDocument();
   });
 
+  it("explains a storage outage during upload and offers the created import", async () => {
+    setup([
+      { method: "GET", path: BASE, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) },
+      { method: "POST", path: BASE, respond: () => ({ status: 201, body: jobDto("CREATED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/upload-excel`, respond: () => ({ status: 503, body: { error: "DURABLE_STORAGE_UNAVAILABLE", message: "Durable storage upload to InventoryMedia failed" } }) },
+    ]);
+    const user = userEvent.setup();
+    renderWithApp(routes, "/seller/listings/import");
+    await user.upload(await screen.findByLabelText(/Spreadsheet \(required\)/), new File(["xlsx"], "stock.xlsx"));
+    await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+    expect(await screen.findByText(/File storage for imports is temporarily unavailable/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open this import" })).toHaveAttribute("href", `/seller/listings/import/${JOB}`);
+  });
+
   it("is locked for members who aren't the seller owner", async () => {
     sessionStorage.setItem("stockout.market.rt", "rt-1");
     const { calls } = mockFetch([...sessionRoutes([{ ...sellerCtx, isOwner: false }])]);
