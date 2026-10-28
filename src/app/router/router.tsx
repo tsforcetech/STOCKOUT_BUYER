@@ -67,6 +67,8 @@ export const routes: RouteObject[] = [
             path: "seller",
             lazy: async () => ({ Component: (await import("@/features/seller/require-seller")).RequireSeller }),
             children: [
+              // Focused verification steps (no sidebar); unfinished sellers are sent here first.
+              { path: "verify", lazy: page(() => import("@/features/seller/verify/verify-page")) },
               {
                 element: <SellerLayout />,
                 children: [

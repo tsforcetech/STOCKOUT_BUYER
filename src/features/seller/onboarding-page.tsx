@@ -28,7 +28,7 @@ export default function SellerOnboardingPage() {
     await reloadActor();
     setActiveSellerId(seller.sellerId);
     toast.success(existed ? "You already had this seller account — we opened it." : "Seller account created. Next, complete your business profile and upload your documents.");
-    navigate("/seller/business");
+    navigate("/seller/verify");
   };
 
   if (status === "initializing" || (!actor && !actorError)) return <FullScreenLoader />;

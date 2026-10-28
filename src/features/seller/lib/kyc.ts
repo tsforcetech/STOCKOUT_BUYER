@@ -79,6 +79,7 @@ const LABELS = new Map(
 LABELS.set(GENERIC_VAT_TYPE, "VAT certificate or declaration");
 LABELS.set("SIGNATORY_COMBINED", "Combined: ID and authority proof in one file");
 LABELS.set("POWER_OF_ATTORNEY", "Power of attorney");
+LABELS.set("TRADE_LICENSE_SIGNATORY_PROOF", "Trade licence (signatory named on it)");
 
 export function kycTypeLabel(type: string): string | undefined {
   return LABELS.get(type.toUpperCase());

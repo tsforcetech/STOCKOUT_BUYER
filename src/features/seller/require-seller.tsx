@@ -1,5 +1,5 @@
 import type * as React from "react";
-import { Navigate, Outlet } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router";
 import { ErrorState } from "@/components/feedback/states";
 import { FullScreenLoader } from "@/lib/auth/guards";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -13,6 +13,7 @@ import { useSellerMode } from "@/lib/seller/seller-context";
 export function RequireSeller({ children }: { children?: React.ReactNode }) {
   const { status, actor, actorError, reloadActor } = useAuth();
   const { activeSeller } = useSellerMode();
+  const { pathname } = useLocation();
 
   if (status === "initializing") return <FullScreenLoader />;
   if (status === "anonymous") return <Navigate to={`/login?next=${encodeURIComponent("/seller")}`} replace />;
@@ -27,7 +28,18 @@ export function RequireSeller({ children }: { children?: React.ReactNode }) {
     return <FullScreenLoader />;
   }
   if (!activeSeller) return <Navigate to="/seller/onboarding" replace />;
+  // Verification first: an owner who hasn't finished (or was asked to fix) verification goes straight to the steps.
+  if (needsVerification(activeSeller) && !ALLOWED_BEFORE_VERIFICATION.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
+    return <Navigate to="/seller/verify" replace />;
+  }
   return <>{children ?? <Outlet />}</>;
+}
+
+/** Pages an unverified owner may still open: the steps themselves and their own account settings. */
+const ALLOWED_BEFORE_VERIFICATION = ["/seller/verify", "/seller/profile", "/seller/security", "/seller/privacy"];
+
+export function needsVerification(s: { isOwner: boolean; status: string; onboardingStatus: string; verificationStatus: string }): boolean {
+  return s.isOwner && s.status === "ACTIVE" && (s.onboardingStatus === "DRAFT" || s.verificationStatus === "REJECTED");
 }
 
 export default RequireSeller;
