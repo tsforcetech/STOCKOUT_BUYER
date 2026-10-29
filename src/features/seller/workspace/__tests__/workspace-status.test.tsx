@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch } from "@/test/http";
 import type { ListingDetailResponse } from "@/api/types/seller-listings";
@@ -41,6 +41,55 @@ describe("seller listing workspace status", () => {
     mockFetch([listRoute("DRAFT"), { method: "GET", path: /listing-requirements$/, respond: () => ({ body: { success: true, data: null } }) }]);
     renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={draft} moderation={undefined} /> }], "/");
     expect(await screen.findByRole("button", { name: /Submit for review/ })).toBeInTheDocument();
+  });
+});
+
+describe("edit a published listing (L22)", () => {
+  const live = {
+    ...draft,
+    status: "PUBLISHED",
+    currentDraftVersionId: null,
+    currentDraftVersion: null,
+    publishedVersionId: "v-1",
+    publishedVersion: { versionNumber: 1, title: "Gate valve", categoryId: "c-1" },
+  } as unknown as ListingDetailResponse;
+  const publishedList = (draftId: string | null, versionStatus: string | null) => ({
+    method: "GET",
+    path: "/api/v1/marketplace/sellers/s-1/listings",
+    respond: () => ({ body: { items: [{ listingId: "l-1", status: "PUBLISHED", currentDraftVersionId: draftId, currentDraftVersionStatus: versionStatus, title: "Gate valve" }], totalCount: 1 } }),
+  });
+
+  it("creates a revision draft from a live listing", async () => {
+    const calls: string[] = [];
+    mockFetch([
+      publishedList(null, null),
+      { method: "POST", path: "/api/v1/marketplace/sellers/s-1/listings/l-1/revision", respond: () => { calls.push("revision"); return { body: { listingId: "l-1", listingVersionId: "v-2", versionNumber: 2, publishedVersionId: "v-1", rowVersion: "rv2" } }; } },
+    ]);
+    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={live} moderation={undefined} /> }], "/");
+    expect(screen.getByText("This listing is live")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Submit for review/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Edit listing/ }));
+    expect(await screen.findByText(/live listing stays unchanged/)).toBeInTheDocument();
+    expect(calls).toEqual(["revision"]);
+  });
+
+  it("explains when an update is already in progress", async () => {
+    mockFetch([
+      publishedList(null, null),
+      { method: "POST", path: /\/revision$/, respond: () => ({ status: 409, body: { success: false, error: { code: "MARKETPLACE_LISTING_TRANSITION_INVALID", message: "x" } } }) },
+    ]);
+    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={live} moderation={undefined} /> }], "/");
+    fireEvent.click(screen.getByRole("button", { name: /Edit listing/ }));
+    expect(await screen.findByText(/already has an update in progress/)).toBeInTheDocument();
+  });
+
+  it("treats a draft on a live listing as an editable update", async () => {
+    const withDraft = { ...live, currentDraftVersionId: "v-2", currentDraftVersion: { versionNumber: 2, title: "Gate valve v2", categoryId: "c-1" } } as unknown as ListingDetailResponse;
+    mockFetch([publishedList("v-2", "DRAFT"), { method: "GET", path: /listing-requirements$/, respond: () => ({ body: { success: true, data: null } }) }]);
+    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={withDraft} moderation={undefined} /> }], "/");
+    expect(await screen.findByText("You're editing an update to a live listing")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Submit for review/ })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Edit listing/ })).not.toBeInTheDocument();
   });
 });
 

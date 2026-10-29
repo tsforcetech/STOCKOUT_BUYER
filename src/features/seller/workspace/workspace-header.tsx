@@ -1,7 +1,9 @@
 import * as React from "react";
 import { toast } from "sonner";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   ArchiveIcon,
+  PencilSimpleIcon,
   ListChecksIcon,
   PaperPlaneTiltIcon,
   PauseIcon,
@@ -21,9 +23,9 @@ import {
 import { BackLink } from "../components/back-link";
 import { useListingLifecycle } from "../components/listing-lifecycle";
 import { Notice } from "../components/notice";
-import { sellerErrorMessage } from "../lib/errors";
+import { errorCode, sellerErrorMessage } from "../lib/errors";
 import { listingState } from "../lib/listing";
-import { useDraftVersionStatus, useListingRequirements } from "../lib/queries";
+import { sellerKeys, useDraftVersionStatus, useListingRequirements } from "../lib/queries";
 import { ValidateDialog } from "./validate-dialog";
 
 interface Props {
@@ -40,6 +42,29 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
   const versionStatus = useDraftVersionStatus(sellerId, listing.listingId).data;
   // Submitted drafts keep the listing status DRAFT; the version status says it's with the moderators.
   const submitted = !!versionStatus && versionStatus !== "DRAFT";
+  const revision = listing.status === "PUBLISHED" && !!listing.currentDraftVersionId;
+  const qc = useQueryClient();
+  const refresh = () => {
+    void qc.invalidateQueries({ queryKey: sellerKeys.listing(sellerId, listing.listingId) });
+    void qc.invalidateQueries({ queryKey: sellerKeys.listings(sellerId), predicate: (q) => q.queryKey[3] === "list" });
+  };
+  const edit = useApiMutation({
+    mutationFn: () => sellerListingsService.createRevision(sellerId, listing.listingId),
+    toastOnError: false,
+    successMessage: "Draft created — the live listing stays unchanged until your update is approved and published.",
+    onSuccess: refresh,
+  });
+  const startEdit = () =>
+    edit.mutate(undefined, {
+      onError: (e) => {
+        refresh();
+        toast.error(
+          errorCode(e) === "MARKETPLACE_LISTING_TRANSITION_INVALID"
+            ? "This listing already has an update in progress, or it's no longer live. Reload to see its current state."
+            : sellerErrorMessage(e),
+        );
+      },
+    });
   const [validateOpen, setValidateOpen] = React.useState(false);
   const validate = useApiMutation({
     mutationFn: () =>
@@ -57,7 +82,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
   // Approved drafts stay "DRAFT" until an admin publishes them (moderation-status never reports APPROVED, backend A1).
   const approvedAwaitingPublish =
     moderation?.decision === "APPROVE" &&
-    listing.status === "DRAFT" &&
+    (listing.status === "DRAFT" || revision) &&
     !!listing.currentDraftVersionId;
 
   return (
@@ -68,6 +93,11 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
         title={version?.title || "Untitled listing"}
         actions={
           <>
+            {can.canCreateRevision && (
+              <Button variant="primary" loading={edit.isPending} onClick={startEdit}>
+                <PencilSimpleIcon /> Edit listing
+              </Button>
+            )}
             {listing.currentDraftVersionId && listing.status === "DRAFT" && (
               <Button
                 variant="secondary"
@@ -132,11 +162,19 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
       </PageHeader>
 
       <div className="mb-4 space-y-3">
-        {listing.status === "PUBLISHED" && (
-          <Notice tone="info" title="Live listings can't be edited">
-            The marketplace doesn't yet support editing a published listing —
-            title, price, attributes and photos are locked. You can still update
-            stock, pause it, or pause and then archive it.
+        {listing.status === "PUBLISHED" && !revision && (
+          <Notice tone="info" title="This listing is live">
+            To change the title, price, photos or attributes, choose Edit
+            listing. That makes an editable draft; buyers keep seeing the
+            current version until your update is approved and published. Stock
+            can be changed at any time.
+          </Notice>
+        )}
+        {revision && !approvedAwaitingPublish && !rejected && (
+          <Notice tone="info" title={submitted ? "Update in review" : "You're editing an update to a live listing"}>
+            {submitted
+              ? "StockOut is reviewing your changes. Buyers still see the live version until the update is approved and published."
+              : "Buyers still see the live version. Save your changes, then submit the update for review — it replaces the live version only after it's approved and published."}
           </Notice>
         )}
         {listing.status === "SUSPENDED" && (
@@ -157,9 +195,10 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
           </Notice>
         )}
         {rejected && (
-          <Notice tone="danger" title="This listing was rejected">
-            A rejected listing can't be edited or resubmitted — the only option
-            is to archive it and create a new listing.
+          <Notice tone="danger" title={revision ? "This update was rejected" : "This listing was rejected"}>
+            {revision
+              ? "The live version is unchanged and stays on sale."
+              : "A rejected listing can't be edited or resubmitted — the only option is to archive it and create a new listing."}
             {moderation?.sellerNotes && (
               <span className="mt-1 block">
                 Reviewer notes: “{moderation.sellerNotes}”
@@ -169,7 +208,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
         )}
         {approvedAwaitingPublish && (
           <Notice tone="info" title="Approved — waiting to be published">
-            A StockOut reviewer approved this listing on{" "}
+            A StockOut reviewer approved this {revision ? "update" : "listing"} on{" "}
             {formatDateTime(moderation?.reviewedAtUtc)}. It goes live as soon as
             the marketplace team publishes it; no action is needed from you.
             {moderation?.sellerNotes && (

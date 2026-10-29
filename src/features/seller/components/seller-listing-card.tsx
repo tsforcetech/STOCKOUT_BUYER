@@ -230,7 +230,7 @@ export function SellerListingCard({
             <RowAction label="Duplicate" onClick={() => navigate(`/seller/listings/quick?from=${id}`)}>
               <CopyIcon />
             </RowAction>
-            {can.canSubmit && (
+            {can.canSubmit && (!item.currentDraftVersionStatus || item.currentDraftVersionStatus === "DRAFT" || item.currentDraftVersionStatus === "CHANGES_REQUIRED") && (
               <RowAction
                 label="Submit for review"
                 tone="success"

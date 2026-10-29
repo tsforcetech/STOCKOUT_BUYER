@@ -83,7 +83,7 @@ export function MediaTab({ sellerId, listing }: { sellerId: string; listing: Lis
   return (
     <div className="space-y-6">
       {!listing.currentDraftVersionId ? (
-        <Notice>Photos and documents can only be changed on a draft. Published listings can't be edited through the seller portal yet.</Notice>
+        <Notice>Photos and documents can only be changed on a draft. Choose Edit listing at the top to change a live listing.</Notice>
       ) : (
         !can.canMutateMedia && <Notice>Media is read-only in the listing's current state.</Notice>
       )}

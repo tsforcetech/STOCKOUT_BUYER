@@ -51,9 +51,11 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
     <div className="space-y-4 pt-1">
       {!can.canUpdateDraft ? (
         <Notice>
-          {listing.status === "PUBLISHED" || listing.status === "SUSPENDED"
-            ? "You're viewing the published version. Published listings can't be edited through the seller portal yet."
-            : "This listing is read-only in its current state."}
+          {listing.status === "PUBLISHED"
+            ? "You're viewing the live version. Choose Edit listing at the top to make changes."
+            : listing.status === "SUSPENDED"
+              ? "You're viewing the published version. Resume the listing to make changes."
+              : "This listing is read-only in its current state."}
         </Notice>
       ) : versionStatus === "UNDER_REVIEW" ? (
         <Notice title="In review">

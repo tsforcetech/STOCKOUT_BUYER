@@ -130,7 +130,7 @@ function PublishedAttributes({ listing }: { listing: ListingDetailResponse }) {
     retry: false,
     staleTime: 60_000,
   });
-  const note = <Notice>Attributes can only be changed on a draft. Published listings can't be edited through the seller portal yet.</Notice>;
+  const note = <Notice>Attributes can only be changed on a draft. Choose Edit listing at the top to change a live listing.</Notice>;
   if (!live) return note;
   if (detail.isLoading) return <PageSkeleton />;
   if (detail.error) return <ErrorState error={detail.error} onRetry={() => void detail.refetch()} title="Couldn't load the live attributes" />;

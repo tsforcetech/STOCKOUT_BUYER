@@ -31,6 +31,7 @@ import type {
   SetListingInventoryRequest,
   SubmitListingRequest,
   SubmitListingResponse,
+  CreateListingRevisionResponse,
   SuspendListingResponse,
   UpdateListingDraftRequest,
   UpdateListingDraftResponse,
@@ -57,6 +58,9 @@ export const sellerListingsService = {
   create: (sellerId: string, body: CreateListingDraftRequest, idempotencyKey: string) =>
     http.post<CreateListingDraftResponse>(base(sellerId), body, { idempotencyKey }),
   update: (sellerId: string, listingId: string, body: UpdateListingDraftRequest) => http.put<UpdateListingDraftResponse>(one(sellerId, listingId), body),
+
+  /** L22: copy the live version into a new draft. The published version stays live until the draft is approved and published. */
+  createRevision: (sellerId: string, listingId: string) => http.post<CreateListingRevisionResponse>(`${one(sellerId, listingId)}/revision`),
 
   // L5–L10
   /** X-Idempotency-Key is required but ignored by the backend (defect D6). */

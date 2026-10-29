@@ -526,6 +526,15 @@ export interface SubmitListingRequest {
   expectedRowVersion: RowVersion;
 }
 
+/** C# CreateListingRevisionResponse (L22): the new draft copied from the live version, which stays published. */
+export interface CreateListingRevisionResponse {
+  listingId: Guid;
+  listingVersionId: Guid;
+  versionNumber: number;
+  publishedVersionId: Guid;
+  rowVersion: RowVersion;
+}
+
 /** C# SubmitListingResponse. status is the VERSION status ("UNDER_REVIEW"). */
 export interface SubmitListingResponse {
   listingId: Guid;
@@ -1010,6 +1019,7 @@ export interface SellerListingActionAvailability {
   canMutateMedia: boolean;
   canEditInventory: boolean;
   canSubmit: boolean; // additionally requires version DRAFT|CHANGES_REQUIRED, basePrice > 0, >= 1 media
+  canCreateRevision: boolean; // L22: live listing without a pending update
   canPause: boolean;
   canResume: boolean; // additionally requires last suspension reason SELLER_REQUESTED_PAUSE
   canArchive: boolean;
@@ -1021,12 +1031,15 @@ export function getSellerListingActions(detail: Pick<ListingDetailResponse, 'sta
   const expiry = detail.expiresAtUtc !== null ? Date.parse(detail.expiresAtUtc.endsWith('Z') ? detail.expiresAtUtc : `${detail.expiresAtUtc}Z`) : null;
   const pastExpiry = expiry !== null && expiry <= nowUtc.getTime();
   const effectivelyPublished = detail.status === 'PUBLISHED' && !pastExpiry;
+  // A draft on a PUBLISHED listing is a revision (L22): edited and submitted like a new draft while the live version stays up.
+  const editable = hasDraft && (detail.status === 'DRAFT' || detail.status === 'PUBLISHED');
   return {
-    canUpdateDraft: hasDraft && detail.status === 'DRAFT',
-    canEditAttributes: hasDraft && detail.status === 'DRAFT',
-    canMutateMedia: hasDraft && (detail.status === 'DRAFT' || detail.status === 'PUBLISHED'),
+    canUpdateDraft: editable,
+    canEditAttributes: editable,
+    canMutateMedia: editable,
     canEditInventory: detail.status !== 'ARCHIVED',
-    canSubmit: hasDraft && detail.status === 'DRAFT',
+    canSubmit: editable,
+    canCreateRevision: effectivelyPublished && !hasDraft,
     canPause: effectivelyPublished,
     canResume: detail.status === 'SUSPENDED' && !pastExpiry,
     canArchive: !effectivelyPublished,
