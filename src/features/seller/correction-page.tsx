@@ -18,7 +18,7 @@ import { Notice } from "./components/notice";
 import { ListingAccessNotice, canManageListings } from "./components/listing-access-notice";
 import { errorCode, sellerErrorMessage } from "./lib/errors";
 import { sellerKeys, useActiveSeller, useListingDetail } from "./lib/queries";
-import { CorrectionChanges, CorrectionStatusBadge, correctionKeys } from "./lib/corrections";
+import { CorrectionChanges, CorrectionStatusBadge, FIELD_LABEL, correctionKeys } from "./lib/corrections";
 
 const utc = (v: string | null | undefined) => (v ? formatDateTime(v.endsWith("Z") ? v : `${v}Z`) : "—");
 
@@ -200,7 +200,7 @@ export default function SellerCorrectionPage() {
           <DecisionHistory c={c} />
           {open && needsOk.length > 0 && (
             <p className="mt-4 text-xs text-muted-foreground">
-              {needsOk.map((x) => x.field).join(", ")} {needsOk.length === 1 ? "changes" : "change"} only with your OK.
+              {needsOk.map((x) => FIELD_LABEL[x.field] ?? x.field).join(", ")} {needsOk.length === 1 ? "changes" : "change"} only with your OK.
             </p>
           )}
         </SectionCard>
