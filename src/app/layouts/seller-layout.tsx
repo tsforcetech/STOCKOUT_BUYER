@@ -8,6 +8,7 @@ import {
   LockKeyIcon,
   ListIcon,
   ListNumbersIcon,
+  NotePencilIcon,
   PlusIcon,
   ReceiptIcon,
   SignOutIcon,
@@ -40,6 +41,7 @@ const NAV = [
     notUnder: "/seller/listings/import",
   },
   { label: "Bulk import", to: "/seller/listings/import", icon: UploadSimpleIcon },
+  { label: "Inspector proposals", to: "/seller/corrections", icon: NotePencilIcon },
   { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
   {
     label: "Business & verification",

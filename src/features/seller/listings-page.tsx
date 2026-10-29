@@ -1,4 +1,5 @@
 import * as React from "react";
+import { PendingCorrectionsNotice } from "./lib/corrections";
 import { Link, useNavigate } from "react-router";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -279,6 +280,7 @@ export default function SellerListingsPage() {
         }
       />
       <ListingAccessNotice seller={seller} />
+      {enabled && <PendingCorrectionsNotice sellerId={sellerId} />}
       <SectionCard className="mt-4">
         {enabled && (
           <FilterPills

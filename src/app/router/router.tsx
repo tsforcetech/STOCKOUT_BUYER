@@ -88,6 +88,8 @@ export const routes: RouteObject[] = [
                   // Older client-side CSV uploader, kept reachable for sellers mid-way through it; new imports use E2 above.
                   { path: "listings/bulk", lazy: page(() => import("@/features/seller/bulk/bulk-upload-page")) },
                   { path: "listings/:listingId", lazy: page(() => import("@/features/seller/listing-edit-page")) },
+                  { path: "listings/:listingId/corrections/:correctionId", lazy: page(() => import("@/features/seller/correction-page")) },
+                  { path: "corrections", lazy: page(() => import("@/features/seller/corrections-page")) },
                 ],
               },
             ],

@@ -15,6 +15,12 @@ const TONES: Record<string, BadgeTone> = {
   SUSPENDED: "danger",
   DRAFT: "neutral",
   SUBMITTED: "warning",
+  AWAITING_SELLER_DECISION: "warning",
+  READY_FOR_MODERATION: "info",
+  SELLER_ACCEPTED: "info",
+  SUBMITTED_TO_MODERATION: "info",
+  SELLER_DECLINED: "danger",
+  WITHDRAWN: "neutral",
   UNDER_REVIEW: "warning",
   COMPLETED: "success",
   // invitations

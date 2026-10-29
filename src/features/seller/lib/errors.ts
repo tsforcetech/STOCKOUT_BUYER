@@ -112,6 +112,15 @@ const ACCOUNT_MESSAGES: Record<string, string> = {
   INVENTORY_MEDIA_TIMEOUT: "File storage took too long to respond. Please try again.",
   INVENTORY_MEDIA_BAD_GATEWAY: "File storage is temporarily unavailable. Please try again shortly.",
   REJECTION_REASON_REQUIRED: "A reason is required.",
+  // E5 inspector corrections
+  MARKETPLACE_CORRECTION_NOT_FOUND: "This proposal wasn't found. It may belong to another seller or have been removed.",
+  MARKETPLACE_CORRECTION_VERSION_CONFLICT: "This proposal changed since you opened it. It has been reloaded — check it and try again.",
+  MARKETPLACE_CORRECTION_TRANSITION_INVALID: "This proposal can no longer be accepted or declined (it was already decided or withdrawn).",
+  MARKETPLACE_CORRECTION_DECLINE_REASON_REQUIRED: "Tell us why you're declining.",
+  MARKETPLACE_CORRECTION_DECISION_INVALID: "Choose accept or decline.",
+  MARKETPLACE_CORRECTION_SELF_DECISION_FORBIDDEN: "The person who proposed these changes can't also decide on them.",
+  MARKETPLACE_CORRECTION_BASE_VERSION_NOT_CURRENT: "Your listing changed after this proposal was made, so it no longer applies. Contact support if you need it re-issued.",
+  MARKETPLACE_CORRECTION_STATE_MISMATCH: "This proposal no longer matches the listing. Contact support.",
 };
 
 export function errorCode(error: unknown): string | undefined {

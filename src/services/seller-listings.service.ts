@@ -1,4 +1,11 @@
 import { http } from "@/lib/api/client";
+import type {
+  PagedSellerCorrectionsResponse,
+  SellerCorrectionDecisionRequest,
+  SellerCorrectionDecisionResponse,
+  SellerCorrectionsQuery,
+  SellerListingCorrectionDto,
+} from "@/api/types/listing-corrections";
 import { isApiError } from "@/lib/api/errors";
 import { unwrapData, type Envelope } from "@/lib/api/envelope";
 import type {
@@ -113,6 +120,15 @@ export const sellerListingsService = {
     }
   },
   /** 202 with an empty body. */
+  // E5 inspector corrections (no envelope). Seller-wide list is the only discovery mechanism (no inbox).
+  corrections: (sellerId: string, query: SellerCorrectionsQuery, signal?: AbortSignal) =>
+    http.get<PagedSellerCorrectionsResponse>(`${base(sellerId)}/corrections`, { signal, query: { listingId: query.listingId, status: query.status, page: query.page, pageSize: query.pageSize } }),
+  listingCorrections: (sellerId: string, listingId: string, query: Omit<SellerCorrectionsQuery, "listingId">, signal?: AbortSignal) =>
+    http.get<PagedSellerCorrectionsResponse>(`${one(sellerId, listingId)}/corrections`, { signal, query: { status: query.status, page: query.page, pageSize: query.pageSize } }),
+  correction: (sellerId: string, listingId: string, correctionId: string, signal?: AbortSignal) =>
+    http.get<SellerListingCorrectionDto>(`${one(sellerId, listingId)}/corrections/${seg(correctionId)}`, { signal }),
+  decideCorrection: (sellerId: string, listingId: string, correctionId: string, body: SellerCorrectionDecisionRequest) =>
+    http.post<SellerCorrectionDecisionResponse>(`${one(sellerId, listingId)}/corrections/${seg(correctionId)}/decision`, body),
   requestReinspection: (sellerId: string, listingId: string, inspectionId: string, remediationNotes: string) =>
     http.post<unknown>(`${one(sellerId, listingId)}/inspections/${seg(inspectionId)}/request-reinspection`, { remediationNotes }),
 

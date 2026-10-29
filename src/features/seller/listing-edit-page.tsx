@@ -16,6 +16,7 @@ import { InventoryTab } from "./workspace/inventory-tab";
 import { MediaTab } from "./workspace/media-tab";
 import { ReviewTab } from "./workspace/review-tab";
 import { WorkspaceHeader } from "./workspace/workspace-header";
+import { ListingCorrectionsBanner } from "./lib/corrections";
 
 const TABS = [
   { value: "details", label: "Details" },
@@ -70,6 +71,7 @@ export default function SellerListingEditPage() {
   return (
     <>
       <WorkspaceHeader sellerId={sellerId} listing={listing} moderation={moderation.data} />
+      <ListingCorrectionsBanner sellerId={sellerId} listingId={listing.listingId} />
       <SectionCard>
         <Tabs value={tab} onValueChange={(v) => setState({ tab: v })}>
           <TabsList aria-label="Listing sections" className="-mx-4 px-4 sm:mx-0 sm:px-0">
