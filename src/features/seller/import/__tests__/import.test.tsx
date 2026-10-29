@@ -214,6 +214,19 @@ describe("E2 bulk import", () => {
     expect(screen.queryByText("Import finished")).not.toBeInTheDocument();
   });
 
+  it("shows the unit symbol and matched photo count for checked rows", async () => {
+    const UNIT = "aeda56f2-0300-40db-8d3b-304d8fd87eee";
+    setup([
+      { method: "GET", path: `${BASE}/${JOB}/results`, respond: () => ({ body: results("VALIDATED", { failedRows: 0 }) }) },
+      { method: "GET", path: `${BASE}/${JOB}/preview`, respond: () => ({ body: preview("VALIDATED", [row(1, "VALID", { categoryId: "c-1", unitNameOrId: UNIT, quantity: 3, matchedImageCount: 2, imageReferences: ["a.jpg"] })]) }) },
+      { method: "GET", path: /listing-requirements$/, respond: () => ({ body: { success: true, data: { categoryId: "c-1", attributes: [], brands: [], unitRules: { categoryId: "c-1", defaultUnitId: UNIT, units: [{ unitId: UNIT, code: "PCS", name: "Pieces", symbol: "pcs" }] }, conditionRules: { categoryId: "c-1", isConditionRequired: false, conditions: [] } } } }) },
+    ]);
+    renderWithApp(routes, `/seller/listings/import/${JOB}`);
+    expect(await screen.findByText(/^3 pcs$/)).toBeInTheDocument();
+    expect(screen.queryByText(UNIT)).not.toBeInTheDocument();
+    expect(screen.getByTitle(/2 photo\(s\) matched; 1 referenced/)).toHaveTextContent("2");
+  });
+
   it("explains a server error on the import list instead of showing an empty list", async () => {
     setup([{ method: "GET", path: BASE, respond: () => ({ status: 500, body: { error: "INTERNAL_SERVER_ERROR", message: "An unexpected error occurred processing your request." } }) }]);
     renderWithApp(routes, "/seller/listings/import");

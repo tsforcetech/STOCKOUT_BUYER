@@ -16,7 +16,7 @@ import { ListingAccessNotice, canManageListings } from "../components/listing-ac
 import { Notice } from "../components/notice";
 import { BackLink } from "../components/back-link";
 import { Stepper } from "../components/stepper";
-import { sellerKeys, useActiveSeller } from "../lib/queries";
+import { sellerKeys, useActiveSeller, useListingRequirements } from "../lib/queries";
 import { IMPORT_STEPS, confirmKey, importErrorMessage, importKeys, isUncertain, POLL_MS, rowLabel, saveBlob, statusLabel } from "./shared";
 
 const FILTERS = [
@@ -407,14 +407,35 @@ function RowLine({ row }: { row: BulkImportRowPreviewDto }) {
           </ul>
         )}
       </td>
-      <td className="py-2 pr-3 tabular-nums">{row.quantity != null ? `${formatNumber(row.quantity)} ${row.unitNameOrId ?? ""}` : "—"}</td>
+      <td className="py-2 pr-3 tabular-nums">
+        {row.quantity != null ? (
+          <>
+            {formatNumber(row.quantity)} <UnitText value={row.unitNameOrId} categoryId={row.categoryId} />
+          </>
+        ) : (
+          "—"
+        )}
+      </td>
       <td className="py-2 pr-3 tabular-nums">{row.price != null ? `${row.currency ?? ""} ${formatNumber(row.price)}` : "—"}</td>
       <td className="py-2 pr-3 tabular-nums">
-        {formatNumber(row.matchedImageCount)} / {formatNumber(row.imageReferences.length)}
+        {/* The server also matches photos by the SKU's ZIP folder, so the count can exceed the references in the file. */}
+        <span title={`${row.matchedImageCount} photo(s) matched; ${row.imageReferences.length} referenced in the file`}>{formatNumber(row.matchedImageCount)}</span>
       </td>
       <td className="py-2 pr-3">
         <Badge tone={s.tone}>{s.label}</Badge>
       </td>
     </tr>
   );
+}
+
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** The server returns the unit resolved to its id once a row is checked; show the unit's symbol instead. */
+function UnitText({ value, categoryId }: { value: string | null; categoryId: string | null }) {
+  const isId = !!value && GUID.test(value);
+  const req = useListingRequirements(isId ? categoryId : null);
+  if (!value) return null;
+  if (!isId) return <>{value}</>;
+  const unit = req.data?.unitRules.units.find((u) => u.unitId.toLowerCase() === value.toLowerCase());
+  return <>{unit ? unit.symbol || unit.code : ""}</>;
 }
