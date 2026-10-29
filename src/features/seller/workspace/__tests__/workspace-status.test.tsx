@@ -86,8 +86,11 @@ describe("edit a published listing (L22)", () => {
   it("treats a draft on a live listing as an editable update", async () => {
     const withDraft = { ...live, currentDraftVersionId: "v-2", currentDraftVersion: { versionNumber: 2, title: "Gate valve v2", categoryId: "c-1" } } as unknown as ListingDetailResponse;
     mockFetch([publishedList("v-2", "DRAFT"), { method: "GET", path: /listing-requirements$/, respond: () => ({ body: { success: true, data: null } }) }]);
-    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={withDraft} moderation={undefined} /> }], "/");
+    // moderation-status still carries v1's approval for the new draft; it must not read as "approved".
+    const stale = { listingId: "l-1", listingVersionId: "v-2", status: "DRAFT", reviewedAtUtc: "2026-10-29T12:08:24", decision: "APPROVE", reasonCode: null, sellerNotes: null } as const;
+    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={withDraft} moderation={stale} /> }], "/");
     expect(await screen.findByText("You're editing an update to a live listing")).toBeInTheDocument();
+    expect(screen.queryByText(/waiting to be published/)).not.toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Submit for review/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit listing/ })).not.toBeInTheDocument();
   });

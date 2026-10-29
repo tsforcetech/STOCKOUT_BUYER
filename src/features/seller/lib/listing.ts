@@ -39,6 +39,7 @@ const VERSION_LABELS: Record<string, string> = {
 /** One badge for "where is this listing now": the version state when it says more than the listing status. */
 export function listingState(l: ListItem): { value: string; label: string } {
   const v = l.currentDraftVersionStatus;
+  if (l.status === "PUBLISHED" && v === "DRAFT") return { value: "PUBLISHED", label: "Live · update in draft" };
   if (l.status === "PUBLISHED" && v && VERSION_LABELS[v]) return { value: v, label: `Live · update ${VERSION_LABELS[v]!.toLowerCase()}` };
   if (l.status === "DRAFT" && v && VERSION_LABELS[v]) return { value: v, label: VERSION_LABELS[v]! };
   return { value: l.status, label: LISTING_STATUS_LABELS[l.status] ?? l.status };

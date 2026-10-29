@@ -34,7 +34,7 @@ interface Props {
   moderation: ListingModerationStatusResponse | undefined;
 }
 
-export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
+export function WorkspaceHeader({ sellerId, listing, moderation: lastDecision }: Props) {
   const version = listing.currentDraftVersion ?? listing.publishedVersion;
   const can = getSellerListingActions(listing);
   const lifecycle = useListingLifecycle(sellerId);
@@ -74,6 +74,9 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
   });
 
   const target = { listingId: listing.listingId, title: version?.title ?? "" };
+  // moderation-status reports the listing's last decision even for a newer, never-submitted draft (a revision of a
+  // live listing gets v1's APPROVE), so a decision only counts once the draft has left DRAFT.
+  const moderation = versionStatus === "DRAFT" ? undefined : lastDecision;
   const rejected =
     moderation?.decision === "REJECT" && !!listing.currentDraftVersionId;
   const changesRequested =
