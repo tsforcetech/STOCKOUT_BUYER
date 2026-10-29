@@ -108,8 +108,13 @@ function JobView({ sellerId, jobId }: { sellerId: string; jobId: string }) {
           </div>
           <p className="mt-2 text-xs text-muted-foreground">You can leave this page; the import continues on the server. Come back to Bulk import to see the result.</p>
           {r.status === "VALIDATING" && Date.now() - Date.parse(r.createdAtUtc.endsWith("Z") ? r.createdAtUtc : `${r.createdAtUtc}Z`) > STUCK_MS && (
-            <Notice tone="warning" className="mt-3" title="This is taking much longer than usual">
-              Checking normally takes a minute or two. If nothing changes, start a new import from Bulk import — this one creates no listings.
+            <Notice
+              tone="warning"
+              className="mt-3"
+              title="This is taking much longer than usual"
+              action={<RecheckButton sellerId={sellerId} jobId={r.jobId} onChanged={refreshAll} />}
+            >
+              Checking normally takes a minute or two. Check again to restart it — rows are re-checked from your uploaded files and nothing is imported until you confirm.
             </Notice>
           )}
           {progress.error && <p className="mt-2 text-sm text-danger">{importErrorMessage(progress.error)} We&apos;ll keep trying.</p>}
@@ -438,4 +443,26 @@ function UnitText({ value, categoryId }: { value: string | null; categoryId: str
   if (!isId) return <>{value}</>;
   const unit = req.data?.unitRules.units.find((u) => u.unitId.toLowerCase() === value.toLowerCase());
   return <>{unit ? unit.symbol || unit.code : ""}</>;
+}
+
+/** Restarts a check that stopped on the server (the backend takes over a VALIDATING job whose lease has expired). */
+function RecheckButton({ sellerId, jobId, onChanged }: { sellerId: string; jobId: string; onChanged: () => void }) {
+  const [busy, setBusy] = React.useState(false);
+  const run = async () => {
+    setBusy(true);
+    try {
+      await bulkImportService.validate(sellerId, jobId);
+      toast.success("Checking restarted.");
+    } catch (e) {
+      toast.error(importErrorMessage(e));
+    } finally {
+      setBusy(false);
+      onChanged();
+    }
+  };
+  return (
+    <Button size="sm" variant="secondary" loading={busy} onClick={() => void run()}>
+      <ArrowClockwiseIcon /> Check again
+    </Button>
+  );
 }

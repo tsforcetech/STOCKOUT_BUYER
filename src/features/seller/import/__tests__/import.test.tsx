@@ -227,6 +227,21 @@ describe("E2 bulk import", () => {
     expect(screen.getByTitle(/2 photo\(s\) matched; 1 referenced/)).toHaveTextContent("2");
   });
 
+  it("lets the seller restart a check that has been stuck for a long time", async () => {
+    let validated = 0;
+    setup([
+      { method: "GET", path: `${BASE}/${JOB}/results`, respond: () => ({ body: results("VALIDATING", { createdAtUtc: "2026-10-28T08:00:00Z", totalRows: 0, validRows: 0, failedRows: 0 }) }) },
+      { method: "GET", path: `${BASE}/${JOB}/progress`, respond: () => ({ body: { jobId: JOB, status: "VALIDATING", totalRows: 0, processedRows: 0, createdDraftsCount: 0, percentComplete: 0, isCompleted: false, completedAtUtc: null } }) },
+      { method: "GET", path: `${BASE}/${JOB}/preview`, respond: () => ({ body: preview("VALIDATING", []) }) },
+      { method: "POST", path: `${BASE}/${JOB}/validate`, respond: () => ((validated += 1), { body: jobDto("VALIDATED") }) },
+    ]);
+    const user = userEvent.setup();
+    renderWithApp(routes, `/seller/listings/import/${JOB}`);
+    expect(await screen.findByText(/taking much longer than usual/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Check again/ }));
+    await waitFor(() => expect(validated).toBe(1));
+  });
+
   it("explains a server error on the import list instead of showing an empty list", async () => {
     setup([{ method: "GET", path: BASE, respond: () => ({ status: 500, body: { error: "INTERNAL_SERVER_ERROR", message: "An unexpected error occurred processing your request." } }) }]);
     renderWithApp(routes, "/seller/listings/import");

@@ -54,6 +54,15 @@ const MESSAGES: Record<string, string> = {
   INVALID_IMAGE_PATH: "The ZIP contains an unsafe or empty file path. Re-create the ZIP with plain folder and file names.",
   IDEMPOTENCY_KEY_REQUIRED: "The import couldn't be confirmed safely. Reload the page and try again.",
   DURABLE_STORAGE_UNAVAILABLE: "File storage for imports is temporarily unavailable, so your file wasn't uploaded. Nothing was imported; please try again later.",
+  INVALID_ZIP_ARCHIVE: "That ZIP file can't be opened — it may be damaged or not a real .zip. Re-create it (select the photo folders → Compress) and upload it again.",
+  ZIP_EMPTY: "That ZIP file is empty. Put the photo folders in it and upload it again.",
+  ZIP_VALIDATION_FAILED: "There's a problem with the photos ZIP, so no rows were checked. See the details on the import, fix the ZIP and check again.",
+  INVALID_EXCEL_FILE: "The spreadsheet is damaged or isn't a real .xlsx file. Save it again from Excel as .xlsx and upload it.",
+  BULK_IMPORT_NO_VALID_ROWS: "No row is ready to import. Fix the rows with errors and check the file again.",
+  BULK_IMPORT_JOB_NOT_VALIDATED: "This import hasn't been checked yet, so it can't be imported. Check the rows first.",
+  BULK_IMPORT_JOB_STATUS_CONFLICT: "This import is already being imported or has finished, so it can't be checked again.",
+  BULK_IMPORT_CONFIRMATION_IN_PROGRESS: "This import is already being created. Wait for it to finish — refresh in a moment.",
+  BULK_IMPORT_VALIDATION_FAILED: "Checking stopped because of a problem on our side. The import was marked failed; try checking it again.",
   BULK_IMPORT_HAS_INVALID_ROWS: "Some rows have errors. Tick “Skip rows with errors” to import only the ready rows, or fix the file and start a new import.",
 };
 
