@@ -1,7 +1,7 @@
 import * as React from "react";
 import { ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
-import type { AddToCartListing } from "@/features/cart/add-to-cart";
+import { useOwnListing, type AddToCartListing } from "@/features/cart/add-to-cart";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
@@ -47,8 +47,9 @@ export function ListingMobileBar({
     };
   }, [panelRef, endRef]);
 
+  const own = useOwnListing(listing.sellerId);
   const max = listing.sellableQuantity;
-  const canBuy = listing.isAvailable && max > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
+  const canBuy = !own && listing.isAvailable && max > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
 
   const addOne = () => {
     if (!canBuy) return;
@@ -77,7 +78,7 @@ export function ListingMobileBar({
         <div className="min-w-0 flex-1">
           <p className="truncate font-heading text-lg font-bold leading-6 text-foreground">{formatMoney(listing.basePrice, listing.currency)}</p>
           <p className="truncate text-xs text-muted-foreground">
-            {canBuy ? (listing.unitSymbol ? `per ${listing.unitSymbol}` : "Fixed price") : "Not available to add right now"}
+            {own ? "Your listing" : canBuy ? (listing.unitSymbol ? `per ${listing.unitSymbol}` : "Fixed price") : "Not available to add right now"}
           </p>
         </div>
         {canBuy ? (

@@ -28,6 +28,8 @@ const FILTERS = [
   { key: "FAILED", label: "Failed" },
 ] as const;
 const PAGE_SIZE = 50;
+/** A check still running after this long has most likely stopped on the server. */
+const STUCK_MS = 15 * 60_000;
 
 /**
  * E2 import job: shows the server's check results row by row, lets the owner confirm, then follows the job until
@@ -105,6 +107,11 @@ function JobView({ sellerId, jobId }: { sellerId: string; jobId: string }) {
             <div className="h-full bg-action transition-all" style={{ width: `${Math.min(100, Math.max(0, progress.data?.percentComplete ?? 0))}%` }} />
           </div>
           <p className="mt-2 text-xs text-muted-foreground">You can leave this page; the import continues on the server. Come back to Bulk import to see the result.</p>
+          {r.status === "VALIDATING" && Date.now() - Date.parse(r.createdAtUtc.endsWith("Z") ? r.createdAtUtc : `${r.createdAtUtc}Z`) > STUCK_MS && (
+            <Notice tone="warning" className="mt-3" title="This is taking much longer than usual">
+              Checking normally takes a minute or two. If nothing changes, start a new import from Bulk import — this one creates no listings.
+            </Notice>
+          )}
           {progress.error && <p className="mt-2 text-sm text-danger">{importErrorMessage(progress.error)} We&apos;ll keep trying.</p>}
         </SectionCard>
       )}

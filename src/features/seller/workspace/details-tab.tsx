@@ -10,9 +10,10 @@ import { ListingDetailsForm } from "../components/listing-details-form";
 import { Notice } from "../components/notice";
 import { isVersionConflict } from "../lib/errors";
 import { listingFormFromVersion } from "../lib/listing-form";
-import { patchListingRowVersion, sellerKeys, useCategoryIndex } from "../lib/queries";
+import { patchListingRowVersion, sellerKeys, useCategoryIndex, useDraftVersionStatus } from "../lib/queries";
 
 export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: ListingDetailResponse }) {
+  const versionStatus = useDraftVersionStatus(sellerId, listing.listingId).data;
   const qc = useQueryClient();
   const version = listing.currentDraftVersion ?? listing.publishedVersion;
   const can = getSellerListingActions(listing);
@@ -54,12 +55,11 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
             ? "You're viewing the published version. Published listings can't be edited through the seller portal yet."
             : "This listing is read-only in its current state."}
         </Notice>
-      ) : (
-        <Notice>
-          <strong className="font-medium">Already submitted this draft?</strong> Wait for the review before editing — the marketplace can't yet show whether a draft is
-          under review, and changes made during review may go live without being re-checked.
+      ) : versionStatus === "UNDER_REVIEW" ? (
+        <Notice title="In review">
+          Our moderators are checking this draft. Wait for their decision before editing — changes made during review may go live without being re-checked.
         </Notice>
-      )}
+      ) : null}
       {categoryChanged && (
         <Notice tone="warning" title="Category changed — not saved yet">
           Saving will delete every attribute value on this draft. You'll need to fill in the new category's attributes afterwards.

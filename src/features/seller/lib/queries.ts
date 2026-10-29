@@ -51,6 +51,19 @@ export function useListingDetail(sellerId: string, listingId: string) {
   return useQuery({ queryKey: sellerKeys.detail(sellerId, listingId), queryFn: ({ signal }) => sellerListingsService.detail(sellerId, listingId, signal) });
 }
 
+/**
+ * The current draft's review state (UNDER_REVIEW, CHANGES_REQUIRED, APPROVED…). Only the listings list API
+ * returns it, so this reads the seller's list (shared cache, refreshed with every listing invalidation).
+ */
+export function useDraftVersionStatus(sellerId: string, listingId: string) {
+  return useQuery({
+    queryKey: [...sellerKeys.listings(sellerId), "version-status"],
+    queryFn: ({ signal }) => sellerListingsService.list(sellerId, { page: 1, pageSize: 1000 }, signal),
+    select: (r) => r.items.find((i) => i.listingId === listingId)?.currentDraftVersionStatus ?? null,
+    staleTime: 30_000,
+  });
+}
+
 export function useCategoryTree() {
   return useQuery({ queryKey: taxonomyKeys.tree, queryFn: ({ signal }) => catalogService.categoryTree(signal), staleTime: 10 * 60_000 });
 }

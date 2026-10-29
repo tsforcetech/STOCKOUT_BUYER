@@ -156,6 +156,7 @@ export default function ListingDetailPage() {
       .sort((a, b) => b.sellableQuantity - a.sellableQuantity);
   const cartListing: AddToCartListing = {
     listingId: l.listingId,
+    sellerId: l.seller.sellerId,
     title: l.title,
     sellerName: sellerLabel(l.seller.sellerId),
     basePrice: l.basePrice,

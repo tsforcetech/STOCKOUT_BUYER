@@ -22,8 +22,8 @@ import { BackLink } from "../components/back-link";
 import { useListingLifecycle } from "../components/listing-lifecycle";
 import { Notice } from "../components/notice";
 import { sellerErrorMessage } from "../lib/errors";
-import { LISTING_STATUS_LABELS } from "../lib/listing";
-import { useListingRequirements } from "../lib/queries";
+import { listingState } from "../lib/listing";
+import { useDraftVersionStatus, useListingRequirements } from "../lib/queries";
 import { ValidateDialog } from "./validate-dialog";
 
 interface Props {
@@ -37,6 +37,9 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
   const can = getSellerListingActions(listing);
   const lifecycle = useListingLifecycle(sellerId);
   const req = useListingRequirements(listing.currentDraftVersion?.categoryId);
+  const versionStatus = useDraftVersionStatus(sellerId, listing.listingId).data;
+  // Submitted drafts keep the listing status DRAFT; the version status says it's with the moderators.
+  const submitted = !!versionStatus && versionStatus !== "DRAFT";
   const [validateOpen, setValidateOpen] = React.useState(false);
   const validate = useApiMutation({
     mutationFn: () =>
@@ -78,7 +81,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
                 <ListChecksIcon /> Check completeness
               </Button>
             )}
-            {can.canSubmit && !rejected && !approvedAwaitingPublish && (
+            {can.canSubmit && !rejected && !approvedAwaitingPublish && !submitted && (
               <Button
                 variant="action"
                 onClick={() => lifecycle.open("submit", target)}
@@ -115,8 +118,7 @@ export function WorkspaceHeader({ sellerId, listing, moderation }: Props) {
       >
         <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
           <StatusBadge
-            value={listing.status}
-            label={LISTING_STATUS_LABELS[listing.status]}
+            {...listingState({ status: listing.status, currentDraftVersionStatus: versionStatus ?? null })}
           />
           {version && <span>Version {version.versionNumber}</span>}
           {version?.requiresPhysicalInspection && <span className="rounded-full bg-info-soft px-2 py-0.5 font-medium text-info-soft-foreground">Inspection required</span>}

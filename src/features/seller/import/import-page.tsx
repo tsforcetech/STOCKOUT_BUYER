@@ -55,7 +55,7 @@ export default function SellerImportPage() {
   const [zipError, setZipError] = React.useState<string | null>(null);
   const [stage, setStage] = React.useState<Stage | null>(null);
   const [doneStages, setDoneStages] = React.useState<Stage[]>([]);
-  const [error, setError] = React.useState<{ message: string; jobId?: string } | null>(null);
+  const [error, setError] = React.useState<{ message: string; jobId?: string; checking?: boolean } | null>(null);
   const [templateState, setTemplateState] = React.useState<"idle" | "loading">("idle");
   const [templateError, setTemplateError] = React.useState<string | null>(null);
   const jobs = useQuery({ queryKey: importKeys.list(sellerId, 1), queryFn: ({ signal }) => bulkImportService.list(sellerId, 1, 20, signal), enabled });
@@ -149,7 +149,7 @@ export default function SellerImportPage() {
         navigate(`/seller/listings/import/${jobId}`);
         return;
       }
-      setError({ message: importErrorMessage(e), jobId });
+      setError({ message: importErrorMessage(e), jobId, checking: at.step === "validate" });
     } finally {
       setStage(null);
     }
@@ -323,7 +323,7 @@ export default function SellerImportPage() {
                     <Notice
                       tone="danger"
                       className="mt-4"
-                      title="The import couldn't start"
+                      title={error.checking ? "Your file was uploaded, but checking it failed" : "The import couldn't start"}
                       action={
                         error.jobId ? (
                           <Link to={`/seller/listings/import/${error.jobId}`} className="text-sm underline underline-offset-4">
@@ -332,7 +332,7 @@ export default function SellerImportPage() {
                         ) : undefined
                       }
                     >
-                      {error.message}
+                      {error.checking ? "No listings were created. The check stopped on our side; try again later or open the import to see its status." : error.message}
                     </Notice>
                   )}
 

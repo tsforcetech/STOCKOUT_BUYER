@@ -1,11 +1,14 @@
 import * as React from "react";
 import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
+import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
+import { useSellerMode } from "@/lib/seller/seller-context";
 import { useCart, clampQuantity } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 
 export interface AddToCartListing {
   listingId: string;
+  sellerId: string;
   title: string;
   sellerName: string;
   basePrice: number | null;
@@ -16,14 +19,32 @@ export interface AddToCartListing {
   isAvailable: boolean;
 }
 
+/** True when the signed-in user belongs to the seller that owns this listing (sellers can't buy their own stock). */
+export function useOwnListing(sellerId: string): boolean {
+  const { sellers } = useSellerMode();
+  return sellers.some((s) => s.sellerId.toLowerCase() === sellerId.toLowerCase());
+}
+
 /** Quantity stepper + "Add to cart" on the listing page. */
 export function AddToCart({ listing }: { listing: AddToCartListing }) {
   const cart = useCart();
+  const own = useOwnListing(listing.sellerId);
   const [qty, setQty] = React.useState(1);
   const inCart = cart.items.find((i) => i.listingId === listing.listingId);
   const max = listing.sellableQuantity;
   const canBuy = listing.isAvailable && max > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
   const step = (d: number) => setQty((q) => clampQuantity(q + d, max));
+
+  if (own) {
+    return (
+      <p className="rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground">
+        This is your own listing, so it can't be added to your cart.{" "}
+        <Link to={`/seller/listings/${listing.listingId}`} className="font-medium text-foreground underline underline-offset-4">
+          Manage it in the seller portal
+        </Link>
+      </p>
+    );
+  }
 
   if (!canBuy) {
     return <p className="rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground">This listing can't be added to a cart right now (out of stock or no fixed price).</p>;
