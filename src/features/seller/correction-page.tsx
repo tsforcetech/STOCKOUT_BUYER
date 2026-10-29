@@ -23,7 +23,7 @@ import { CorrectionChanges, CorrectionStatusBadge, correctionKeys } from "./lib/
 const utc = (v: string | null | undefined) => (v ? formatDateTime(v.endsWith("Z") ? v : `${v}Z`) : "—");
 
 /** What happened after the seller's decision, in plain words. */
-function Outcome({ result, onReinspect }: { result: SellerCorrectionDecisionResponse; onReinspect: () => void }) {
+function Outcome({ result, onReinspect, unpublished }: { result: SellerCorrectionDecisionResponse; onReinspect: () => void; unpublished: boolean }) {
   if (result.correction.sellerDecision === "ACCEPT") {
     if (result.moderationEntryStatus === "SUBMITTED_TO_MODERATION")
       return (
@@ -34,7 +34,9 @@ function Outcome({ result, onReinspect }: { result: SellerCorrectionDecisionResp
     return (
       <Notice tone="warning" title="Accepted — waiting to go to review" className="mb-4">
         Your acceptance is recorded, but the changes couldn't be sent for review yet.{" "}
-        {result.moderationEntryBlockedCode === "MARKETPLACE_CORRECTION_LISTING_DRAFT_CONFLICT"
+        {unpublished
+          ? "This listing hasn't been published yet, and corrections to unpublished listings can't go to review yet — StockOut will follow up."
+          : result.moderationEntryBlockedCode === "MARKETPLACE_CORRECTION_LISTING_DRAFT_CONFLICT"
           ? "You have an unfinished update on this listing — submit or finish it first; StockOut then sends these changes for review."
           : "StockOut will follow up and send them for review."}
       </Notice>
@@ -165,7 +167,7 @@ export default function SellerCorrectionPage() {
         </div>
       </PageHeader>
 
-      {result && <Outcome result={result} onReinspect={() => setReinspectOpen(true)} />}
+      {result && <Outcome result={result} onReinspect={() => setReinspectOpen(true)} unpublished={listing.data?.publishedVersionId == null} />}
       {!result && c.status === "SUBMITTED_TO_MODERATION" && (
         <Notice className="mb-4" title="In review">
           You accepted these changes and they're with StockOut's reviewers. Your live listing stays as it is until they're approved and published.
