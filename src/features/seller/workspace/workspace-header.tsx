@@ -74,9 +74,9 @@ export function WorkspaceHeader({ sellerId, listing, moderation: lastDecision }:
   });
 
   const target = { listingId: listing.listingId, title: version?.title ?? "" };
-  // moderation-status reports the listing's last decision even for a newer, never-submitted draft (a revision of a
-  // live listing gets v1's APPROVE), so a decision only counts once the draft has left DRAFT.
-  const moderation = versionStatus === "DRAFT" ? undefined : lastDecision;
+  // moderation-status reports the listing's last decision even for a newer draft (a revision of a live listing gets
+  // v1's APPROVE), so a decision only counts once the draft itself has been decided — not while it's DRAFT or in review.
+  const moderation = versionStatus === "DRAFT" || versionStatus === "UNDER_REVIEW" ? undefined : lastDecision;
   const rejected =
     moderation?.decision === "REJECT" && !!listing.currentDraftVersionId;
   const changesRequested =

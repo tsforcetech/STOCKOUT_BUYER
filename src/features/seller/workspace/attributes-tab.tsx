@@ -9,7 +9,7 @@ import { listingsService } from "@/services/listings.service";
 import { attributeDisplayValue } from "@/features/listings/lib/attribute-value";
 import { getSellerListingActions, type EffectiveCategoryAttributeResponse, type ListingAttributesResponse, type ListingDetailResponse } from "@/api/types/seller-listings";
 import { Notice } from "../components/notice";
-import { isVersionConflict, sellerErrorMessage } from "../lib/errors";
+import { isVersionConflict, revisionSaveError, sellerErrorMessage } from "../lib/errors";
 import { patchListingRowVersion, sellerKeys, useListingRequirements } from "../lib/queries";
 import { AttributeInput, attributeError } from "./attribute-input";
 
@@ -53,7 +53,7 @@ function AttributesEditor({ sellerId, listing, defs, initial, readOnly }: { sell
     setShowErrors(true);
     setFormError(null);
     if (hasErrors) return;
-    save.mutate(undefined, { onError: (err) => setFormError(sellerErrorMessage(err)) });
+    save.mutate(undefined, { onError: (err) => setFormError(sellerErrorMessage(revisionSaveError(err, listing))) });
   };
 
   return (

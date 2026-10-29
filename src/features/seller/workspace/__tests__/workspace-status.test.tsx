@@ -94,6 +94,15 @@ describe("edit a published listing (L22)", () => {
     expect(await screen.findByRole("button", { name: /Submit for review/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Edit listing/ })).not.toBeInTheDocument();
   });
+
+  it("doesn't show the previous version's approval while the update is in review", async () => {
+    const withDraft = { ...live, currentDraftVersionId: "v-2", currentDraftVersion: { versionNumber: 2, title: "Gate valve v2", categoryId: "c-1" } } as unknown as ListingDetailResponse;
+    const stale = { listingId: "l-1", listingVersionId: "v-2", status: "UNDER_REVIEW", reviewedAtUtc: "2026-10-29T12:08:24", decision: "APPROVE", reasonCode: null, sellerNotes: null } as const;
+    mockFetch([publishedList("v-2", "UNDER_REVIEW"), { method: "GET", path: /listing-requirements$/, respond: () => ({ body: { success: true, data: null } }) }]);
+    renderWithApp([{ path: "/", element: <WorkspaceHeader sellerId="s-1" listing={withDraft} moderation={stale} /> }], "/");
+    expect(await screen.findByText("Update in review")).toBeInTheDocument();
+    expect(screen.queryByText(/waiting to be published/)).not.toBeInTheDocument();
+  });
 });
 
 describe("add to cart", () => {

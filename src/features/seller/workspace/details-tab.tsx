@@ -8,7 +8,7 @@ import { getSellerListingActions, type CreateListingDraftRequest, type ListingDe
 import { CategoryPicker } from "../components/category-picker";
 import { ListingDetailsForm } from "../components/listing-details-form";
 import { Notice } from "../components/notice";
-import { isVersionConflict } from "../lib/errors";
+import { isVersionConflict, revisionSaveError } from "../lib/errors";
 import { listingFormFromVersion } from "../lib/listing-form";
 import { patchListingRowVersion, sellerKeys, useCategoryIndex, useDraftVersionStatus } from "../lib/queries";
 
@@ -30,7 +30,7 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
         return await sellerListingsService.update(sellerId, listing.listingId, { ...payload, expectedRowVersion: current.rowVersion });
       } catch (error) {
         if (isVersionConflict(error)) await qc.invalidateQueries({ queryKey: sellerKeys.detail(sellerId, listing.listingId) });
-        throw error;
+        throw revisionSaveError(error, listing);
       }
     },
     successMessage: "Draft saved.",
