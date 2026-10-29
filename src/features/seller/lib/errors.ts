@@ -132,16 +132,6 @@ export function isInventoryConflict(error: unknown): boolean {
 }
 
 /** Message for catalog-listing / files errors. */
-/**
- * L22: the backend creates revision drafts of live listings, but its draft-update and attribute procedures still only
- * accept listings in DRAFT, so saving a revision's details or attributes fails with 409. Say so plainly.
- */
-export function revisionSaveError(error: unknown, listing: { status: string; currentDraftVersionId: string | null }): unknown {
-  if (listing.status === "PUBLISHED" && listing.currentDraftVersionId && errorCode(error) === "MARKETPLACE_LISTING_TRANSITION_INVALID")
-    return new Error("The marketplace can't save detail or attribute changes on an update to a live listing yet — this is a known issue reported to the StockOut team. Photo changes still work, and your live listing is unchanged.");
-  return error;
-}
-
 export function sellerErrorMessage(error: unknown): string {
   const code = errorCode(error);
   if (code && MESSAGES[code]) return MESSAGES[code];

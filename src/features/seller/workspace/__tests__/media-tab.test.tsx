@@ -59,6 +59,6 @@ describe("MediaTab without a draft", () => {
     const { calls } = mockFetch([]);
     renderWithApp([{ path: "/", element: <MediaTab sellerId="s-1" listing={{ ...live, publishedVersionId: null } as unknown as ListingDetailResponse} /> }], "/");
     expect(await screen.findByText(/no photos or documents yet/)).toBeInTheDocument();
-    expect(calls.length).toBe(0);
+    expect(calls.filter((c) => c.url.pathname.endsWith("/media"))).toHaveLength(0);
   });
 });

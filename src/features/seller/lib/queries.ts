@@ -6,7 +6,7 @@ import { filesService } from "@/services/files.service";
 import { marketplaceService } from "@/services/marketplace.service";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import type { SellerContextResponse } from "@/api/types/user-organization";
-import type { ListingAttributesResponse, ListingDetailResponse, ListingMediaResponse, SellerListingListQuery } from "@/api/types/seller-listings";
+import { getSellerListingActions, type ListingAttributesResponse, type ListingDetailResponse, type ListingMediaResponse, type SellerListingListQuery } from "@/api/types/seller-listings";
 
 export const sellerKeys = {
   seller: (sellerId: string) => ["seller", sellerId, "account"] as const,
@@ -62,6 +62,17 @@ export function useDraftVersionStatus(sellerId: string, listingId: string) {
     select: (r) => r.items.find((i) => i.listingId === listingId)?.currentDraftVersionStatus ?? null,
     staleTime: 30_000,
   });
+}
+
+/**
+ * Action availability that also respects the draft VERSION status: a submitted (UNDER_REVIEW), approved or
+ * rejected draft can't be edited any more (backend 052 rejects it with 409 TRANSITION_INVALID).
+ */
+export function useListingActions(sellerId: string, listing: ListingDetailResponse) {
+  const versionStatus = useDraftVersionStatus(sellerId, listing.listingId).data;
+  const can = getSellerListingActions(listing);
+  if (!versionStatus || versionStatus === "DRAFT" || versionStatus === "CHANGES_REQUIRED") return can;
+  return { ...can, canUpdateDraft: false, canEditAttributes: false, canMutateMedia: false, canSubmit: false };
 }
 
 export function useCategoryTree() {

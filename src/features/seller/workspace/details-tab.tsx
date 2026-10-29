@@ -4,19 +4,19 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellerListingsService } from "@/services/seller-listings.service";
-import { getSellerListingActions, type CreateListingDraftRequest, type ListingDetailResponse } from "@/api/types/seller-listings";
+import { type CreateListingDraftRequest, type ListingDetailResponse } from "@/api/types/seller-listings";
 import { CategoryPicker } from "../components/category-picker";
 import { ListingDetailsForm } from "../components/listing-details-form";
 import { Notice } from "../components/notice";
-import { isVersionConflict, revisionSaveError } from "../lib/errors";
+import { isVersionConflict } from "../lib/errors";
 import { listingFormFromVersion } from "../lib/listing-form";
-import { patchListingRowVersion, sellerKeys, useCategoryIndex, useDraftVersionStatus } from "../lib/queries";
+import { patchListingRowVersion, sellerKeys, useCategoryIndex, useDraftVersionStatus, useListingActions } from "../lib/queries";
 
 export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: ListingDetailResponse }) {
   const versionStatus = useDraftVersionStatus(sellerId, listing.listingId).data;
   const qc = useQueryClient();
   const version = listing.currentDraftVersion ?? listing.publishedVersion;
-  const can = getSellerListingActions(listing);
+  const can = useListingActions(sellerId, listing);
   const { index } = useCategoryIndex();
   const [categoryId, setCategoryId] = React.useState(version?.categoryId ?? "");
   const [picking, setPicking] = React.useState(false);
@@ -30,7 +30,7 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
         return await sellerListingsService.update(sellerId, listing.listingId, { ...payload, expectedRowVersion: current.rowVersion });
       } catch (error) {
         if (isVersionConflict(error)) await qc.invalidateQueries({ queryKey: sellerKeys.detail(sellerId, listing.listingId) });
-        throw revisionSaveError(error, listing);
+        throw error;
       }
     },
     successMessage: "Draft saved.",
@@ -49,17 +49,17 @@ export function DetailsTab({ sellerId, listing }: { sellerId: string; listing: L
 
   return (
     <div className="space-y-4 pt-1">
-      {!can.canUpdateDraft ? (
+      {versionStatus === "UNDER_REVIEW" ? (
+        <Notice title="In review">Our moderators are checking this draft, so it can't be changed until they decide.</Notice>
+      ) : versionStatus === "APPROVED" ? (
+        <Notice title="Approved">This version is approved and waiting to be published; it can't be changed any more.</Notice>
+      ) : !can.canUpdateDraft ? (
         <Notice>
           {listing.status === "PUBLISHED"
             ? "You're viewing the live version. Choose Edit listing at the top to make changes."
             : listing.status === "SUSPENDED"
               ? "You're viewing the published version. Resume the listing to make changes."
               : "This listing is read-only in its current state."}
-        </Notice>
-      ) : versionStatus === "UNDER_REVIEW" ? (
-        <Notice title="In review">
-          Our moderators are checking this draft. Wait for their decision before editing — changes made during review may go live without being re-checked.
         </Notice>
       ) : null}
       {categoryChanged && (

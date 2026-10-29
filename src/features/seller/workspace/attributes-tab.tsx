@@ -7,10 +7,10 @@ import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { listingsService } from "@/services/listings.service";
 import { attributeDisplayValue } from "@/features/listings/lib/attribute-value";
-import { getSellerListingActions, type EffectiveCategoryAttributeResponse, type ListingAttributesResponse, type ListingDetailResponse } from "@/api/types/seller-listings";
+import { type EffectiveCategoryAttributeResponse, type ListingAttributesResponse, type ListingDetailResponse } from "@/api/types/seller-listings";
 import { Notice } from "../components/notice";
-import { isVersionConflict, revisionSaveError, sellerErrorMessage } from "../lib/errors";
-import { patchListingRowVersion, sellerKeys, useListingRequirements } from "../lib/queries";
+import { isVersionConflict, sellerErrorMessage } from "../lib/errors";
+import { patchListingRowVersion, sellerKeys, useListingActions, useListingRequirements } from "../lib/queries";
 import { AttributeInput, attributeError } from "./attribute-input";
 
 type Values = Record<string, string[]>;
@@ -53,7 +53,7 @@ function AttributesEditor({ sellerId, listing, defs, initial, readOnly }: { sell
     setShowErrors(true);
     setFormError(null);
     if (hasErrors) return;
-    save.mutate(undefined, { onError: (err) => setFormError(sellerErrorMessage(revisionSaveError(err, listing))) });
+    save.mutate(undefined, { onError: (err) => setFormError(sellerErrorMessage(err)) });
   };
 
   return (
@@ -93,7 +93,7 @@ function AttributesEditor({ sellerId, listing, defs, initial, readOnly }: { sell
 
 export function AttributesTab({ sellerId, listing }: { sellerId: string; listing: ListingDetailResponse }) {
   const draft = listing.currentDraftVersion;
-  const can = getSellerListingActions(listing);
+  const can = useListingActions(sellerId, listing);
   const req = useListingRequirements(draft?.categoryId);
   const attrs = useQuery({
     queryKey: sellerKeys.attributes(sellerId, listing.listingId),

@@ -8,11 +8,11 @@ import { RowAction } from "@/components/common/section-card";
 import { EmptyState, ErrorState, PageSkeleton } from "@/components/feedback/states";
 import { useApiMutation } from "@/hooks/use-api-mutation";
 import { sellerListingsService } from "@/services/seller-listings.service";
-import { getSellerListingActions, LISTING_MEDIA_LIMITS as M, type ListingDetailResponse, type ListingMediaItemResponse, type ListingMediaType } from "@/api/types/seller-listings";
+import { LISTING_MEDIA_LIMITS as M, type ListingDetailResponse, type ListingMediaItemResponse, type ListingMediaType } from "@/api/types/seller-listings";
 import { FileDownloadAction, OwnImageThumb } from "../components/file-link";
 import { Notice } from "../components/notice";
 import { isVersionConflict, sellerErrorMessage } from "../lib/errors";
-import { patchListingRowVersion, sellerKeys } from "../lib/queries";
+import { patchListingRowVersion, sellerKeys, useListingActions } from "../lib/queries";
 import { MediaUploader } from "./media-uploader";
 
 type MediaOp = { kind: "primary"; item: ListingMediaItemResponse } | { kind: "delete"; item: ListingMediaItemResponse } | { kind: "order"; ids: string[] };
@@ -20,7 +20,7 @@ type MediaOp = { kind: "primary"; item: ListingMediaItemResponse } | { kind: "de
 export function MediaTab({ sellerId, listing }: { sellerId: string; listing: ListingDetailResponse }) {
   const qc = useQueryClient();
   const id = listing.listingId;
-  const can = getSellerListingActions(listing);
+  const can = useListingActions(sellerId, listing);
   const [toDelete, setToDelete] = React.useState<ListingMediaItemResponse | null>(null);
   // Without a draft the endpoint returns the published version's media (read-only).
   const hasVersion = !!(listing.currentDraftVersionId || listing.publishedVersionId);
