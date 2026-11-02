@@ -1,4 +1,5 @@
 import { http } from "@/lib/api/client";
+import type { SellerInspectionDisputeDetailDto, SellerInspectionDisputeDto, SubmitInspectionDisputeRequest } from "@/api/types/disputes";
 import type {
   PagedSellerCorrectionsResponse,
   SellerCorrectionDecisionRequest,
@@ -129,6 +130,12 @@ export const sellerListingsService = {
     http.get<SellerListingCorrectionDto>(`${one(sellerId, listingId)}/corrections/${seg(correctionId)}`, { signal }),
   decideCorrection: (sellerId: string, listingId: string, correctionId: string, body: SellerCorrectionDecisionRequest) =>
     http.post<SellerCorrectionDecisionResponse>(`${one(sellerId, listingId)}/corrections/${seg(correctionId)}/decision`, body),
+  // E5-DISP-1/2 inspection appeals and post-decline disputes (one per completed inspection).
+  submitDispute: (sellerId: string, listingId: string, inspectionId: string, body: SubmitInspectionDisputeRequest) =>
+    http.post<SellerInspectionDisputeDetailDto>(`${one(sellerId, listingId)}/inspections/${seg(inspectionId)}/disputes`, body),
+  disputes: (sellerId: string, listingId: string, signal?: AbortSignal) => http.get<SellerInspectionDisputeDto[]>(`${one(sellerId, listingId)}/disputes`, { signal }),
+  dispute: (sellerId: string, listingId: string, disputeId: string, signal?: AbortSignal) =>
+    http.get<SellerInspectionDisputeDetailDto>(`${one(sellerId, listingId)}/disputes/${seg(disputeId)}`, { signal }),
   requestReinspection: (sellerId: string, listingId: string, inspectionId: string, remediationNotes: string) =>
     http.post<unknown>(`${one(sellerId, listingId)}/inspections/${seg(inspectionId)}/request-reinspection`, { remediationNotes }),
 

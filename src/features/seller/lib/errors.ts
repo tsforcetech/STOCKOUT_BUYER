@@ -120,6 +120,14 @@ const ACCOUNT_MESSAGES: Record<string, string> = {
   MARKETPLACE_CORRECTION_DECISION_INVALID: "Choose accept or decline.",
   MARKETPLACE_CORRECTION_SELF_DECISION_FORBIDDEN: "The person who proposed these changes can't also decide on them.",
   MARKETPLACE_CORRECTION_BASE_VERSION_NOT_CURRENT: "Your listing changed after this proposal was made, so it no longer applies. Contact support if you need it re-issued.",
+  MARKETPLACE_DISPUTE_ALREADY_EXISTS: "This inspection already has a dispute. Open it from the listing's disputes.",
+  MARKETPLACE_DISPUTE_EVIDENCE_REQUIRED: "Add at least one supporting file (PDF or photo).",
+  MARKETPLACE_DISPUTE_EVIDENCE_INVALID: "One of the files can't be used as evidence. Upload it again and wait for it to finish.",
+  MARKETPLACE_DISPUTE_REASON_REQUIRED: "Choose a reason and explain it in at least 10 characters.",
+  MARKETPLACE_DISPUTE_ELIGIBILITY_INVALID: "Only a completed inspection (or a proposal you declined) can be disputed.",
+  MARKETPLACE_DISPUTE_NOT_FOUND: "This dispute wasn't found.",
+  MARKETPLACE_DISPUTE_ACCESS_DENIED: "You can't open a dispute for another seller's listing.",
+  MARKETPLACE_LISTING_INSPECTION_NOT_PASSED: "This listing needs a passed inspection from the last 30 days before it can go live.",
   MARKETPLACE_CORRECTION_STATE_MISMATCH: "This proposal no longer matches the listing. Contact support.",
 };
 

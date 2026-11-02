@@ -1,7 +1,8 @@
 import * as React from "react";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ColumnDef } from "@tanstack/react-table";
-import { ArrowsClockwiseIcon } from "@phosphor-icons/react";
+import { Link, useNavigate } from "react-router";
+import { ArrowsClockwiseIcon, ScalesIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/misc";
 import { DetailList } from "@/components/common/page-header";
@@ -17,6 +18,7 @@ import { Notice } from "../components/notice";
 import { Panel } from "../components/panel";
 import { sellerErrorMessage } from "../lib/errors";
 import { sellerKeys } from "../lib/queries";
+import { DisputeDialog, disputeKeys } from "../lib/disputes";
 import { toast } from "sonner";
 
 interface Props {
@@ -55,6 +57,9 @@ function ModerationCard({ moderation }: Pick<Props, "moderation">) {
 function LatestInspection({ sellerId, listingId, requiresInspection }: { sellerId: string; listingId: string; requiresInspection?: boolean }) {
   const qc = useQueryClient();
   const [asking, setAsking] = React.useState(false);
+  const [appealing, setAppealing] = React.useState(false);
+  const navigate = useNavigate();
+  const disputes = useQuery({ queryKey: disputeKeys.forListing(sellerId, listingId), queryFn: ({ signal }) => sellerListingsService.disputes(sellerId, listingId, signal), retry: false });
   const latest = useQuery({ queryKey: sellerKeys.latestInspection(sellerId, listingId), queryFn: ({ signal }) => sellerListingsService.latestInspection(sellerId, listingId, signal) });
   const request = useApiMutation({
     toastOnError: false,
@@ -84,6 +89,8 @@ function LatestInspection({ sellerId, listingId, requiresInspection }: { sellerI
       />
     );
   const canRequest = i.status === "COMPLETED" && (i.result === "FAIL" || i.result === "REINSPECTION_REQUIRED");
+  const existing = (disputes.data ?? []).find((d) => d.inspectionId === i.inspectionId);
+  const canAppeal = i.status === "COMPLETED" && !!i.result && !existing;
 
   return (
     <div className="space-y-4">
@@ -91,11 +98,34 @@ function LatestInspection({ sellerId, listingId, requiresInspection }: { sellerI
         <span className="font-mono text-sm">{i.inspectionNo}</span>
         <StatusBadge value={i.status} />
         {i.result && <StatusBadge value={i.result} />}
-        {canRequest && (
-          <Button variant="primary" size="sm" className="ml-auto" onClick={() => setAsking(true)}>
-            <ArrowsClockwiseIcon /> Request re-inspection
-          </Button>
-        )}
+        <span className="ml-auto flex flex-wrap gap-2">
+          {existing ? (
+            <Button asChild variant="secondary" size="sm">
+              <Link to={`/seller/listings/${listingId}/disputes?dispute=${existing.disputeId}`}>View dispute {existing.disputeNo}</Link>
+            </Button>
+          ) : (
+            canAppeal && (
+              <Button variant="secondary" size="sm" onClick={() => setAppealing(true)}>
+                <ScalesIcon /> Appeal result
+              </Button>
+            )
+          )}
+          {canRequest && (
+            <Button variant="primary" size="sm" onClick={() => setAsking(true)}>
+              <ArrowsClockwiseIcon /> Request re-inspection
+            </Button>
+          )}
+        </span>
+        <DisputeDialog
+          sellerId={sellerId}
+          listingId={listingId}
+          inspectionId={i.inspectionId}
+          inspectionNo={i.inspectionNo}
+          disputeType="INSPECTION_APPEAL"
+          open={appealing}
+          onOpenChange={setAppealing}
+          onSubmitted={(d) => navigate(`/seller/listings/${listingId}/disputes?dispute=${d.disputeId}`)}
+        />
       </div>
       <DetailList
         columns={3}

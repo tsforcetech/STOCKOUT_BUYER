@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, useParams } from "react-router";
+import { Link, useNavigate, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckIcon, XIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
@@ -18,7 +18,16 @@ import { Notice } from "./components/notice";
 import { ListingAccessNotice, canManageListings } from "./components/listing-access-notice";
 import { errorCode, sellerErrorMessage } from "./lib/errors";
 import { sellerKeys, useActiveSeller, useListingDetail } from "./lib/queries";
+import { DisputeDialog, disputeKeys } from "./lib/disputes";
 import { CorrectionChanges, CorrectionStatusBadge, FIELD_LABEL, correctionKeys } from "./lib/corrections";
+
+/** E5-Q1: stock changes only when the corrected version is published. */
+const QUANTITY_NOTE: Record<string, string> = {
+  AWAITING_PUBLICATION: "The new stock quantity is applied only when the corrected version is approved and published.",
+  APPLIED: "The new stock quantity was applied when the corrected version was published.",
+  CANCELLED: "The proposed stock change was cancelled; your stock is unchanged.",
+  BLOCKED_PENDING_OWNER_DECISION: "Stock level is not changed automatically — the proposed quantity is recorded for reference only.",
+};
 
 const utc = (v: string | null | undefined) => (v ? formatDateTime(v.endsWith("Z") ? v : `${v}Z`) : "—");
 
@@ -47,7 +56,7 @@ function Outcome({ result, onReinspect, unpublished }: { result: SellerCorrectio
       Your listing stays as it is.{" "}
       {result.reinspectionRequestEligible
         ? "If you disagree with the inspection result, you can ask for a re-inspection."
-        : "If you want to dispute the inspection, contact StockOut support — there's no online appeal for this case yet."}
+        : "If you disagree with the inspection itself, you can dispute it below."}
     </Notice>
   );
 }
@@ -96,6 +105,14 @@ export default function SellerCorrectionPage() {
   const [reason, setReason] = React.useState("");
   const [notes, setNotes] = React.useState("");
   const [result, setResult] = React.useState<SellerCorrectionDecisionResponse | null>(null);
+  const [disputing, setDisputing] = React.useState(false);
+  const navigate = useNavigate();
+  const disputes = useQuery({
+    queryKey: disputeKeys.forListing(sellerId, listingId),
+    queryFn: ({ signal }) => sellerListingsService.disputes(sellerId, listingId, signal),
+    enabled: canManageListings(seller),
+    retry: false,
+  });
 
   const decide = useApiMutation({
     mutationFn: (decision: "ACCEPT" | "DECLINE") =>
@@ -139,6 +156,7 @@ export default function SellerCorrectionPage() {
   const version = listing.data?.currentDraftVersion ?? listing.data?.publishedVersion;
   const open = c.status === "AWAITING_SELLER_DECISION";
   const needsOk = c.changes.filter((x) => x.requiresSellerAcceptance);
+  const dispute = (disputes.data ?? []).find((d) => d.correctionId === c.correctionId || d.inspectionId === c.inspectionId);
 
   return (
     <>
@@ -191,13 +209,29 @@ export default function SellerCorrectionPage() {
           <p className="mb-4 whitespace-pre-wrap text-sm">{c.sellerVisibleSummary}</p>
           <h2 className="mb-2 font-heading text-base font-bold">Proposed changes</h2>
           <CorrectionChanges changes={c.changes} categoryId={version?.categoryId} />
-          {c.changes.some((x) => x.field === "quantity") && c.quantityApplicationStatus === "BLOCKED_PENDING_OWNER_DECISION" && (
-            <p className="mt-3 text-xs text-muted-foreground">Stock level is not changed automatically — the proposed quantity is recorded for reference only.</p>
+          {c.changes.some((x) => x.field === "quantity") && QUANTITY_NOTE[c.quantityApplicationStatus] && (
+            <p className="mt-3 text-xs text-muted-foreground">{QUANTITY_NOTE[c.quantityApplicationStatus]}</p>
           )}
         </SectionCard>
         <SectionCard>
           <h2 className="mb-3 font-heading text-base font-bold">Decision</h2>
           <DecisionHistory c={c} />
+          {c.status === "SELLER_DECLINED" && (
+            <div className="mt-4 border-t border-border pt-4">
+              {dispute ? (
+                <Button asChild variant="secondary" size="sm">
+                  <Link to={`/seller/listings/${listingId}/disputes?dispute=${dispute.disputeId}`}>View dispute {dispute.disputeNo}</Link>
+                </Button>
+              ) : (
+                <>
+                  <p className="mb-2 text-xs text-muted-foreground">Disagree with the inspection itself? Ask a different reviewer to look at it.</p>
+                  <Button variant="secondary" size="sm" onClick={() => setDisputing(true)}>
+                    Dispute this inspection
+                  </Button>
+                </>
+              )}
+            </div>
+          )}
           {open && needsOk.length > 0 && (
             <p className="mt-4 text-xs text-muted-foreground">
               {needsOk.map((x) => FIELD_LABEL[x.field] ?? x.field).join(", ")} {needsOk.length === 1 ? "changes" : "change"} only with your OK.
@@ -205,6 +239,17 @@ export default function SellerCorrectionPage() {
           )}
         </SectionCard>
       </div>
+
+      <DisputeDialog
+        sellerId={sellerId}
+        listingId={listingId}
+        inspectionId={c.inspectionId}
+        disputeType="CORRECTION_DECLINE_DISPUTE"
+        correctionId={c.correctionId}
+        open={disputing}
+        onOpenChange={setDisputing}
+        onSubmitted={(d) => navigate(`/seller/listings/${listingId}/disputes?dispute=${d.disputeId}`)}
+      />
 
       <Dialog open={acceptOpen} onOpenChange={(o) => !decide.isPending && setAcceptOpen(o)}>
         <DialogContent

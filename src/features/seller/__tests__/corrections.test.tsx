@@ -71,12 +71,15 @@ describe("E5 seller correction decision", () => {
   });
 
   it("needs a reason to decline and offers re-inspection only when eligible", async () => {
+    let decided = false;
     const { calls } = mockFetch([
-      ...common,
+      ...common.filter((r) => !String(r.path).endsWith(`/corrections/${COR}`)),
+      { method: "GET", path: `${base}/${LISTING}/corrections/${COR}`, respond: () => ({ body: decided ? { ...correction, status: "SELLER_DECLINED", sellerDecision: "DECLINE" } : correction }) },
+      { method: "GET", path: `${base}/${LISTING}/disputes`, respond: () => ({ body: [] }) },
       {
         method: "POST",
         path: `${base}/${LISTING}/corrections/${COR}/decision`,
-        respond: () => ({ body: { correction: { ...correction, status: "SELLER_DECLINED", sellerDecision: "DECLINE", sellerDecisionReason: "Price is right" }, isIdempotentReplay: false, moderationEntryStatus: null, moderationEntryBlockedCode: null, reinspectionRequestEligible: false } }),
+        respond: () => { decided = true; return { body: { correction: { ...correction, status: "SELLER_DECLINED", sellerDecision: "DECLINE", sellerDecisionReason: "Price is right" }, isIdempotentReplay: false, moderationEntryStatus: null, moderationEntryBlockedCode: null, reinspectionRequestEligible: false } }; },
       },
     ]);
     renderWithApp(routes, `/seller/listings/${LISTING}/corrections/${COR}`);
@@ -87,8 +90,41 @@ describe("E5 seller correction decision", () => {
     await userEvent.type(within(dialog).getByLabelText(/Reason/), "Price is right");
     await userEvent.click(confirm);
     await waitFor(() => expect(calls.find((c) => c.url.pathname.endsWith("/decision"))?.body).toMatchObject({ decision: "DECLINE", reason: "Price is right" }));
-    expect(await screen.findByText(/contact StockOut support/)).toBeInTheDocument();
+    expect(await screen.findByText(/you can dispute it below/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Request re-inspection/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "Dispute this inspection" })).toBeInTheDocument();
+  });
+
+  it("disputes a declined proposal with private evidence", async () => {
+    const declined = { ...correction, status: "SELLER_DECLINED", sellerDecision: "DECLINE", sellerDecisionReason: "Price is right" };
+    const { filesService } = await import("@/services/files.service");
+    const up = vi.spyOn(filesService, "upload").mockResolvedValue({ fileId: "f-ev-1" } as never);
+    const { calls } = mockFetch([
+      ...common.filter((r) => !String(r.path).includes("/corrections/")),
+      { method: "GET", path: `${base}/${LISTING}/corrections/${COR}`, respond: () => ({ body: declined }) },
+      { method: "GET", path: `${base}/${LISTING}/disputes`, respond: () => ({ body: [] }) },
+      { method: "POST", path: `${base}/${LISTING}/inspections/i-1/disputes`, respond: () => ({ status: 201, body: { disputeId: "d-1", disputeNo: "DSP-1", status: "SUBMITTED", evidence: [] } }) },
+    ]);
+    renderWithApp(routes, `/seller/listings/${LISTING}/corrections/${COR}`);
+    await userEvent.click(await screen.findByRole("button", { name: "Dispute this inspection" }));
+    const dialog = await screen.findByRole("dialog");
+    const send = within(dialog).getByRole("button", { name: "Send dispute" });
+    expect(send).toBeDisabled();
+    await userEvent.type(within(dialog).getByLabelText(/Explain/), "The pressure rating was misread on site.");
+    await userEvent.upload(within(dialog).getByLabelText("Add evidence files"), new File(["%PDF"], "nameplate.pdf", { type: "application/pdf" }));
+    expect(await within(dialog).findByText("nameplate.pdf")).toBeInTheDocument();
+    expect(up).toHaveBeenCalledWith(expect.any(File), "SELLER_DOCUMENT");
+    await userEvent.click(send);
+    await waitFor(() =>
+      expect(calls.find((c) => c.method === "POST" && c.url.pathname.endsWith("/disputes"))?.body).toEqual({
+        disputeType: "CORRECTION_DECLINE_DISPUTE",
+        correctionId: COR,
+        reasonCode: "GRADE_OR_RESULT",
+        reason: "The pressure rating was misread on site.",
+        evidence: [{ fileAssetId: "f-ev-1", evidenceType: "DOCUMENT", filePurpose: "SELLER_DOCUMENT", description: "nameplate.pdf", displayOrder: 1 }],
+      }),
+    );
+    up.mockRestore();
   });
 
   it("explains an accepted correction that couldn't enter review because of an open draft", async () => {
