@@ -186,7 +186,10 @@ export default function SellerCorrectionPage() {
       </PageHeader>
 
       {result && <Outcome result={result} onReinspect={() => setReinspectOpen(true)} unpublished={listing.data?.publishedVersionId == null} />}
-      {!result && c.status === "SUBMITTED_TO_MODERATION" && (
+      {!result && c.correctedListingVersionId && listing.data?.publishedVersionId === c.correctedListingVersionId && (
+        <Notice className="mb-4" title="Live">These changes were approved and are now live on your listing.</Notice>
+      )}
+      {!result && c.status === "SUBMITTED_TO_MODERATION" && listing.data?.publishedVersionId !== c.correctedListingVersionId && (
         <Notice className="mb-4" title="In review">
           You accepted these changes and they're with StockOut's reviewers. Your live listing stays as it is until they're approved and published.
         </Notice>
