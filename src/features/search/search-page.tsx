@@ -6,8 +6,6 @@ import {
   ArrowsDownUpIcon,
   BellSimpleIcon,
   CaretDownIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -43,6 +41,7 @@ import {
 } from "./components/applied-filters";
 import { FilterSheet } from "./components/filter-sheet";
 import { SearchBox } from "./components/search-box";
+import { Pager } from "./components/pager";
 import { useSearchView, ViewToggle } from "./components/view-toggle";
 import { useFilterOptions } from "./lib/filter-options";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
@@ -405,34 +404,15 @@ export default function SearchPage() {
                     </React.Fragment>
                   ))}
                 </div>
-                <nav
-                  className="mt-8 flex items-center justify-center gap-3"
-                  aria-label="Pagination"
-                >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={!data.pagination.hasPreviousPage}
-                    onClick={() => update({ page: page - 1 })}
-                  >
-                    <CaretLeftIcon /> Previous
-                  </Button>
-                  <span className="text-sm text-muted-foreground">
-                    Page {data.pagination.page} of{" "}
-                    {Math.max(
-                      1,
-                      Math.min(data.pagination.totalPages, lastPage),
-                    )}
-                  </span>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={!data.pagination.hasNextPage || page >= lastPage}
-                    onClick={() => update({ page: page + 1 })}
-                  >
-                    Next <CaretRightIcon />
-                  </Button>
-                </nav>
+                <Pager
+                  page={data.pagination.page}
+                  totalPages={Math.max(1, Math.min(data.pagination.totalPages, lastPage))}
+                  onChange={(n) => {
+                    update({ page: n });
+                    // New page starts at the top of the results.
+                    document.scrollingElement?.scrollTo?.({ top: 0, behavior: "smooth" });
+                  }}
+                />
               </>
             )}
           </div>

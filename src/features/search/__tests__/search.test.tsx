@@ -199,3 +199,27 @@ describe("SearchPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("Search numbered pagination", () => {
+  it("shows a 5-page window around the current page", async () => {
+    const { pageWindow } = await import("../components/pager");
+    expect(pageWindow(1, 16)).toEqual([1, 2, 3, 4, 5]);
+    expect(pageWindow(4, 16)).toEqual([2, 3, 4, 5, 6]);
+    expect(pageWindow(16, 16)).toEqual([12, 13, 14, 15, 16]);
+    expect(pageWindow(2, 3)).toEqual([1, 2, 3]);
+  });
+
+  it("goes to the tapped page number and marks it current", async () => {
+    const many = (page: number) => ({ ...response([card(`p${page}`, `Item on page ${page}`)], page, page < 16), pagination: { page, pageSize: 24, totalCount: 380, totalPages: 16, hasPreviousPage: page > 1, hasNextPage: page < 16 } });
+    mockFetch([{ method: "GET", path: "/api/v1/search/listings", respond: ({ url }) => ({ body: many(Number(url.searchParams.get("page") ?? 1)) }) }]);
+    const { router } = renderWithApp([{ path: "/search", element: <SearchPage /> }, { path: "/login", element: <div /> }], "/search?page=2");
+    expect(await screen.findByText("Item on page 2")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Pagination" });
+    expect(within(nav).getByRole("button", { name: "Page 2" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(within(nav).getByRole("button", { name: "Page 4" }));
+    expect(router.state.location.search).toContain("page=4");
+    expect(await screen.findByText("Item on page 4")).toBeInTheDocument();
+    await userEvent.click(within(screen.getByRole("navigation", { name: "Pagination" })).getByRole("button", { name: "Next page" }));
+    expect(router.state.location.search).toContain("page=5");
+  });
+});
