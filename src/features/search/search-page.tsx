@@ -1,12 +1,13 @@
 import { sellerCode } from "@/lib/seller-code";
 import * as React from "react";
 import { useSearchParams } from "react-router";
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ArrowsDownUpIcon,
   BellSimpleIcon,
   CaretDownIcon,
-  SpinnerGapIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   SlidersHorizontalIcon,
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -61,7 +62,7 @@ export default function SearchPage() {
 
   // Price filters/sorting require a currency (server error 50904 otherwise).
   const lastPage = maxSearchPage(DEFAULT_PAGE_SIZE);
-  // Results scroll continuously: page 1 is fetched first, later pages load as the shopper nears the end.
+  const page = Math.min(state.page, lastPage);
   const query = {
     q: state.q.slice(0, MAX_QUERY_LENGTH) || undefined,
     categoryId: state.categoryId || undefined,
@@ -77,29 +78,15 @@ export default function SearchPage() {
     currency: effectiveCurrency(state),
     inStockOnly: state.inStockOnly || undefined,
     sort: state.sort,
+    page,
     pageSize: DEFAULT_PAGE_SIZE,
   };
 
-  const search = useInfiniteQuery({
-    queryKey: ["search", "listings", "infinite", query],
-    queryFn: ({ pageParam, signal }) => searchService.listings({ ...query, page: pageParam }, signal),
-    initialPageParam: 1,
-    getNextPageParam: (last) =>
-      last.pagination.hasNextPage && last.items.length > 0 && last.pagination.page < lastPage ? last.pagination.page + 1 : undefined,
+  const search = useQuery({
+    queryKey: ["search", "listings", query],
+    queryFn: ({ signal }) => searchService.listings(query, signal),
     placeholderData: keepPreviousData,
   });
-  const loadMoreRef = React.useRef<HTMLDivElement>(null);
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = search;
-  React.useEffect(() => {
-    const el = loadMoreRef.current;
-    if (!el || !hasNextPage || typeof IntersectionObserver === "undefined") return;
-    // Start loading a little before the shopper reaches the end, so the list just keeps going.
-    const io = new IntersectionObserver((entries) => {
-      if (entries.some((e) => e.isIntersecting) && !isFetchingNextPage) void fetchNextPage();
-    }, { rootMargin: "800px 0px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   const update = (patch: Partial<SearchState>) =>
     setParams(writeSearchState({ ...state, ...patch }));
@@ -114,15 +101,7 @@ export default function SearchPage() {
       "Sign in and we'll tell you when new stock matches.",
     );
 
-  const pages = search.data?.pages;
-  const data = React.useMemo(() => {
-    if (!pages?.length) return undefined;
-    const seen = new Set<string>();
-    // Results can shift between page requests (new listings); never show the same listing twice.
-    const items = pages.flatMap((pg) => pg.items).filter((it) => (seen.has(it.listingId) ? false : (seen.add(it.listingId), true)));
-    return { ...pages[0], items, pagination: pages[pages.length - 1].pagination };
-  }, [pages]);
-  const atCap = !!data && !hasNextPage && data.pagination.hasNextPage;
+  const data = search.data;
   // The search service can count documents it then hides (e.g. sellers not yet marked verified in the index);
   // never show "153 listings" above an empty first page.
   const shownTotal = data
@@ -303,7 +282,7 @@ export default function SearchPage() {
 
           <div
             className={
-              search.isFetching && !search.isLoading && !isFetchingNextPage
+              search.isFetching && !search.isLoading
                 ? "opacity-70 transition-opacity"
                 : undefined
             }
@@ -407,7 +386,8 @@ export default function SearchPage() {
                         <ListingCard item={item} />
                       )}
                       {/* One RFQ prompt per page 1, after the first rows (or after the last result on short pages). */}
-                      {i === Math.min(RFQ_AFTER, data.items.length) - 1 && (
+                      {page === 1 &&
+                        i === Math.min(RFQ_AFTER, data.items.length) - 1 && (
                           <RfqBanner
                             variant="inline"
                             className="col-span-full"
@@ -425,22 +405,34 @@ export default function SearchPage() {
                     </React.Fragment>
                   ))}
                 </div>
-                {/* Infinite scroll: this marker triggers the next page; the button is a fallback. */}
-                <div ref={loadMoreRef} className="mt-8 flex min-h-12 flex-col items-center justify-center gap-2 text-sm text-muted-foreground" aria-live="polite">
-                  {isFetchingNextPage ? (
-                    <span className="inline-flex items-center gap-2">
-                      <SpinnerGapIcon className="size-5 animate-spin" /> Loading more listings…
-                    </span>
-                  ) : hasNextPage ? (
-                    <Button variant="secondary" onClick={() => void fetchNextPage()}>
-                      Show more
-                    </Button>
-                  ) : atCap ? (
-                    <span>You&apos;ve reached the first {formatNumber(data.items.length)} results. Narrow the search or add filters to see more.</span>
-                  ) : data.items.length > DEFAULT_PAGE_SIZE ? (
-                    <span>You&apos;ve seen all {formatNumber(data.items.length)} listings.</span>
-                  ) : null}
-                </div>
+                <nav
+                  className="mt-8 flex items-center justify-center gap-3"
+                  aria-label="Pagination"
+                >
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!data.pagination.hasPreviousPage}
+                    onClick={() => update({ page: page - 1 })}
+                  >
+                    <CaretLeftIcon /> Previous
+                  </Button>
+                  <span className="text-sm text-muted-foreground">
+                    Page {data.pagination.page} of{" "}
+                    {Math.max(
+                      1,
+                      Math.min(data.pagination.totalPages, lastPage),
+                    )}
+                  </span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    disabled={!data.pagination.hasNextPage || page >= lastPage}
+                    onClick={() => update({ page: page + 1 })}
+                  >
+                    Next <CaretRightIcon />
+                  </Button>
+                </nav>
               </>
             )}
           </div>
