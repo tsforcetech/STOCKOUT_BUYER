@@ -1,4 +1,5 @@
 import * as React from "react";
+import { cn } from "@/lib/utils/cn";
 import { Link } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowRightIcon, ClipboardTextIcon, MapPinIcon, RecycleIcon, SealCheckIcon, SparkleIcon, StorefrontIcon } from "@phosphor-icons/react";
@@ -85,10 +86,10 @@ function RecentlyViewed() {
 }
 
 const PROMISES = [
-  { icon: SealCheckIcon, title: "Verified sellers", body: "Every seller is verified with a trade licence or Emirates ID before they can sell." },
-  { icon: ClipboardTextIcon, title: "Inspected by StockOut", body: "Selected categories are physically inspected by StockOut before they're listed." },
-  { icon: MapPinIcon, title: "Across all 7 emirates", body: "Filter by emirate and area to find stock you can collect nearby." },
-  { icon: RecycleIcon, title: "Surplus, not landfill", body: "Unused and reusable materials from finished projects and overstock." },
+  { icon: SealCheckIcon, title: "Verified sellers", body: "Trade licence or Emirates ID checked" },
+  { icon: ClipboardTextIcon, title: "Inspected by StockOut", body: "Physical checks on selected categories" },
+  { icon: MapPinIcon, title: "All 7 emirates", body: "Collect from a seller nearby" },
+  { icon: RecycleIcon, title: "Surplus, not landfill", body: "Unused stock from finished projects" },
 ] as const;
 
 export default function HomePage() {
@@ -186,15 +187,25 @@ export default function HomePage() {
 
       {/* What buyers can count on: statements the product backs (KYC-verified sellers, emirate filters). */}
       <section className={`${SECTION} pt-4`} aria-label="Why StockOut">
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {PROMISES.map(({ icon: Icon, title, body }) => (
-            <li key={title} className="flex items-start gap-3 rounded-2xl border border-border bg-surface p-4">
-              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-action-soft text-foreground">
-                <Icon className="size-5" />
+        {/* One slim trust bar: 2×2 on phones, a single row with dividers from lg up. */}
+        <ul className="grid grid-cols-2 overflow-hidden rounded-2xl border border-border bg-surface lg:grid-cols-4">
+          {PROMISES.map(({ icon: Icon, title, body }, i) => (
+            <li
+              key={title}
+              className={cn(
+                "flex items-center gap-2.5 border-border px-3 py-3 sm:gap-3 sm:px-4",
+                i % 2 === 0 && "border-r",
+                i < 2 && "border-b lg:border-b-0",
+                i === 1 && "lg:border-r",
+                i === 3 && "lg:border-r-0",
+              )}
+            >
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-action-soft text-foreground">
+                <Icon className="size-4" />
               </span>
-              <span>
-                <span className="block font-heading text-[15px] font-bold text-foreground">{title}</span>
-                <span className="mt-0.5 block text-[13px] leading-5 text-muted-foreground">{body}</span>
+              <span className="min-w-0">
+                <span className="block font-heading text-[13px] font-bold leading-5 text-foreground sm:text-sm lg:truncate">{title}</span>
+                <span className="block text-[12px] leading-4 text-muted-foreground lg:truncate">{body}</span>
               </span>
             </li>
           ))}
