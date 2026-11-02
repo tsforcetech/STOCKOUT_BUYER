@@ -199,3 +199,51 @@ describe("SearchPage", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });
+
+describe("SearchPage infinite scroll", () => {
+  it("loads the next page automatically at the end of the list, with no Previous/Next", async () => {
+    // Fire the end-of-list marker as soon as it is observed (what scrolling to the bottom does in a browser).
+    class AutoObserver {
+      constructor(private cb: IntersectionObserverCallback) {}
+      observe() {
+        this.cb([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+      }
+      disconnect() {}
+      unobserve() {}
+    }
+    vi.stubGlobal("IntersectionObserver", AutoObserver);
+    const page1 = Array.from({ length: 24 }, (_, i) => card(`p1-${i}`, `Page one item ${i}`));
+    const page2 = [card("p1-23", "Page one item 23"), ...Array.from({ length: 5 }, (_, i) => card(`p2-${i}`, `Page two item ${i}`))];
+    const { calls } = mockFetch([
+      {
+        method: "GET",
+        path: "/api/v1/search/listings",
+        respond: ({ url }) => (url.searchParams.get("page") === "2" ? { body: response(page2, 2, false) } : { body: response(page1, 1, true) }),
+      },
+    ]);
+    renderWithApp([{ path: "/search", element: <SearchPage /> }, { path: "/login", element: <div /> }], "/search");
+    expect(await screen.findByText("Page one item 0")).toBeInTheDocument();
+    expect(await screen.findByText("Page two item 4")).toBeInTheDocument();
+    // The duplicate that shifted onto page 2 is shown once.
+    expect(screen.getAllByText("Page one item 23")).toHaveLength(1);
+    expect(screen.queryByRole("button", { name: /Next/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Previous/ })).not.toBeInTheDocument();
+    expect(await screen.findByText("You've seen all 29 listings.")).toBeInTheDocument();
+    expect(calls.filter((c) => c.url.pathname === "/api/v1/search/listings").map((c) => c.url.searchParams.get("page"))).toEqual(["1", "2"]);
+  });
+
+  it("offers a Show more button where the browser can't observe scrolling", async () => {
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const page1 = Array.from({ length: 24 }, (_, i) => card(`a-${i}`, `Item ${i}`));
+    mockFetch([
+      {
+        method: "GET",
+        path: "/api/v1/search/listings",
+        respond: ({ url }) => (url.searchParams.get("page") === "2" ? { body: response([card("b-1", "Second page item")], 2, false) } : { body: response(page1, 1, true) }),
+      },
+    ]);
+    renderWithApp([{ path: "/search", element: <SearchPage /> }, { path: "/login", element: <div /> }], "/search");
+    await userEvent.click(await screen.findByRole("button", { name: "Show more" }));
+    expect(await screen.findByText("Second page item")).toBeInTheDocument();
+  });
+});
