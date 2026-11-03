@@ -56,7 +56,7 @@ describe("Stage 8A.2 server cart", () => {
     expect(screen.getByRole("button", { name: /Checkout · coming soon/ })).toBeDisabled();
   });
 
-  it("sends If-Match on quantity changes and reloads the cart after a concurrency conflict", async () => {
+  it("does not send If-Match on quantity changes (BD-8A-01) and reloads the cart after a concurrency conflict", async () => {
     signIn();
     let gets = 0;
     const { calls } = mockFetch([
@@ -70,7 +70,7 @@ describe("Stage 8A.2 server cart", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Decrease quantity" }));
     await waitFor(() => {
       const put = calls.find((c) => c.method === "PUT");
-      expect(put?.headers.get("If-Match")).toBe('"AAAAAAAAB9E="');
+      expect(put?.headers.get("If-Match")).toBeNull();
       expect(put?.body).toEqual({ quantity: 3 });
     });
     expect(await screen.findByText(/Your cart changed in another tab or device/)).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("Stage 8A.2 server cart", () => {
     const section = await screen.findByRole("region", { name: "Saved for later" });
     expect(within(section).getByText("Gate valve DN100")).toBeInTheDocument();
     expect(within(section).getByRole("button", { name: /Move to cart/ })).toBeInTheDocument();
-    expect(calls.find((c) => c.url.pathname.endsWith(`/saved-items/${L1}`))?.headers.get("If-Match")).toBe('"AAAAAAAAB9E="');
+    expect(calls.find((c) => c.url.pathname.endsWith(`/saved-items/${L1}`))).toBeDefined();
   });
 });
 

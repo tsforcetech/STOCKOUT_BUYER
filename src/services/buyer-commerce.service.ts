@@ -15,8 +15,15 @@ const saved = `${cart}/saved-items`;
 const wishlist = "/api/v1/buyer/wishlist";
 const seg = encodeURIComponent;
 
+/**
+ * If-Match is OFF until the backend fixes BD-8A-01: PR_BUYER_CART_ITEM_UPDATE_QTY compares If-Match with the cart
+ * ITEM rowversion, but the API only exposes the CART rowVersion, so every quantity change sent with it fails with
+ * CART_CONCURRENCY_CONFLICT; the other cart mutations ignore the header. Flip this once the contract is corrected.
+ */
+export const SEND_IF_MATCH = false;
+
 /** Optional optimistic-concurrency header: the cart's base64 rowVersion, quoted. */
-const ifMatch = (rowVersion?: string | null): Record<string, string> | undefined => (rowVersion ? { "If-Match": `"${rowVersion}"` } : undefined);
+const ifMatch = (rowVersion?: string | null): Record<string, string> | undefined => (SEND_IF_MATCH && rowVersion ? { "If-Match": `"${rowVersion}"` } : undefined);
 
 /** Stage 8A.2 buyer cart, save-for-later and wishlist (bidding-deal via the API gateway). All authenticated. */
 export const buyerCommerceService = {
