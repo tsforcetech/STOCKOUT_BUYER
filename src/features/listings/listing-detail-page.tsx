@@ -63,6 +63,7 @@ function snapshotOf(l: PublicListingDetailResponse): ListingSnapshot {
     unitSymbol: unitOf(l) || null,
     imageUrl: sortedImages(l)[0]?.cdnUrl ?? null,
     sellerName: sellerLabel(l.seller.sellerId),
+    sellerId: l.seller.sellerId,
     place: placeOf(l) || null,
   };
 }

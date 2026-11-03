@@ -3,7 +3,11 @@ import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon } from "@phospho
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { useSellerMode } from "@/lib/seller/seller-context";
+import { toast } from "sonner";
 import { useCart, clampQuantity } from "@/lib/cart/cart-context";
+import { useServerCart } from "@/lib/cart/server-cart";
+import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
+import { CART_LINE_LIMIT } from "@/api/types/buyer-commerce";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 
 export interface AddToCartListing {
@@ -25,12 +29,63 @@ export function useOwnListing(sellerId: string): boolean {
   return sellers.some((s) => s.sellerId.toLowerCase() === sellerId.toLowerCase());
 }
 
+/**
+ * Adds a listing to the active cart (device cart when signed out, server cart when signed in), opens the mini cart,
+ * and explains server refusals (minimum order, whole lot, own listing, 50-line limit, unavailable).
+ */
+export function useAddToCart(listing: AddToCartListing) {
+  const cart = useCart();
+  const [busy, setBusy] = React.useState(false);
+  const limitReached = cart.mode === "server" && cart.count >= CART_LINE_LIMIT && !cart.has(listing.listingId);
+  const add = async (quantity: number) => {
+    if (limitReached) {
+      toast.error(`Your cart already has ${CART_LINE_LIMIT} different items, the maximum. Remove or save one for later first.`);
+      return false;
+    }
+    setBusy(true);
+    try {
+      await cart.add({
+        listingId: listing.listingId,
+        sellerId: listing.sellerId,
+        title: listing.title,
+        sellerName: listing.sellerName,
+        unitPrice: listing.basePrice!,
+        currency: listing.currency!,
+        unitSymbol: listing.unitSymbol,
+        imageUrl: listing.imageUrl,
+        quantity,
+        maxQuantity: listing.sellableQuantity,
+      });
+      cart.setOpen(true);
+      return true;
+    } catch (e) {
+      toast.error(commerceErrorMessage(e));
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  };
+  return { add, busy, limitReached };
+}
+
+/** Quantity in the active cart for this listing, if any. */
+function useInCartQuantity(listingId: string): number | null {
+  const cart = useCart();
+  const server = useServerCart();
+  if (cart.mode === "server") {
+    const line = server.data?.sellerGroups.flatMap((g) => g.items).find((i) => i.listingId.toLowerCase() === listingId.toLowerCase());
+    return line ? line.quantity : null;
+  }
+  return cart.items.find((i) => i.listingId === listingId)?.quantity ?? null;
+}
+
 /** Quantity stepper + "Add to cart" on the listing page. */
 export function AddToCart({ listing }: { listing: AddToCartListing }) {
   const cart = useCart();
   const own = useOwnListing(listing.sellerId);
   const [qty, setQty] = React.useState(1);
-  const inCart = cart.items.find((i) => i.listingId === listing.listingId);
+  const inCartQty = useInCartQuantity(listing.listingId);
+  const { add: addToCart, busy, limitReached } = useAddToCart(listing);
   const max = listing.sellableQuantity;
   const canBuy = listing.isAvailable && max > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
   const step = (d: number) => setQty((q) => clampQuantity(q + d, max));
@@ -50,20 +105,8 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
     return <p className="rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground">This listing can't be added to a cart right now (out of stock or no fixed price).</p>;
   }
 
-  const add = () => {
-    cart.add({
-      listingId: listing.listingId,
-      title: listing.title,
-      sellerName: listing.sellerName,
-      unitPrice: listing.basePrice!,
-      currency: listing.currency!,
-      unitSymbol: listing.unitSymbol,
-      imageUrl: listing.imageUrl,
-      quantity: qty,
-      maxQuantity: max,
-    });
-    cart.setOpen(true);
-  };
+  const add = () => void addToCart(qty);
+
 
   return (
     <div className="rounded-lg border border-border p-4">
@@ -74,7 +117,8 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
           </button>
           <input
             type="number"
-            inputMode="decimal"
+            inputMode="numeric"
+            step={1}
             min={1}
             max={max}
             value={qty}
@@ -86,7 +130,7 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
             <PlusIcon className="size-4" />
           </button>
         </div>
-        <Button size="lg" className="min-w-0 flex-1" onClick={add}>
+        <Button size="lg" className="min-w-0 flex-1" onClick={add} loading={busy} disabled={limitReached}>
           <ShoppingCartSimpleIcon /> Add to cart
         </Button>
       </div>
@@ -97,9 +141,10 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
           · {formatNumber(max)} {listing.unitSymbol ?? ""} available
         </span>
       </p>
-      {inCart && (
+      {limitReached && <p className="mt-2 text-sm text-warning-soft-foreground">Your cart has {CART_LINE_LIMIT} different items, the maximum. Remove or save one for later to add this.</p>}
+      {inCartQty !== null && (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-success-soft-foreground">
-          <CheckIcon className="size-4" /> {formatNumber(inCart.quantity)} {listing.unitSymbol ?? ""} in your cart ·{" "}
+          <CheckIcon className="size-4" /> {formatNumber(inCartQty)} {listing.unitSymbol ?? ""} in your cart ·{" "}
           <button type="button" onClick={() => cart.setOpen(true)} className="cursor-pointer underline underline-offset-4">
             View cart
           </button>

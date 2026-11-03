@@ -1,13 +1,21 @@
 import * as React from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
+import { buyerCommerceService } from "@/services/buyer-commerce.service";
+import { useAuth } from "@/lib/auth/auth-context";
+import { commerceKeys, useServerCart } from "./server-cart";
+import { wholeQuantity } from "./guest-merge";
 
 /**
- * Buyer cart. The backend has no cart/order/checkout API yet (bidding-deal and subscription-payment
- * expose only /system/version), so the cart lives in this browser's localStorage. It stores a snapshot
- * of each listing at the time it was added; the cart page re-reads live price and stock from the
- * public listing API before showing totals.
+ * Buyer cart (Stage 8A.2).
+ * - Signed out: a guest cart in this browser's localStorage (snapshots; the cart page re-reads live price/stock).
+ * - Signed in: the server cart (GET/POST /api/v1/buyer/cart…). Guest items stay on the device until the buyer
+ *   explicitly merges them (see guest-merge.ts and MergePrompt); they are never replayed automatically.
  */
 export interface CartItem {
   listingId: string;
+  /** Needed for the server merge; older device carts may not have it (looked up at merge time). */
+  sellerId?: string;
   title: string;
   sellerName: string;
   unitPrice: number;
@@ -20,14 +28,22 @@ export interface CartItem {
   addedAtUtc: string;
 }
 
+export type AddInput = Omit<CartItem, "addedAtUtc" | "sellerId"> & { sellerId: string };
+
 interface CartContextValue {
-  items: CartItem[];
+  /** "server" once signed in. */
+  mode: "guest" | "server";
+  /** Lines in the active cart (server itemCount when signed in). */
   count: number;
-  add: (item: Omit<CartItem, "addedAtUtc">) => void;
+  /** Device (guest) cart items. When signed in these are the items still waiting to be merged. */
+  items: CartItem[];
   setQuantity: (listingId: string, quantity: number) => void;
   remove: (listingId: string) => void;
   clear: () => void;
+  /** Is this listing in the active cart? */
   has: (listingId: string) => boolean;
+  /** Adds to the active cart. Server errors are thrown so the caller can explain them. */
+  add: (item: AddInput) => Promise<void>;
   /** Side drawer (mini cart) state. */
   isOpen: boolean;
   setOpen: (open: boolean) => void;
@@ -58,15 +74,21 @@ function write(items: CartItem[]) {
   }
 }
 
+/** Whole units (the server cart is integer-only); capped at the known stock when adding on the device. */
 export function clampQuantity(quantity: number, max: number): number {
-  if (!Number.isFinite(quantity) || quantity <= 0) return 1;
-  const capped = max > 0 ? Math.min(quantity, max) : quantity;
-  return Math.round(capped * 1000) / 1000;
+  const q = wholeQuantity(quantity);
+  return max > 0 ? Math.max(1, Math.min(q, Math.floor(max) || 1)) : q;
 }
 
+export const cartListingIds = (cart: BuyerCartResponse | undefined) => new Set((cart?.sellerGroups ?? []).flatMap((g) => g.items.map((i) => i.listingId.toLowerCase())));
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
+  const { status } = useAuth();
+  const qc = useQueryClient();
+  const server = useServerCart();
   const [items, setItems] = React.useState<CartItem[]>(read);
   const [isOpen, setOpen] = React.useState(false);
+  const mode = status === "authenticated" ? "server" : "guest";
 
   // Keep tabs in sync.
   React.useEffect(() => {
@@ -85,26 +107,35 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const serverIds = React.useMemo(() => cartListingIds(server.data), [server.data]);
+
   const value = React.useMemo<CartContextValue>(
     () => ({
+      mode,
+      count: mode === "server" ? (server.data?.itemCount ?? 0) : items.length,
       items,
-      count: items.length,
-      add: (item) =>
+      add: async (item) => {
+        if (mode === "server") {
+          const cart = await buyerCommerceService.addItem({ listingId: item.listingId, sellerId: item.sellerId, quantity: wholeQuantity(item.quantity) });
+          qc.setQueryData(commerceKeys.cart, cart);
+          return;
+        }
         update((prev) => {
           const existing = prev.find((i) => i.listingId === item.listingId);
           if (existing) {
             return prev.map((i) => (i.listingId === item.listingId ? { ...i, ...item, quantity: clampQuantity(i.quantity + item.quantity, item.maxQuantity) } : i));
           }
           return [...prev, { ...item, quantity: clampQuantity(item.quantity, item.maxQuantity), addedAtUtc: new Date().toISOString() }];
-        }),
+        });
+      },
       setQuantity: (listingId, quantity) => update((prev) => prev.map((i) => (i.listingId === listingId ? { ...i, quantity: clampQuantity(quantity, i.maxQuantity) } : i))),
       remove: (listingId) => update((prev) => prev.filter((i) => i.listingId !== listingId)),
       clear: () => update(() => []),
-      has: (listingId) => items.some((i) => i.listingId === listingId),
+      has: (listingId) => (mode === "server" ? serverIds.has(listingId.toLowerCase()) : items.some((i) => i.listingId === listingId)),
       isOpen,
       setOpen,
     }),
-    [items, update, isOpen],
+    [mode, server.data, items, update, isOpen, serverIds, qc],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

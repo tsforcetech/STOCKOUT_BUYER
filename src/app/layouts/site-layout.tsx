@@ -4,6 +4,7 @@ import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
 import { SiteHeader } from "./site-header";
 import { SiteFooter } from "./site-footer";
+import { MergePrompt } from "@/features/cart/merge-prompt";
 import { CartDrawer } from "@/features/cart/cart-drawer";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { AuthDialogProvider } from "@/features/auth/auth-dialog";
@@ -41,6 +42,7 @@ export function SiteLayout() {
           </main>
           <SiteFooter />
           <CartDrawer />
+          <MergePrompt />
           <MobileTabBar />
         </div>
       </RfqProvider>

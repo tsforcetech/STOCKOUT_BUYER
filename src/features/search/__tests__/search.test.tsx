@@ -183,7 +183,7 @@ describe("SearchPage", () => {
     await userEvent.click(listBtn);
     expect(listBtn).toHaveAttribute("aria-pressed", "true");
     expect(localStorage.getItem("stockout.market.searchView")).toBe("list");
-    expect(screen.getByRole("button", { name: "Save Copper cable" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save Copper cable to your wishlist" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Copper cable" })).toHaveAttribute("href", "/listings/1");
     localStorage.removeItem("stockout.market.searchView");
   });

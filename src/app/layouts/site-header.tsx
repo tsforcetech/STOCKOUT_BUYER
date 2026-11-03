@@ -167,8 +167,7 @@ export function sellHref(status: string, hasSeller: boolean): string {
 }
 
 function SavedButton() {
-  const { favorites } = useFavorites();
-  const n = favorites.length;
+  const { count: n } = useFavorites();
   return (
     <NavLink
       to="/saved"

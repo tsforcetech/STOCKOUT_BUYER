@@ -2,7 +2,8 @@ import { safeSellerLabel } from "@/lib/seller-code";
 import { Link, useNavigate } from "react-router";
 import { Dialog as DialogPrimitive } from "radix-ui";
 import { ShoppingCartSimpleIcon, TrashIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
-import { ListingImage } from "@/components/common/listing-image";
+import { ListingImage, assetUrl } from "@/components/common/listing-image";
+import { useCartActions, useServerCart } from "@/lib/cart/server-cart";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
@@ -16,7 +17,10 @@ import { RfqBanner } from "@/features/rfq/rfq-banner";
 export function CartDrawer() {
   const cart = useCart();
   const navigate = useNavigate();
-  const live = useLiveItems(cart.isOpen ? cart.items : []);
+  const server = useServerCart();
+  const actions = useCartActions();
+  const serverLines = server.data?.sellerGroups.flatMap((g) => g.items) ?? [];
+  const live = useLiveItems(cart.isOpen && cart.mode === "guest" ? cart.items : []);
   const totals = cartTotals(cart.items, live);
   const close = () => cart.setOpen(false);
 
@@ -38,7 +42,85 @@ export function CartDrawer() {
             </DialogPrimitive.Close>
           </header>
 
-          {cart.items.length === 0 ? (
+          {cart.mode === "server" ? (
+            serverLines.length === 0 ? (
+              <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
+                <p className="font-heading text-lg font-bold text-foreground">{server.isLoading ? "Loading your cart…" : "Your cart is empty"}</p>
+                {!server.isLoading && (
+                  <Button asChild className="mt-5" onClick={close}>
+                    <Link to="/search">Browse marketplace</Link>
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <>
+                <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto px-5">
+                  {serverLines.map((item) => {
+                    const unavailable = !item.isActive || !item.isPurchasable;
+                    return (
+                      <li key={item.listingId} className="flex gap-3 py-4">
+                        <Link to={`/listings/${item.listingId}`} onClick={close} className="shrink-0">
+                          <ListingImage src={assetUrl(item.thumbnailUrl)} alt={item.title} className="size-16 rounded-lg" />
+                        </Link>
+                        <div className="min-w-0 flex-1">
+                          <Link to={`/listings/${item.listingId}`} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
+                            {item.title}
+                          </Link>
+                          <p className="mt-0.5 text-xs text-muted-foreground">
+                            {formatNumber(item.quantity)} × {formatMoney(item.currentPrice, item.currentCurrency)}
+                          </p>
+                          {unavailable ? (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-danger-soft-foreground">
+                              <WarningIcon className="size-3.5" /> {item.statusMessage || "No longer available"}
+                            </p>
+                          ) : item.hasPriceChanged || !item.hasSufficientStock ? (
+                            <p className="mt-1 flex items-center gap-1 text-xs text-warning-soft-foreground">
+                              <WarningIcon className="size-3.5" /> {!item.hasSufficientStock ? `Only ${formatNumber(item.stockAvailable)} available` : `Price changed from ${formatMoney(item.addedPrice, item.addedCurrency)}`}
+                            </p>
+                          ) : (
+                            <p className="mt-1 font-heading text-sm font-bold text-foreground">{formatMoney(item.lineSubtotal, item.currentCurrency)}</p>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          disabled={actions.isPending}
+                          onClick={() => actions.mutate({ kind: "remove", listingId: item.listingId })}
+                          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                          aria-label={`Remove ${item.title}`}
+                        >
+                          <TrashIcon className="size-4" />
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <footer className="border-t border-border px-5 py-4">
+                  {server.data && !server.data.checkoutReadiness.blockers.some((b) => b.code === "MIXED_CURRENCY_NOT_SUPPORTED") && (
+                    <div className="flex items-baseline justify-between">
+                      <span className="text-sm text-muted-foreground">Estimated total</span>
+                      <span className="font-heading text-xl font-bold text-foreground">{formatMoney(server.data.estimatedTotal, server.data.currency)}</span>
+                    </div>
+                  )}
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatNumber(cart.count)} item{cart.count === 1 ? "" : "s"} · includes estimated VAT · delivery agreed with the seller
+                  </p>
+                  <Button
+                    size="lg"
+                    className="mt-4 w-full"
+                    onClick={() => {
+                      close();
+                      navigate("/cart");
+                    }}
+                  >
+                    View cart
+                  </Button>
+                  <button type="button" onClick={close} className="mt-2 w-full cursor-pointer py-1 text-center text-sm text-foreground underline underline-offset-4">
+                    Keep shopping
+                  </button>
+                </footer>
+              </>
+            )
+          ) : cart.items.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
               <span className="flex size-16 items-center justify-center rounded-full bg-cream">
                 <ShoppingCartSimpleIcon className="size-8 text-foreground" />

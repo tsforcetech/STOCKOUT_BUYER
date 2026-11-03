@@ -8,8 +8,15 @@ import { useCart, type CartItem } from "@/lib/cart/cart-context";
 import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
+import { ServerCartPage } from "./server-cart-page";
 
 export default function CartPage() {
+  const { mode } = useCart();
+  return mode === "server" ? <ServerCartPage /> : <GuestCartPage />;
+}
+
+/** Signed-out cart: kept on this device; sign in to save it to your account. */
+function GuestCartPage() {
   const cart = useCart();
   const live = useLiveItems(cart.items);
 
@@ -126,7 +133,7 @@ export default function CartPage() {
           <BuyerEligibilityNote className="mt-3" />
           <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
             <span className="font-medium text-foreground">Online checkout is coming soon.</span> Ordering and payments open once StockOut's order and payment
-            services go live. Your cart is saved on this device until then.
+            services go live. Your cart is saved on this device; sign in to keep it in your account.
           </p>
           <button type="button" onClick={() => cart.clear()} className="mt-3 w-full cursor-pointer text-center text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
             Clear cart

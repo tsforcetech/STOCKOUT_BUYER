@@ -15,7 +15,7 @@ import { sellHref } from "./site-header";
 /** App-style bottom navigation on phones (dubizzle pattern): Home · Search · + Sell · Saved · Account. */
 export function MobileTabBar() {
   const { status, actor } = useAuth();
-  const { favorites } = useFavorites();
+  const { count: wishlistCount } = useFavorites();
   const { openAuth, guardLink } = useAuthDialog();
   const hasSeller = (actor?.sellerContexts.length ?? 0) > 0;
   const tab = ({ isActive }: { isActive: boolean }) =>
@@ -70,7 +70,7 @@ export function MobileTabBar() {
                   className="size-6"
                   weight={isActive ? "fill" : "regular"}
                 />
-                {favorites.length > 0 && (
+                {wishlistCount > 0 && (
                   <span
                     className="absolute -right-1.5 -top-1 size-2.5 rounded-full bg-[#e0245e] ring-2 ring-surface"
                     aria-hidden

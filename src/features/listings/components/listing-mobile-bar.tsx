@@ -1,8 +1,7 @@
 import * as React from "react";
 import { ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
-import { useOwnListing, type AddToCartListing } from "@/features/cart/add-to-cart";
-import { useCart } from "@/lib/cart/cart-context";
+import { useAddToCart, useOwnListing, type AddToCartListing } from "@/features/cart/add-to-cart";
 import { formatMoney } from "@/lib/utils/format";
 import { cn } from "@/lib/utils/cn";
 
@@ -20,7 +19,6 @@ export function ListingMobileBar({
   panelRef: React.RefObject<HTMLElement | null>;
   endRef: React.RefObject<HTMLElement | null>;
 }) {
-  const cart = useCart();
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
@@ -51,21 +49,11 @@ export function ListingMobileBar({
   const max = listing.sellableQuantity;
   const canBuy = !own && listing.isAvailable && max > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
 
+  const { add, busy } = useAddToCart(listing);
   const addOne = () => {
-    if (!canBuy) return;
-    cart.add({
-      listingId: listing.listingId,
-      title: listing.title,
-      sellerName: listing.sellerName,
-      unitPrice: listing.basePrice!,
-      currency: listing.currency!,
-      unitSymbol: listing.unitSymbol,
-      imageUrl: listing.imageUrl,
-      quantity: 1,
-      maxQuantity: max,
-    });
-    cart.setOpen(true);
+    if (canBuy) void add(1);
   };
+
 
   return (
     <div
@@ -82,7 +70,7 @@ export function ListingMobileBar({
           </p>
         </div>
         {canBuy ? (
-          <Button size="lg" className="h-11 shrink-0 px-5" onClick={addOne}>
+          <Button size="lg" className="h-11 shrink-0 px-5" onClick={addOne} loading={busy}>
             <ShoppingCartSimpleIcon /> Add 1 to cart
           </Button>
         ) : (

@@ -21,6 +21,7 @@ export function listingSnapshot(item: ListingSearchCard): ListingSnapshot {
     unitSymbol: item.quantityUnitSymbol,
     imageUrl: assetUrl(item.primaryImage?.cdnUrl),
     sellerName: sellerLabel(item.seller.sellerId),
+    sellerId: item.seller.sellerId,
     place: item.location.city || item.location.stateOrEmirate || null,
   };
 }
