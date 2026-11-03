@@ -1,3 +1,4 @@
+import HomePage from "@/features/home/home-page";
 import { createBrowserRouter, type RouteObject } from "react-router";
 import { SiteLayout } from "@/app/layouts/site-layout";
 import { SellerLayout } from "@/app/layouts/seller-layout";
@@ -28,7 +29,9 @@ export const routes: RouteObject[] = [
         path: "/",
         element: <SiteLayout />,
         children: [
-          { index: true, lazy: page(() => import("@/features/home/home-page")) },
+          // Bundled with the app (not lazy): the home page is where shared links (e.g. Instagram) land, so it must not
+          // depend on a second file download that an in-app browser on a weak connection can fail to fetch.
+          { index: true, Component: HomePage },
           { path: "search", lazy: page(() => import("@/features/search/search-page")) },
           { path: "categories", lazy: page(() => import("@/features/categories/categories-page")) },
           { path: "listings/:listingId", lazy: page(() => import("@/features/listings/listing-detail-page")) },
