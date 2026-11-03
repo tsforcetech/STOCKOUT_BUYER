@@ -65,7 +65,8 @@ function MergeBanner() {
   );
 }
 
-function ServerQty({ item, disabled, onChange }: { item: BuyerCartItemResponse; disabled: boolean; onChange: (q: number) => void }) {
+export function ServerQty({ item, disabled, onChange, size = "md" }: { item: BuyerCartItemResponse; disabled: boolean; onChange: (q: number) => void; size?: "sm" | "md" }) {
+  const sm = size === "sm";
   const [draft, setDraft] = React.useState(String(item.quantity));
   React.useEffect(() => setDraft(String(item.quantity)), [item.quantity]);
   const commit = () => {
@@ -74,8 +75,8 @@ function ServerQty({ item, disabled, onChange }: { item: BuyerCartItemResponse; 
     if (q !== item.quantity) onChange(q);
   };
   return (
-    <div className="flex h-10 items-center rounded-full border border-border-strong" role="group" aria-label={`Quantity for ${item.title}`}>
-      <button type="button" onClick={() => onChange(item.quantity - 1)} disabled={disabled || item.quantity <= 1} className="flex size-10 cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-40" aria-label="Decrease quantity">
+    <div className={cn("flex items-center rounded-full border border-border-strong", sm ? "h-9" : "h-10")} role="group" aria-label={`Quantity for ${item.title}`}>
+      <button type="button" onClick={() => onChange(item.quantity - 1)} disabled={disabled || item.quantity <= 1} className={cn("flex cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-40", sm ? "size-9" : "size-10")} aria-label="Decrease quantity">
         <MinusIcon className="size-4" />
       </button>
       <input
@@ -91,7 +92,7 @@ function ServerQty({ item, disabled, onChange }: { item: BuyerCartItemResponse; 
         aria-label="Quantity"
         className="w-12 bg-transparent text-center text-base font-medium text-foreground outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
       />
-      <button type="button" onClick={() => onChange(item.quantity + 1)} disabled={disabled} className="flex size-10 cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-40" aria-label="Increase quantity">
+      <button type="button" onClick={() => onChange(item.quantity + 1)} disabled={disabled} className={cn("flex cursor-pointer items-center justify-center disabled:cursor-not-allowed disabled:opacity-40", sm ? "size-9" : "size-10")} aria-label="Increase quantity">
         <PlusIcon className="size-4" />
       </button>
     </div>

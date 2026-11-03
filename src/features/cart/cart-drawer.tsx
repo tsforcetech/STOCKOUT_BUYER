@@ -4,6 +4,7 @@ import { Dialog as DialogPrimitive } from "radix-ui";
 import { ShoppingCartSimpleIcon, TrashIcon, WarningIcon, XIcon } from "@phosphor-icons/react";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { useCartActions, useServerCart } from "@/lib/cart/server-cart";
+import { ServerQty } from "./server-cart-page";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
@@ -57,6 +58,7 @@ export function CartDrawer() {
                 <ul className="min-h-0 flex-1 divide-y divide-border overflow-y-auto px-5">
                   {serverLines.map((item) => {
                     const unavailable = !item.isActive || !item.isPurchasable;
+                    const group = server.data?.sellerGroups.find((g) => g.items.includes(item));
                     return (
                       <li key={item.listingId} className="flex gap-3 py-4">
                         <Link to={`/listings/${item.listingId}`} onClick={close} className="shrink-0">
@@ -66,26 +68,29 @@ export function CartDrawer() {
                           <Link to={`/listings/${item.listingId}`} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
                             {item.title}
                           </Link>
-                          <p className="mt-0.5 text-xs text-muted-foreground">
-                            {formatNumber(item.quantity)} × {formatMoney(item.currentPrice, item.currentCurrency)}
+                          <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                            {group?.sellerDisplayName || "Verified seller"} · {formatMoney(item.currentPrice, item.currentCurrency)}
                           </p>
+                          {item.hasPriceChanged && !unavailable && (
+                            <p className="mt-1 text-xs text-warning-soft-foreground">Price changed from {formatMoney(item.addedPrice, item.addedCurrency)}</p>
+                          )}
+                          {!unavailable && !item.hasSufficientStock && <p className="mt-1 text-xs text-warning-soft-foreground">Only {formatNumber(item.stockAvailable)} available</p>}
                           {unavailable ? (
                             <p className="mt-1 flex items-center gap-1 text-xs text-danger-soft-foreground">
                               <WarningIcon className="size-3.5" /> {item.statusMessage || "No longer available"}
                             </p>
-                          ) : item.hasPriceChanged || !item.hasSufficientStock ? (
-                            <p className="mt-1 flex items-center gap-1 text-xs text-warning-soft-foreground">
-                              <WarningIcon className="size-3.5" /> {!item.hasSufficientStock ? `Only ${formatNumber(item.stockAvailable)} available` : `Price changed from ${formatMoney(item.addedPrice, item.addedCurrency)}`}
-                            </p>
                           ) : (
-                            <p className="mt-1 font-heading text-sm font-bold text-foreground">{formatMoney(item.lineSubtotal, item.currentCurrency)}</p>
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <ServerQty size="sm" item={item} disabled={actions.isPending} onChange={(q) => actions.mutate({ kind: "quantity", listingId: item.listingId, quantity: q })} />
+                              <span className="font-heading text-sm font-bold text-foreground">{formatMoney(item.lineSubtotal, item.currentCurrency)}</span>
+                            </div>
                           )}
                         </div>
                         <button
                           type="button"
                           disabled={actions.isPending}
                           onClick={() => actions.mutate({ kind: "remove", listingId: item.listingId })}
-                          className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
+                          className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
                           aria-label={`Remove ${item.title}`}
                         >
                           <TrashIcon className="size-4" />
@@ -95,14 +100,30 @@ export function CartDrawer() {
                   })}
                 </ul>
                 <footer className="border-t border-border px-5 py-4">
+                  <RfqBanner
+                    variant="compact"
+                    className="mb-4"
+                    beforeOpen={close}
+                    options={{ source: "cart", context: "Missing items for this project? Add them here; your cart stays as it is." }}
+                    title="Missing something for this project?"
+                    body="Send one request for the rest. Sellers quote you."
+                  />
                   {server.data && !server.data.checkoutReadiness.blockers.some((b) => b.code === "MIXED_CURRENCY_NOT_SUPPORTED") && (
-                    <div className="flex items-baseline justify-between">
-                      <span className="text-sm text-muted-foreground">Estimated total</span>
-                      <span className="font-heading text-xl font-bold text-foreground">{formatMoney(server.data.estimatedTotal, server.data.currency)}</span>
-                    </div>
+                    <>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-sm text-muted-foreground">Subtotal</span>
+                        <span className="font-heading text-xl font-bold text-foreground">{formatMoney(server.data.totalSubtotal, server.data.currency)}</span>
+                      </div>
+                      {!server.data.checkoutReadiness.blockers.some((b) => b.code === "TAX_RATE_UNAVAILABLE") && (
+                        <p className="mt-0.5 flex justify-between text-xs text-muted-foreground">
+                          <span>Estimated VAT ({formatNumber(server.data.estimatedVatRatePercent)}%)</span>
+                          <span>{formatMoney(server.data.estimatedVatAmount, server.data.currency)}</span>
+                        </p>
+                      )}
+                    </>
                   )}
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {formatNumber(cart.count)} item{cart.count === 1 ? "" : "s"} · includes estimated VAT · delivery agreed with the seller
+                    {formatNumber(cart.count)} item{cart.count === 1 ? "" : "s"} · delivery and inspection agreed with the seller
                   </p>
                   <Button
                     size="lg"
@@ -112,7 +133,7 @@ export function CartDrawer() {
                       navigate("/cart");
                     }}
                   >
-                    View cart
+                    Continue
                   </Button>
                   <button type="button" onClick={close} className="mt-2 w-full cursor-pointer py-1 text-center text-sm text-foreground underline underline-offset-4">
                     Keep shopping

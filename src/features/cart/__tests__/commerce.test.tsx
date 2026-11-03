@@ -187,3 +187,40 @@ describe("Stage 8A.2 wishlist", () => {
     await waitFor(() => expect(calls.find((c) => c.url.pathname.endsWith("/move-to-cart"))?.body).toEqual({ listingId: L2, quantity: 1 }));
   });
 });
+
+describe("Stage 8A.2 mini cart (signed in)", () => {
+  it("keeps the quantity stepper and changes the server quantity", async () => {
+    const { CartDrawer } = await import("../cart-drawer");
+    const { useCart } = await import("@/lib/cart/cart-context");
+    const Opener = () => {
+      const c = useCart();
+      return (
+        <button type="button" onClick={() => c.setOpen(true)}>
+          open
+        </button>
+      );
+    };
+    signIn();
+    const { calls } = mockFetch([
+      ...sessionRoutes([]),
+      cartRoute(() => ({ body: cart({ sellerGroups: [{ sellerId: S1, sellerDisplayName: "Gulf Valves LLC", groupSubtotal: 440, items: [line({ hasSufficientStock: true, stockAvailable: 50 })] }] }) })),
+      wishIds,
+      { method: "PUT", path: `/api/v1/buyer/cart/items/${L1}`, respond: () => ({ body: cart() }) },
+    ]);
+    page(
+      <>
+        <Opener />
+        <CartDrawer />
+      </>,
+      "/x",
+    );
+    await screen.findByText("open");
+    await waitFor(() => expect(calls.some((c) => c.url.pathname === "/api/v1/buyer/cart")).toBe(true));
+    await userEvent.click(screen.getByText("open"));
+    const drawer = await screen.findByRole("dialog");
+    expect(await within(drawer).findByText(/Gulf Valves LLC/)).toBeInTheDocument();
+    await userEvent.click(within(drawer).getByRole("button", { name: "Increase quantity" }));
+    await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ quantity: 5 }));
+    expect(within(drawer).getByRole("button", { name: "Continue" })).toBeInTheDocument();
+  });
+});
