@@ -144,15 +144,24 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
 
 function CookieBanner({ busy, error, onChoose, onCustomise }: { busy: boolean; error: string | null; onChoose: (c: CookieChoice) => void; onCustomise: () => void }) {
   return (
+    <>
+    {/* In-flow spacer: lets every page scroll its last content (e.g. the sign-in button) clear of the banner on phones. */}
+    <div aria-hidden className="h-56 sm:h-44" />
     <section
       aria-label="Cookie consent"
-      className="fixed inset-x-3 bottom-[4.5rem] z-40 mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-4 shadow-raised sm:p-5 md:bottom-4"
+      className="fixed inset-x-3 bottom-[4.5rem] z-40 mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-3 shadow-raised sm:p-5 md:bottom-4"
     >
       <div className="flex gap-3">
         <CookieIcon className="mt-0.5 hidden size-6 shrink-0 sm:block" aria-hidden />
         <div className="min-w-0 flex-1">
           <h2 className="font-heading text-base font-bold text-foreground">Your cookie choices</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-muted-foreground sm:hidden">
+            Necessary cookies keep sign-in and your cart working. Optional ones only with your OK.{" "}
+            <Link to={policyPath(COOKIE_POLICY)} className="font-medium text-foreground underline underline-offset-4">
+              Cookie Policy
+            </Link>
+          </p>
+          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">
             Strictly necessary cookies keep StockOut working (sign-in, security, your cart). With your permission we'd also use functional, analytics and
             marketing cookies. Nothing optional is set until you choose. Read the{" "}
             <Link to={policyPath(COOKIE_POLICY)} className="font-medium text-foreground underline underline-offset-4">
@@ -161,7 +170,7 @@ function CookieBanner({ busy, error, onChoose, onCustomise }: { busy: boolean; e
             .
           </p>
           <FormError message={error} />
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-2 [&>button]:min-h-10">
             <Button variant="secondary" size="sm" onClick={() => onChoose(NONE)} disabled={busy}>
               Reject optional
             </Button>
@@ -175,6 +184,7 @@ function CookieBanner({ busy, error, onChoose, onCustomise }: { busy: boolean; e
         </div>
       </div>
     </section>
+    </>
   );
 }
 
