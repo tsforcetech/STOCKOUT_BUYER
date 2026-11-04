@@ -27,7 +27,7 @@ export function SiteFooter() {
       links: [
         ["Browse stock", "/search"],
         ["All categories", "/categories"],
-        ["Saved listings", "/saved"],
+        ["Wishlist", "/saved"],
         ["Cart", "/cart"],
       ],
     },
@@ -41,11 +41,19 @@ export function SiteFooter() {
     },
     {
       title: "Account",
-      links: [
-        ["Log in", "/login"],
-        ["Register", "/register"],
-        ["Saved searches", "/account/saved-searches"],
-      ],
+      // Signed in: the account pages; signed out: log in / register.
+      links:
+        status === "authenticated"
+          ? ([
+              ["My account", "/account"],
+              ["My orders", "/account/orders"],
+              ["Saved searches", "/account/saved-searches"],
+            ] as const)
+          : ([
+              ["Log in", "/login"],
+              ["Register", "/register"],
+              ["Saved searches", "/account/saved-searches"],
+            ] as const),
     },
     {
       title: "Legal",

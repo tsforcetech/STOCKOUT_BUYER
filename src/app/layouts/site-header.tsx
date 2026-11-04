@@ -257,35 +257,31 @@ const THEMES = [
   ["system", "System", MonitorIcon],
 ] as const;
 
-/** Light / Dark / System segmented control, used in the site and seller-portal account menus. */
+/** Appearance row for account menus: label on the left, three icon buttons (Light / Dark / System) on the right. */
 export function ThemeSwitch({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
   return (
-    <div
-      role="radiogroup"
-      aria-label="Theme"
-      className={cn(
-        "grid grid-cols-3 gap-1 rounded-md bg-cream-strong p-1",
-        className,
-      )}
-    >
-      {THEMES.map(([value, label, Icon]) => (
-        <button
-          key={value}
-          type="button"
-          role="radio"
-          aria-checked={theme === value}
-          onClick={() => setTheme(value)}
-          className={cn(
-            "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm text-xs font-medium transition-colors",
-            theme === value
-              ? "bg-action text-action-foreground shadow-raised"
-              : "text-muted-foreground hover:text-foreground",
-          )}
-        >
-          <Icon className="size-4" /> {label}
-        </button>
-      ))}
+    <div className={cn("flex items-center justify-between gap-3 px-2 py-1.5", className)}>
+      <span className="whitespace-nowrap text-sm text-foreground">Appearance</span>
+      <div role="radiogroup" aria-label="Appearance" className="flex items-center gap-0.5 rounded-full border border-border p-0.5">
+        {THEMES.map(([value, label, Icon]) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={theme === value}
+            aria-label={label}
+            title={label}
+            onClick={() => setTheme(value)}
+            className={cn(
+              "flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors",
+              theme === value ? "bg-foreground text-surface shadow-sm" : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+            )}
+          >
+            <Icon className="size-4" weight={theme === value ? "fill" : "regular"} />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -380,10 +376,7 @@ function AccountMenu() {
             </PopoverPrimitive.Close>
           ))}
           <div className="my-1 h-px bg-border-strong" />
-          <p className="px-2 pb-1.5 pt-1 text-xs font-medium text-muted-foreground">
-            Theme
-          </p>
-          <ThemeSwitch className="mx-1 mb-1" />
+          <ThemeSwitch />
           <div className="my-1 h-px bg-border-strong" />
           <button
             type="button"

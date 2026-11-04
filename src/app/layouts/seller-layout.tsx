@@ -127,8 +127,7 @@ function SellerAccountMenu() {
             <MenuItem icon={LockKeyIcon} label="Security" onSelect={() => navigate("/seller/security")} />
             <MenuItem icon={StorefrontIcon} label="Back to marketplace" onSelect={() => navigate("/")} />
           </div>
-          <div className="border-t border-border px-4 py-3">
-            <p className="mb-2 text-xs font-medium text-muted-foreground">Appearance</p>
+          <div className="border-t border-border p-1.5">
             <ThemeSwitch />
           </div>
           <div className="border-t border-border p-1.5">
