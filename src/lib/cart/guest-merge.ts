@@ -2,6 +2,7 @@ import type { BuyerCartResponse, GuestCartItemDto, MergeGuestCartRequest } from 
 import { buyerCommerceService } from "@/services/buyer-commerce.service";
 import { listingsService } from "@/services/listings.service";
 import type { CartItem } from "./cart-context";
+import { newId } from "@/lib/utils/id";
 
 /**
  * One logical guest-cart merge: its Idempotency-Key and its frozen payload. Persisted so a retry after a timeout
@@ -37,8 +38,7 @@ export const clearPendingMerge = () => writePendingMerge(null);
 
 /** 8–100 chars of [A-Za-z0-9._-] (BuyerCartController.IsValidIdempotencyKey). */
 export function newIdempotencyKey(): string {
-  const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
-  return `guest-merge-${id}`;
+  return `guest-merge-${newId()}`;
 }
 
 /** Server quantities are whole units. */

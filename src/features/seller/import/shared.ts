@@ -1,6 +1,7 @@
 import type { BadgeTone } from "@/components/ui/misc";
 import { isApiError } from "@/lib/api/errors";
 import { errorCode, sellerErrorMessage } from "../lib/errors";
+import { newId } from "@/lib/utils/id";
 
 export const importKeys = {
   all: (sellerId: string) => ["seller", sellerId, "bulk-imports"] as const,
@@ -96,7 +97,7 @@ export function confirmKey(jobId: string): string {
   try {
     const existing = sessionStorage.getItem(k);
     if (existing) return existing;
-    const fresh = `bulk-${jobId}-${crypto.randomUUID()}`.slice(0, 100);
+    const fresh = `bulk-${jobId}-${newId()}`.slice(0, 100);
     sessionStorage.setItem(k, fresh);
     return fresh;
   } catch {

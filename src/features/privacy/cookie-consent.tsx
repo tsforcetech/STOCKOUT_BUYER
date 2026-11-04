@@ -12,6 +12,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { policiesService } from "@/services/policies.service";
 import type { CookieConsentRequest, CookieConsentResponse } from "@/api/types/policies";
 import { policyKeys, policyPath, usePolicies } from "@/features/legal/queries";
+import { newId } from "@/lib/utils/id";
 
 /**
  * PA-1A cookie consent. Guests are identified by an anonymous token in localStorage (`stk_cookie_token`), signed-in
@@ -38,7 +39,7 @@ export function anonymousCookieToken(): string {
   const s = storage();
   let token = s?.getItem(TOKEN_KEY) ?? null;
   if (!token) {
-    token = `anon:${crypto.randomUUID()}`;
+    token = `anon:${newId()}`;
     try {
       s?.setItem(TOKEN_KEY, token);
     } catch {

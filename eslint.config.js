@@ -13,6 +13,8 @@ export default tseslint.config(
     plugins: { "react-hooks": reactHooks, "react-refresh": reactRefresh },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      // crypto.randomUUID only exists on https pages; use newId() from @/lib/utils/id (works on http too).
+      "no-restricted-properties": ["error", { object: "crypto", property: "randomUUID", message: "Use newId() from @/lib/utils/id: randomUUID is missing on non-secure (http) pages, e.g. links opened from Instagram." }],
       "react-refresh/only-export-components": "off",
       "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }],

@@ -1,5 +1,6 @@
 /** RFC 4122 v4 id for idempotency keys and correlation ids. */
 export function newId(): string {
+  // eslint-disable-next-line no-restricted-properties -- the one guarded use
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const bytes = new Uint8Array(16);
   crypto.getRandomValues(bytes);
