@@ -34,6 +34,8 @@ export const routes: RouteObject[] = [
           { index: true, Component: HomePage },
           { path: "search", lazy: page(() => import("@/features/search/search-page")) },
           { path: "categories", lazy: page(() => import("@/features/categories/categories-page")) },
+          // SEO landing pages: /c/<category-slug>[-in-<emirate>] and /c/surplus-stock[-in-<emirate>].
+          { path: "c/:landingSlug", lazy: page(() => import("@/features/search/category-landing-page")) },
           { path: "listings/:listingId", lazy: page(() => import("@/features/listings/listing-detail-page")) },
           { path: "sell", lazy: page(() => import("@/features/sell/sell-page")) },
           { path: "cart", lazy: page(() => import("@/features/cart/cart-page")) },

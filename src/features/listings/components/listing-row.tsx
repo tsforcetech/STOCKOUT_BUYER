@@ -10,6 +10,7 @@ import { formatMoney, humanize, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
 import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
+import { listingPath, listingPlace } from "@/lib/seo/site";
 
 /** Snapshot stored with a ♥ so the saved list renders without refetching the listing. */
 export function listingSnapshot(item: ListingSearchCard): ListingSnapshot {
@@ -43,7 +44,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
   const place = [item.location.city, item.location.stateOrEmirate].filter(Boolean).join(", ");
   const ago = timeAgo(item.publishedAtUtc);
   const specs = listingSpecs(item);
-  const href = `/listings/${item.listingId}`;
+  const href = listingPath(item.listingId, item.title, listingPlace(item.location));
   return (
     <article className="group relative flex gap-3 overflow-hidden rounded-2xl border border-border bg-surface p-2.5 transition-shadow hover:shadow-raised sm:gap-5 sm:p-3">
       <div className="relative w-28 shrink-0 self-start overflow-hidden rounded-xl sm:w-44 md:w-48">

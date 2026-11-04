@@ -4,6 +4,10 @@ name: Build and Deploy Stockout Buyer DEV
 on:
   workflow_dispatch:
 
+  # Refresh the SEO pages (listings, landing pages, sitemap.xml) every 4 hours so new and sold stock is reflected.
+  schedule:
+    - cron: "37 */4 * * *"
+
   push:
     branches:
       - main
@@ -105,6 +109,21 @@ jobs:
             Select-Object Mode, Name, Length |
             Format-Table -AutoSize
 
+      # 7b. SEO: prerender listing and landing pages + sitemap.xml from the public API. Never fails the deploy.
+      - name: Generate SEO pages
+        env:
+          SEO_API_BASE_URL: https://stockout.flowb.io
+        run: |
+          npm run seo:prerender
+          $manifest = Join-Path $env:GITHUB_WORKSPACE "dist\prerender-manifest.json"
+          if (Test-Path $manifest) {
+            $pages = (Get-Content $manifest -Raw | ConvertFrom-Json).pages.Count
+            Write-Host "SEO pages generated: $pages"
+          } else {
+            Write-Warning "SEO pages were not generated (API unreachable?). The site deploys without them."
+          }
+          $global:LASTEXITCODE = 0
+
       # 8. Deploy the built files to the Windows server directory
       - name: Deploy to STOCKOUT_DEV
         run: |
@@ -184,6 +203,17 @@ jobs:
           # Robocopy exit codes 0-7 indicate success or non-fatal differences.
           if ($robocopyExitCode -ge 8) {
             throw "Robocopy failed with exit code $robocopyExitCode."
+          }
+
+          # SEO pages for listings/categories that no longer exist are removed (only when this build generated them).
+          foreach ($sub in @("listings", "c")) {
+            $srcDir = Join-Path $source $sub
+            $dstDir = Join-Path $target $sub
+            if ((Test-Path $srcDir) -and (Test-Path $dstDir)) {
+              $stale = @(Get-ChildItem $dstDir -File | Where-Object { -not (Test-Path (Join-Path $srcDir $_.Name)) })
+              $stale | Remove-Item -Force
+              Write-Host "Removed $($stale.Count) stale SEO page(s) from $sub."
+            }
           }
 
           # Verify that the deployed site contains index.html.

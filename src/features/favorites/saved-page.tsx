@@ -17,6 +17,7 @@ import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { Pager } from "@/features/search/components/pager";
 import { SnapshotCard } from "./snapshot-card";
+import { listingPath } from "@/lib/seo/site";
 
 const PAGE_SIZE = 20;
 
@@ -70,11 +71,11 @@ function ServerWishlist() {
       <ul className="mt-6 divide-y divide-border overflow-hidden rounded-2xl border border-border">
         {w.items.map((i) => (
           <li key={i.listingId} className="flex gap-3 p-4">
-            <Link to={`/listings/${i.listingId}`} className="shrink-0">
+            <Link to={listingPath(i.listingId, i.title)} className="shrink-0">
               <ListingImage src={assetUrl(i.thumbnailUrl)} alt={i.title} className="size-20 rounded-lg" />
             </Link>
             <div className="min-w-0 flex-1">
-              <Link to={`/listings/${i.listingId}`} className="line-clamp-2 font-heading font-bold text-foreground hover:underline">
+              <Link to={listingPath(i.listingId, i.title)} className="line-clamp-2 font-heading font-bold text-foreground hover:underline">
                 {i.title}
               </Link>
               <p className="mt-0.5 text-sm text-muted-foreground">

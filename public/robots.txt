@@ -1,0 +1,15 @@
+# StockOut — https://www.stockoutme.com
+User-agent: *
+Allow: /
+Disallow: /account
+Disallow: /seller
+Disallow: /cart
+Disallow: /login
+Disallow: /register
+Disallow: /forgot-password
+Disallow: /reset-password
+Disallow: /invitations
+Disallow: /search?*sellerId=
+Disallow: /api/
+
+Sitemap: https://www.stockoutme.com/sitemap.xml

@@ -8,6 +8,7 @@ import { formatMoney, timeAgo } from "@/lib/utils/format";
 import type { ListingSearchCard } from "@/api/types/search";
 import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
+import { listingPath, listingPlace } from "@/lib/seo/site";
 
 /** Up to three short spec values for the card (size, material, … from the listing's attributes). */
 function specChips(item: ListingSearchCard): string[] {
@@ -33,7 +34,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
   return (
     <div className="group relative h-full">
       <Link
-        to={`/listings/${item.listingId}`}
+        to={listingPath(item.listingId, item.title, listingPlace(item.location))}
         className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised focus-visible:shadow-raised"
       >
         <div className="relative">

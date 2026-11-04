@@ -1,6 +1,8 @@
 import { sellerCode } from "@/lib/seller-code";
 import * as React from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
+import { useSeo } from "@/lib/seo/use-seo";
+import { absoluteUrl, categoryPath, listingPath, listingPlace } from "@/lib/seo/site";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   ArrowsDownUpIcon,
@@ -51,9 +53,37 @@ const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
 const RFQ_AFTER = 6;
 const LIST = "flex flex-col gap-3";
 
-export default function SearchPage() {
-  const [params, setParams] = useSearchParams();
+/** Category × emirate landing page (/c/<category>/<emirate>): fixed filters plus SEO copy. */
+export interface SearchLanding {
+  categoryId?: string;
+  categoryName?: string;
+  emirate?: string;
+  path: string;
+  title: string;
+  heading: string;
+  intro: string;
+  faq: Array<{ q: string; a: string }>;
+}
+
+export default function SearchPage({ landing }: { landing?: SearchLanding } = {}) {
+  const [rawParams, setRawParams] = useSearchParams();
+  const navigate = useNavigate();
   const { requireAuth } = useAuthDialog();
+  // A landing page fixes category/emirate; the rest of the filters still live in the query string.
+  const params = React.useMemo(() => {
+    const p = new URLSearchParams(rawParams);
+    if (landing?.categoryId) p.set("categoryId", landing.categoryId);
+    if (landing?.emirate) p.set("stateOrEmirate", landing.emirate);
+    return p;
+  }, [rawParams, landing]);
+  const setParams = (next: URLSearchParams) => {
+    const changedFixed =
+      !!landing && ((next.get("categoryId") ?? "") !== (landing.categoryId ?? "") || (next.get("stateOrEmirate") ?? "") !== (landing.emirate ?? ""));
+    if (changedFixed) return navigate(`/search?${next.toString()}`);
+    if (landing?.categoryId) next.delete("categoryId");
+    if (landing?.emirate) next.delete("stateOrEmirate");
+    setRawParams(next);
+  };
   const state = readSearchState(params);
   const [filtersOpen, setFiltersOpen] = React.useState(false);
   const [saveOpen, setSaveOpen] = React.useState(false);
@@ -114,7 +144,9 @@ export default function SearchPage() {
     data?.facets.categories.find((c) => c.categoryId === state.categoryId)
       ?.categoryName;
   const sellerName = state.sellerId ? `seller ${sellerCode(state.sellerId)}` : undefined;
-  const heading = state.q
+  const heading = landing
+    ? landing.heading
+    : state.q
     ? `Results for “${state.q}”`
     : state.sellerId && !state.categoryId
       ? sellerName
@@ -154,6 +186,52 @@ export default function SearchPage() {
     </option>
   ));
 
+  // Search engines: landing pages and plain category/keyword searches are indexable; narrow filter combinations are not.
+  const narrowed = !!(state.sellerId || state.brandId.length || state.conditionId.length || state.gradeId.length || state.attr.length || state.minPrice || state.maxPrice || state.inStockOnly || state.city || state.sort !== "relevance");
+  const where = state.stateOrEmirate || "UAE";
+  const seoTitle = landing
+    ? landing.title
+    : state.q
+      ? `${state.q} – Surplus Stock Available in ${where}`
+      : categoryName
+        ? `Surplus ${categoryName} in ${where} – Buy Excess Stock`
+        : `Surplus Stock for Sale in ${where} – Excess Construction & Industrial Materials`;
+  const seoDescription = landing
+    ? landing.intro
+    : `${shownTotal ? `${shownTotal} listings of ` : ""}${state.q ? `“${state.q}” ` : categoryName ? `${categoryName.toLowerCase()} ` : ""}surplus stock in ${where} from verified sellers. Compare prices, check availability and buy unused excess inventory on StockOut.`;
+  const seoPath = landing
+    ? landing.path + (state.page > 1 ? `?page=${state.page}` : "")
+    : categoryName && !state.q
+      ? categoryPath(categoryName, state.stateOrEmirate) + (state.page > 1 ? `?page=${state.page}` : "")
+      : `/search?${new URLSearchParams([...(state.q ? [["q", state.q]] : []), ...(state.categoryId ? [["categoryId", state.categoryId]] : []), ...(state.stateOrEmirate ? [["stateOrEmirate", state.stateOrEmirate]] : []), ...(state.page > 1 ? [["page", String(state.page)]] : [])]).toString()}`;
+  useSeo({
+    title: seoTitle,
+    description: seoDescription,
+    path: seoPath,
+    noindex: narrowed,
+    jsonLd: [
+      {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        name: seoTitle,
+        url: absoluteUrl(seoPath),
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: data?.items.length ?? 0,
+          itemListElement: (data?.items ?? []).slice(0, 24).map((it, i) => ({
+            "@type": "ListItem",
+            position: i + 1,
+            url: absoluteUrl(listingPath(it.listingId, it.title, listingPlace(it.location))),
+            name: it.title,
+          })),
+        },
+      },
+      ...(landing?.faq.length
+        ? [{ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: landing.faq.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })) }]
+        : []),
+    ],
+  });
+
   return (
     <div className="mx-auto max-w-[1336px] px-4 pb-16 pt-6 sm:px-6 sm:pt-10 lg:pb-24">
       {options.path.length > 1 && (
@@ -183,9 +261,10 @@ export default function SearchPage() {
       <h1 className="font-heading text-2xl font-bold text-foreground sm:text-[34px] sm:leading-[42px]">
         {heading}
       </h1>
-      <p className="mt-1.5 text-sm text-muted-foreground">
-        Verified surplus stock from UAE sellers. Filter by category, location,
-        brand and specification.
+      <p className="mt-1.5 max-w-3xl text-sm text-muted-foreground">
+        {landing
+          ? landing.intro
+          : "Verified surplus stock from UAE sellers. Filter by category, location, brand and specification."}
       </p>
 
       {/* Mobile / tablet: sticky Filters + Sort bar under the site header (36px strip + 72px bar). */}
@@ -418,6 +497,20 @@ export default function SearchPage() {
           </div>
         </section>
       </div>
+
+      {landing && landing.faq.length > 0 && (
+        <section aria-label="Frequently asked questions" className="mx-auto mt-16 max-w-3xl">
+          <h2 className="font-heading text-xl font-bold text-foreground sm:text-2xl">Frequently asked questions</h2>
+          <dl className="mt-4 divide-y divide-border rounded-2xl border border-border">
+            {landing.faq.map((f) => (
+              <div key={f.q} className="p-4 sm:p-5">
+                <dt className="font-medium text-foreground">{f.q}</dt>
+                <dd className="mt-1.5 text-sm leading-6 text-body">{f.a}</dd>
+              </div>
+            ))}
+          </dl>
+        </section>
+      )}
 
       <FilterSheet
         open={filtersOpen}

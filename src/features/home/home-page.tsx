@@ -14,6 +14,9 @@ import { useFavorites } from "@/lib/favorites/favorites-context";
 import { catalogService } from "@/services/catalog.service";
 import { useAuth } from "@/lib/auth/auth-context";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
+import { categoryPath } from "@/lib/seo/site";
+import { useSeo } from "@/lib/seo/use-seo";
+import { organizationLd, websiteLd } from "@/lib/seo/schema";
 
 const LOCATION_KEY = "stockout.market.emirate";
 
@@ -93,6 +96,13 @@ const PROMISES = [
 ] as const;
 
 export default function HomePage() {
+  useSeo({
+    title: "StockOut – Surplus Stock Marketplace in UAE | Buy Excess Building Materials",
+    description:
+      "Find surplus stock in the UAE: pipes, cables, steel, cement, tiles and more from verified sellers in Dubai, Abu Dhabi and Sharjah. Buy unused excess inventory at below-market prices on StockOut.",
+    path: "/",
+    jsonLd: [organizationLd(), websiteLd()],
+  });
   const [emirate, setEmirate] = useStoredEmirate();
   const [categoryId, setCategoryId] = React.useState("");
   const { actor, status } = useAuth();
@@ -173,7 +183,7 @@ export default function HomePage() {
                 {roots.slice(0, 5).map((c) => (
                   <Link
                     key={c.categoryId}
-                    to={searchHref({ categoryId: c.categoryId })}
+                    to={categoryPath(c.name)}
                     className="max-w-[220px] shrink-0 truncate rounded-full border border-white/25 bg-white/5 px-3 py-1 text-white/90 transition-colors hover:border-white hover:bg-white/10 hover:text-white"
                   >
                     {c.name}
@@ -229,7 +239,7 @@ export default function HomePage() {
               return (
                 <Link
                   key={c.categoryId}
-                  to={searchHref({ categoryId: c.categoryId })}
+                  to={categoryPath(c.name)}
                   className="group flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-surface p-3 transition-all hover:-translate-y-0.5 hover:border-foreground/30 hover:shadow-raised sm:p-4"
                 >
                   <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-cream-strong text-foreground transition-colors group-hover:bg-action group-hover:text-action-foreground sm:size-12">

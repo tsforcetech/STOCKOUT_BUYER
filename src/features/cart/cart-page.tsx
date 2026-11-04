@@ -9,6 +9,7 @@ import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { ServerCartPage } from "./server-cart-page";
+import { listingPath } from "@/lib/seo/site";
 
 export default function CartPage() {
   const { mode } = useCart();
@@ -63,11 +64,11 @@ function GuestCartPage() {
                   const qty = Math.min(item.quantity, s.max);
                   return (
                     <li key={item.listingId} className="flex gap-3 p-4 sm:gap-4">
-                      <Link to={`/listings/${item.listingId}`} className="shrink-0">
+                      <Link to={listingPath(item.listingId, item.title)} className="shrink-0">
                         <ListingImage src={item.imageUrl} alt={item.title} className="size-20 rounded-lg sm:size-24" />
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <Link to={`/listings/${item.listingId}`} className="line-clamp-2 font-heading font-bold text-foreground hover:underline">
+                        <Link to={listingPath(item.listingId, item.title)} className="line-clamp-2 font-heading font-bold text-foreground hover:underline">
                           {item.title}
                         </Link>
                         <p className="mt-0.5 text-sm text-muted-foreground">

@@ -32,9 +32,9 @@ import { useSellerMode } from "@/lib/seller/seller-context";
 import { catalogService } from "@/services/catalog.service";
 import { cn } from "@/lib/utils/cn";
 import { initials } from "@/lib/utils/format";
-import { searchHref } from "@/features/search/lib/search-params";
 import { SearchBox } from "@/features/search/components/search-box";
 import { categoryIcon } from "@/features/categories/category-icon";
+import { categoryPath } from "@/lib/seo/site";
 
 function useCategoryTree() {
   return useQuery({
@@ -88,7 +88,7 @@ function CategoryPanel({
           return (
             <li key={i.categoryId}>
               <Link
-                to={searchHref({ categoryId: i.categoryId })}
+                to={categoryPath(i.name)}
                 onClick={onNavigate}
                 onMouseEnter={() => setActiveId(i.categoryId)}
                 onFocus={() => setActiveId(i.categoryId)}
@@ -114,7 +114,7 @@ function CategoryPanel({
             {isLeaf && parent ? `More in ${parent.name}` : active.name}
           </p>
           <Link
-            to={searchHref({ categoryId: (isLeaf && parent ? parent : active).categoryId })}
+            to={categoryPath((isLeaf && parent ? parent : active).name)}
             onClick={onNavigate}
             className={linkCls}
           >
@@ -126,7 +126,7 @@ function CategoryPanel({
             {list.map((c) => (
               <li key={c.categoryId}>
                 <Link
-                  to={searchHref({ categoryId: c.categoryId })}
+                  to={categoryPath(c.name)}
                   onClick={onNavigate}
                   className={cn(
                     "-mx-2 flex min-h-[34px] items-center rounded-md px-2 py-1.5 text-[15px] leading-5 transition-colors hover:bg-surface-muted hover:text-foreground",
@@ -149,7 +149,7 @@ function CategoryPanel({
               <span className="font-semibold text-foreground">{active.name}</span>
               {isLeaf ? "?" : ""}
             </p>
-            <Link to={searchHref({ categoryId: active.categoryId })} onClick={onNavigate} className={linkCls}>
+            <Link to={categoryPath(active.name)} onClick={onNavigate} className={linkCls}>
               {isLeaf ? `Shop ${active.name}` : "Shop all"} <ArrowRightIcon className="size-4" />
             </Link>
           </div>
@@ -604,7 +604,7 @@ export function SiteHeader() {
                     {c.name}
                   </button>
                 ) : (
-                  <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} onMouseEnter={hoverClose} className={tabClass(false)}>
+                  <Link key={c.categoryId} to={categoryPath(c.name)} onMouseEnter={hoverClose} className={tabClass(false)}>
                     {c.name}
                   </Link>
                 ),
@@ -649,7 +649,7 @@ export function SiteHeader() {
               All categories <ArrowRightIcon className="size-4" />
             </Link>
             {roots.slice(0, 8).map((c) => (
-              <Link key={c.categoryId} to={searchHref({ categoryId: c.categoryId })} className="rounded-lg px-3 py-2.5 text-body hover:bg-surface-muted">
+              <Link key={c.categoryId} to={categoryPath(c.name)} className="rounded-lg px-3 py-2.5 text-body hover:bg-surface-muted">
                 {c.name}
               </Link>
             ))}

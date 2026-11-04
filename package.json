@@ -11,7 +11,8 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "seo:prerender": "node scripts/prerender.mjs dist"
   },
   "dependencies": {
     "@fontsource-variable/geist": "^5.3.0",

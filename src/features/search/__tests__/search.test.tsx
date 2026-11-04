@@ -184,7 +184,7 @@ describe("SearchPage", () => {
     expect(listBtn).toHaveAttribute("aria-pressed", "true");
     expect(localStorage.getItem("stockout.market.searchView")).toBe("list");
     expect(screen.getByRole("button", { name: "Save Copper cable to your wishlist" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Copper cable" })).toHaveAttribute("href", "/listings/1");
+    expect(screen.getByRole("link", { name: "Copper cable" })).toHaveAttribute("href", "/listings/copper-cable-dubai-1");
     localStorage.removeItem("stockout.market.searchView");
   });
 

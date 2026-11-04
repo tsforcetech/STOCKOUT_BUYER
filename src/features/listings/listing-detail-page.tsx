@@ -1,6 +1,10 @@
 import { sellerLabel } from "@/lib/seller-code";
 import * as React from "react";
-import { Link, useParams } from "react-router";
+import { Link, useLocation, useNavigate, useParams } from "react-router";
+import { useSeo } from "@/lib/seo/use-seo";
+import { listingSeo, type ListingSeoSource } from "@/lib/seo/listing-seo";
+import { listingIdFromParam, categoryPath } from "@/lib/seo/site";
+import { assetUrl } from "@/components/common/listing-image";
 import { useQuery } from "@tanstack/react-query";
 import {
   ArrowRightIcon,
@@ -54,6 +58,30 @@ function unitOf(l: PublicListingDetailResponse) {
   return l.quantityUnitSymbol ?? l.unitOfMeasure ?? "";
 }
 
+export function seoSourceOf(l: PublicListingDetailResponse): ListingSeoSource {
+  return {
+    listingId: l.listingId,
+    title: l.title,
+    description: l.description,
+    price: l.basePrice,
+    currency: l.currency,
+    category: l.categoryName,
+    categoryTrail: l.categoryBreadcrumb,
+    brand: l.brandName,
+    condition: l.conditionName,
+    sku: l.listingNumber,
+    quantity: l.sellableQuantity,
+    unit: unitOf(l) || null,
+    inStock: l.isAvailable && l.sellableQuantity > 0,
+    city: l.location.city,
+    emirate: l.location.stateOrEmirate,
+    images: sortedImages(l)
+      .map((i) => assetUrl(i.cdnUrl))
+      .filter((u): u is string => !!u),
+    validUntil: l.expiresAtUtc,
+  };
+}
+
 function snapshotOf(l: PublicListingDetailResponse): ListingSnapshot {
   return {
     listingId: l.listingId,
@@ -91,7 +119,10 @@ function DefinitionGrid({ items }: { items: Spec[] }) {
 }
 
 export default function ListingDetailPage() {
-  const { listingId = "" } = useParams();
+  const { listingId: param = "" } = useParams();
+  const listingId = listingIdFromParam(param);
+  const navigate = useNavigate();
+  const { pathname, search, hash } = useLocation();
   const q = useQuery({
     queryKey: ["listing", "public", listingId],
     queryFn: ({ signal }) => listingsService.publicDetail(listingId, signal),
@@ -103,6 +134,12 @@ export default function ListingDetailPage() {
   const endRef = React.useRef<HTMLDivElement>(null);
   const data = q.data;
   const snapshot = React.useMemo(() => (data ? snapshotOf(data) : null), [data]);
+  const seo = React.useMemo(() => (data ? listingSeo(seoSourceOf(data)) : null), [data]);
+  useSeo(seo);
+  // Old links (/listings/<id>) and stale slugs move to the readable address without a new history entry.
+  React.useEffect(() => {
+    if (seo && pathname.replace(/\/$/, "").endsWith(listingId) && !pathname.startsWith(seo.path)) navigate(seo.path + search + hash, { replace: true });
+  }, [seo, pathname, search, hash, listingId, navigate]);
 
   // Recently viewed: record once per listing after a successful load.
   React.useEffect(() => {
@@ -198,7 +235,7 @@ export default function ListingDetailPage() {
               <li key={`${name}-${i}`} className="flex items-center gap-1">
                 <CaretRightIcon className="size-3" />
                 {l.categoryPathIds[i] ? (
-                  <Link to={searchHref({ categoryId: l.categoryPathIds[i] })} className="hover:text-foreground">
+                  <Link to={categoryPath(name)} className="hover:text-foreground">
                     {name}
                   </Link>
                 ) : (
@@ -328,7 +365,7 @@ export default function ListingDetailPage() {
         viewAllHref={searchHref({ q: sameItemQuery(l.title), categoryId: l.categoryId })}
       />
       <ListingRail title="More from this seller" query={{ sellerId: l.seller.sellerId, sort: "date_desc" }} viewAllHref={searchHref({ sellerId: l.seller.sellerId })} />
-      <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={searchHref({ categoryId: l.categoryId })} />
+      <ListingRail title={`More in ${l.categoryName}`} query={{ categoryId: l.categoryId, sort: "date_desc" }} viewAllHref={categoryPath(l.categoryName)} />
       <ListingMobileBar listing={cartListing} panelRef={panelRef} endRef={endRef} />
     </>
   );

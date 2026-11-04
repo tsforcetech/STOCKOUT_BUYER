@@ -7,6 +7,7 @@ import { searchService } from "@/services/search.service";
 import { cn } from "@/lib/utils/cn";
 import { searchHref } from "../lib/search-params";
 import { SEARCH_EXAMPLES, useTypewriter } from "../lib/use-typewriter";
+import { listingPath } from "@/lib/seo/site";
 
 /**
  * Header / hero search with type-ahead suggestions (GET /api/v1/search/suggest).
@@ -72,7 +73,7 @@ export function SearchBox({
     if (!s) return;
     if (s.type === "listing" && s.listingId) {
       setOpen(false);
-      navigate(`/listings/${s.listingId}`);
+      navigate(listingPath(s.listingId, s.text));
     } else if (s.type === "category" && s.categoryId) go("", { categoryId: s.categoryId });
     else if (s.type === "brand" && s.brandId) go("", { brandId: [s.brandId] });
     else go(s.text);

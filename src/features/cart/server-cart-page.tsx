@@ -26,6 +26,7 @@ import { CART_LINE_LIMIT, type BuyerCartItemResponse, type BuyerCartResponse, ty
 import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { useGuestMerge } from "./merge-prompt";
 import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
+import { listingPath } from "@/lib/seo/site";
 
 /** Checkout-readiness blocker codes (stable) → shopper wording. The backend `message` is shown as detail. */
 const BLOCKER_TEXT: Record<string, string> = {
@@ -101,7 +102,7 @@ export function ServerQty({ item, disabled, onChange, size = "md" }: { item: Buy
 
 function CartLine({ item, blockers, busy, act }: { item: BuyerCartItemResponse; blockers: CheckoutBlockerDto[]; busy: boolean; act: ReturnType<typeof useCartActions>["mutate"] }) {
   const unavailable = !item.isActive || !item.isPurchasable;
-  const href = `/listings/${item.listingId}`;
+  const href = listingPath(item.listingId, item.title);
   return (
     <li className={cn("flex gap-3 p-4 sm:gap-4", unavailable && "bg-danger-soft/30")}>
       <Link to={href} className="shrink-0">
@@ -230,11 +231,11 @@ function SavedForLater() {
       <ul className="mt-4 divide-y divide-border overflow-hidden rounded-2xl border border-border">
         {items.map((i) => (
           <li key={i.listingId} className="flex gap-3 p-4">
-            <Link to={`/listings/${i.listingId}`} className="shrink-0">
+            <Link to={listingPath(i.listingId, i.title)} className="shrink-0">
               <ListingImage src={assetUrl(i.thumbnailUrl)} alt={i.title} className="size-16 rounded-lg" />
             </Link>
             <div className="min-w-0 flex-1">
-              <Link to={`/listings/${i.listingId}`} className="line-clamp-2 text-sm font-bold text-foreground hover:underline">
+              <Link to={listingPath(i.listingId, i.title)} className="line-clamp-2 text-sm font-bold text-foreground hover:underline">
                 {i.title}
               </Link>
               <p className="mt-0.5 text-xs text-muted-foreground">

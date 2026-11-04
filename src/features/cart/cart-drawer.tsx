@@ -11,6 +11,7 @@ import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
+import { listingPath } from "@/lib/seo/site";
 
 /**
  * Mini cart that slides in from the right (header cart icon, and after "Add to cart").
@@ -62,11 +63,11 @@ export function CartDrawer() {
                     const group = server.data?.sellerGroups.find((g) => g.items.includes(item));
                     return (
                       <li key={item.listingId} className="flex gap-3 py-3">
-                        <Link to={`/listings/${item.listingId}`} onClick={close} className="shrink-0">
+                        <Link to={listingPath(item.listingId, item.title)} onClick={close} className="shrink-0">
                           <ListingImage src={assetUrl(item.thumbnailUrl)} alt={item.title} className="size-14 rounded-lg" />
                         </Link>
                         <div className="min-w-0 flex-1">
-                          <Link to={`/listings/${item.listingId}`} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
+                          <Link to={listingPath(item.listingId, item.title)} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
                             {item.title}
                           </Link>
                           <p className="mt-0.5 truncate text-xs text-muted-foreground">
@@ -148,11 +149,11 @@ export function CartDrawer() {
                   const currency = s?.currency ?? item.currency;
                   return (
                     <li key={item.listingId} className="flex gap-3 py-3">
-                      <Link to={`/listings/${item.listingId}`} onClick={close} className="shrink-0">
+                      <Link to={listingPath(item.listingId, item.title)} onClick={close} className="shrink-0">
                         <ListingImage src={item.imageUrl} alt={item.title} className="size-14 rounded-lg" />
                       </Link>
                       <div className="min-w-0 flex-1">
-                        <Link to={`/listings/${item.listingId}`} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
+                        <Link to={listingPath(item.listingId, item.title)} onClick={close} className="line-clamp-2 text-sm font-bold leading-5 text-foreground hover:underline">
                           {item.title}
                         </Link>
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">
