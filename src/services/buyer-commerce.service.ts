@@ -16,11 +16,11 @@ const wishlist = "/api/v1/buyer/wishlist";
 const seg = encodeURIComponent;
 
 /**
- * If-Match is OFF until the backend fixes BD-8A-01: PR_BUYER_CART_ITEM_UPDATE_QTY compares If-Match with the cart
- * ITEM rowversion, but the API only exposes the CART rowVersion, so every quantity change sent with it fails with
- * CART_CONCURRENCY_CONFLICT; the other cart mutations ignore the header. Flip this once the contract is corrected.
+ * If-Match carries BUYER_CART.RowVersion on all seven cart / saved-item mutations (handoff v1.2). Re-enabled after the
+ * live smoke test on 4 Nov 2026 passed 23/23 (stale token → 409 CART_CONCURRENCY_CONFLICT with no change, bad token →
+ * 400 INVALID_IF_MATCH_HEADER). Writes are serialized in cartWrite so each one uses the latest version.
  */
-export const SEND_IF_MATCH = false;
+export const SEND_IF_MATCH = true;
 
 /** Optional optimistic-concurrency header: the cart's base64 rowVersion, quoted. */
 const ifMatch = (rowVersion?: string | null): Record<string, string> | undefined => (SEND_IF_MATCH && rowVersion ? { "If-Match": `"${rowVersion}"` } : undefined);
