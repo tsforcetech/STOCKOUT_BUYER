@@ -25,6 +25,12 @@ export function RouteError() {
           <WarningIcon className="size-7" />
         </div>
         <h1 className="font-heading text-2xl font-bold">{chunkFailed ? "Couldn't load this page" : "This page couldn't be displayed"}</h1>
+        {!chunkFailed && error instanceof Error && (
+          // Shown up front so a screenshot from a phone (e.g. Instagram's in-app browser) carries the cause.
+          <p className="mx-auto mt-3 max-w-sm break-words rounded-md bg-surface-muted px-3 py-2 font-mono text-xs text-body">
+            {error.name}: {error.message.slice(0, 240)}
+          </p>
+        )}
         <p className="mt-2 text-sm text-muted-foreground">
           {chunkFailed ? "Part of the page didn't load (the connection dropped or the site was just updated). Reload to try again." : "An unexpected error occurred. Reloading usually fixes it."}
         </p>
