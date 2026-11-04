@@ -3,7 +3,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
 import { buyerCommerceService } from "@/services/buyer-commerce.service";
 import { useAuth } from "@/lib/auth/auth-context";
-import { commerceKeys, useServerCart } from "./server-cart";
+import { cartWrite, commerceKeys, useServerCart } from "./server-cart";
+import { commerceCode, reportIfMatchError } from "./commerce-errors";
 import { wholeQuantity } from "./guest-merge";
 
 /**
@@ -116,8 +117,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       items,
       add: async (item) => {
         if (mode === "server") {
-          const cart = await buyerCommerceService.addItem({ listingId: item.listingId, sellerId: item.sellerId, quantity: wholeQuantity(item.quantity) });
-          qc.setQueryData(commerceKeys.cart, cart);
+          try {
+            await cartWrite(qc, (rv) => buyerCommerceService.addItem({ listingId: item.listingId, sellerId: item.sellerId, quantity: wholeQuantity(item.quantity) }, rv));
+          } catch (e) {
+            reportIfMatchError(e);
+            // Stale token (another tab/device changed the cart): show the real cart; the buyer decides whether to add again.
+            if (commerceCode(e) === "CART_CONCURRENCY_CONFLICT") void qc.invalidateQueries({ queryKey: commerceKeys.cart });
+            throw e;
+          }
           return;
         }
         update((prev) => {

@@ -10,6 +10,7 @@ import SavedPage from "@/features/favorites/saved-page";
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { readPendingMerge } from "@/lib/cart/guest-merge";
 import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
+import { SEND_IF_MATCH } from "@/services/buyer-commerce.service";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -56,7 +57,7 @@ describe("Stage 8A.2 server cart", () => {
     expect(screen.getByRole("button", { name: /Checkout · coming soon/ })).toBeDisabled();
   });
 
-  it("does not send If-Match on quantity changes (BD-8A-01) and reloads the cart after a concurrency conflict", async () => {
+  it("sends the cart rowVersion as a quoted If-Match (when enabled) and reloads the cart after a concurrency conflict", async () => {
     signIn();
     let gets = 0;
     const { calls } = mockFetch([
@@ -70,7 +71,7 @@ describe("Stage 8A.2 server cart", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Decrease quantity" }));
     await waitFor(() => {
       const put = calls.find((c) => c.method === "PUT");
-      expect(put?.headers.get("If-Match")).toBeNull();
+      expect(put?.headers.get("If-Match")).toBe(SEND_IF_MATCH ? '"AAAAAAAAB9E="' : null);
       expect(put?.body).toEqual({ quantity: 3 });
     });
     expect(await screen.findByText(/Your cart changed in another tab or device/)).toBeInTheDocument();
