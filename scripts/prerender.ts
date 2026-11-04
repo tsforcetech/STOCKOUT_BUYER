@@ -13,7 +13,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { isTestListing, listingSeo, type ListingSeoSource } from "../src/lib/seo/listing-seo";
 import { landingCopy } from "../src/lib/seo/landing-copy";
-import { EMIRATES, SITE_URL, absoluteUrl, categoryPath, listingPath } from "../src/lib/seo/site";
+import { EMIRATES, SEO_INDEXING, SITE_URL, absoluteUrl, categoryPath, listingPath } from "../src/lib/seo/site";
 import { breadcrumbLd, organizationLd, websiteLd } from "../src/lib/seo/schema";
 import type { SeoInput } from "../src/lib/seo/use-seo";
 
@@ -98,7 +98,7 @@ function head(s: SeoInput): string {
   return [
     `<title>${esc(title)}</title>`,
     `<meta name="description" content="${esc(desc)}" />`,
-    `<meta name="robots" content="${s.noindex ? "noindex, follow" : "index, follow, max-image-preview:large"}" />`,
+    `<meta name="robots" content="${s.noindex || !SEO_INDEXING ? "noindex, follow" : "index, follow, max-image-preview:large"}" />`,
     `<link rel="canonical" href="${esc(url)}" />`,
     `<meta property="og:site_name" content="StockOut" />`,
     `<meta property="og:type" content="${s.type ?? "website"}" />`,
@@ -119,6 +119,7 @@ function head(s: SeoInput): string {
 function page(template: string, seo: SeoInput, body: string): string {
   let html = template
     .replace(/<title>[\s\S]*?<\/title>\s*/i, "")
+    .replace(/<meta name="robots"[^>]*>\s*/i, "")
     .replace(/<meta name="description"[^>]*>\s*/i, "")
     .replace(/<meta property="og:[^"]+"[^>]*>\s*/gi, "")
     .replace(/<meta name="twitter:[^"]+"[^>]*>\s*/gi, "")
@@ -256,13 +257,15 @@ async function main() {
   );
 
   const today = new Date().toISOString().slice(0, 10);
+  // Pre-launch: the pages still exist (link previews work), but only the home and categories pages are listed.
+  const sitemapUrls = SEO_INDEXING ? urls : urls.filter((u) => u.loc === "/" || u.loc === "/categories");
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n` +
-    urls.map((u) => `  <url><loc>${esc(absoluteUrl(u.loc))}</loc><lastmod>${u.lastmod ?? today}</lastmod><priority>${u.priority}</priority></url>`).join("\n") +
+    sitemapUrls.map((u) => `  <url><loc>${esc(absoluteUrl(u.loc))}</loc><lastmod>${u.lastmod ?? today}</lastmod><priority>${u.priority}</priority></url>`).join("\n") +
     `\n</urlset>\n`;
   fs.writeFileSync(path.join(DIST, "sitemap.xml"), xml);
   fs.writeFileSync(path.join(DIST, "prerender-manifest.json"), JSON.stringify({ generatedAt: new Date().toISOString(), site: SITE_URL, pages: urls.map((u) => u.loc) }, null, 1));
-  console.log(`prerender: wrote ${urls.length} sitemap URLs (${listings.length} listings, ${targets.length} landing pages)`);
+  console.log(`prerender: indexing ${SEO_INDEXING ? "ON" : "OFF (pre-launch: all pages noindex)"}; ${sitemapUrls.length} sitemap URLs; ${urls.length} pages (${listings.length} listings, ${targets.length} landing pages)`);
 }
 
 main().catch((e) => {

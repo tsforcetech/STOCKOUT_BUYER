@@ -6,6 +6,12 @@ export const SITE_URL = ((import.meta.env.VITE_SITE_URL as string | undefined) |
 export const SITE_HOST = new URL(SITE_URL).host;
 export const SITE_NAME = "StockOut";
 
+/**
+ * Pre-launch switch. While the marketplace holds test/dummy data, every page is "noindex" and the sitemap lists no
+ * listings. Launch = set VITE_SEO_INDEXING=on for the production build (deploy.yml) and redeploy.
+ */
+export const SEO_INDEXING = (import.meta.env.VITE_SEO_INDEXING as string | undefined)?.toLowerCase() === "on";
+
 /** Production host check (noindex everywhere else so copies don't compete with the real site). */
 export const isCanonicalHost = () => typeof location !== "undefined" && location.host === SITE_HOST;
 

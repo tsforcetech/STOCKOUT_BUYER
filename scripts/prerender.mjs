@@ -15,7 +15,10 @@ try {
     target: "node20",
     outfile: out,
     logLevel: "warning",
-    define: { "import.meta.env.VITE_SITE_URL": JSON.stringify(process.env.VITE_SITE_URL ?? "") },
+    define: {
+      "import.meta.env.VITE_SITE_URL": JSON.stringify(process.env.VITE_SITE_URL ?? ""),
+      "import.meta.env.VITE_SEO_INDEXING": JSON.stringify(process.env.VITE_SEO_INDEXING ?? ""),
+    },
   });
   process.argv[2] = process.argv[2] ?? "dist";
   await import(pathToFileURL(out).href);

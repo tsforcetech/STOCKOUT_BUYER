@@ -60,3 +60,12 @@ describe("listing SEO", () => {
     expect(isTestListing("PPR Pipe PN20")).toBe(false);
   });
 });
+
+describe("pre-launch indexing switch", () => {
+  it("marks pages noindex while VITE_SEO_INDEXING is not 'on'", async () => {
+    const { applySeo } = await import("../use-seo");
+    applySeo({ title: "Surplus PPR Pipes in Dubai", description: "x", path: "/c/ppr-pipes-and-fittings-in-dubai" });
+    expect(document.head.querySelector('meta[name="robots"]')?.getAttribute("content")).toBe("noindex, follow");
+    expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://www.stockoutme.com/c/ppr-pipes-and-fittings-in-dubai");
+  });
+});

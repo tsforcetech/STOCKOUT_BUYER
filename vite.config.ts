@@ -11,7 +11,16 @@ export default defineConfig(({ mode }) => {
   return {
     // GitHub Pages serves project sites under /<repo>/; VITE_BASE_PATH sets that prefix at build time.
     base: env.VITE_BASE_PATH || "/",
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        // Pre-launch: keep every page out of search engines until VITE_SEO_INDEXING=on (see src/lib/seo/site.ts).
+        name: "seo-indexing-switch",
+        transformIndexHtml: (html: string) =>
+          (env.VITE_SEO_INDEXING ?? "").toLowerCase() === "on" ? html : html.replace("</title>", '</title>\n    <meta name="robots" content="noindex, follow" />'),
+      },
+    ],
     resolve: {
       alias: { "@": path.resolve(__dirname, "src") },
     },

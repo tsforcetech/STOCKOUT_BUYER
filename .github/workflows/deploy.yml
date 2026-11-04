@@ -91,6 +91,9 @@ jobs:
       - name: Build Production Website
         env:
           VITE_API_BASE_URL: https://stockout.flowb.io
+          # SEO pre-launch switch: "off" = every page noindex, sitemap without listings (dummy data).
+          # Launch day: change to "on" here AND in "Generate SEO pages", push, then submit the sitemap in Search Console.
+          VITE_SEO_INDEXING: "off"
         run: |
           npm run build
 
@@ -113,6 +116,7 @@ jobs:
       - name: Generate SEO pages
         env:
           SEO_API_BASE_URL: https://stockout.flowb.io
+          VITE_SEO_INDEXING: "off"
         run: |
           npm run seo:prerender
           $manifest = Join-Path $env:GITHUB_WORKSPACE "dist\prerender-manifest.json"

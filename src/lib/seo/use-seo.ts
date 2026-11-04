@@ -1,5 +1,5 @@
 import * as React from "react";
-import { SITE_NAME, absoluteUrl, isCanonicalHost } from "./site";
+import { SEO_INDEXING, SITE_NAME, absoluteUrl, isCanonicalHost } from "./site";
 
 export interface SeoInput {
   /** Full page title (the site name is appended unless it is already there). */
@@ -46,7 +46,7 @@ export function applySeo(s: SeoInput) {
   const image = absoluteUrl(s.image || DEFAULT_IMAGE);
   document.title = title;
   meta("name", "description", description);
-  meta("name", "robots", s.noindex || !isCanonicalHost() ? "noindex, follow" : "index, follow, max-image-preview:large");
+  meta("name", "robots", s.noindex || !SEO_INDEXING || !isCanonicalHost() ? "noindex, follow" : "index, follow, max-image-preview:large");
   link("canonical", url);
   meta("property", "og:site_name", SITE_NAME);
   meta("property", "og:type", s.type ?? "website");
