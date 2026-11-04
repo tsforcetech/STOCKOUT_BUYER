@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_DEV_PROXY_TARGET?: string;
   readonly VITE_REFRESH_TOKEN_STORAGE?: string;
   readonly VITE_BASE_PATH?: string;
+  /** "off" hides the launch-soon cover on the home page (default: shown). */
+  readonly VITE_LAUNCH_COVER?: string;
 }
 
 interface ImportMeta {

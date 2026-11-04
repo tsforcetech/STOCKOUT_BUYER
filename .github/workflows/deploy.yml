@@ -94,6 +94,8 @@ jobs:
           # SEO pre-launch switch: "off" = every page noindex, sitemap without listings (dummy data).
           # Launch day: change to "on" here AND in "Generate SEO pages", push, then submit the sitemap in Search Console.
           VITE_SEO_INDEXING: "off"
+          # "Launching soon" cover on the home page ("Explore preview" link lets testers in). Launch day: "off".
+          VITE_LAUNCH_COVER: "on"
         run: |
           npm run build
 

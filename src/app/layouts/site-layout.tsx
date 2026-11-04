@@ -9,6 +9,8 @@ import { CartDrawer } from "@/features/cart/cart-drawer";
 import { MobileTabBar } from "./mobile-tab-bar";
 import { AuthDialogProvider } from "@/features/auth/auth-dialog";
 import { RfqProvider } from "@/features/rfq/rfq-dialog";
+import { LaunchCover } from "@/features/launch/launch-cover";
+import { useLaunchCover } from "@/lib/launch";
 
 /** Public marketplace layout (Figma Buyer Screens): white header with category dropdowns, dark footer. */
 export function SiteLayout() {
@@ -16,6 +18,9 @@ export function SiteLayout() {
   React.useEffect(() => {
     window.scrollTo?.({ top: 0 });
   }, [location.pathname]);
+  const { showCover, explore } = useLaunchCover();
+  // Pre-launch: the public home page is the "launching soon" cover (see lib/launch.ts).
+  if (showCover && location.pathname === "/") return <LaunchCover onExplore={explore} />;
   return (
     <AuthDialogProvider>
       <RfqProvider>
