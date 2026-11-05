@@ -93,6 +93,15 @@ describe("Stage 8B.2 checkout review", () => {
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 
+  it("never shows internal backend reasons for an unavailable eligibility check", async () => {
+    signIn();
+    const internal = { method: "GET", path: "/api/v1/marketplace/buyer/eligibility", respond: () => ({ body: { success: true, data: { buyerId: "u-1", eligible: false, verificationStatus: "UNAVAILABLE", canPurchase: false, reason: "Authoritative identity service configuration (IdentityAccess:InternalUrl) is missing." } } }) };
+    mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, internal, profileOk, wishIds]);
+    page(<CheckoutPage />, "/checkout");
+    expect(await screen.findByText(/couldn't confirm your buying access/)).toBeInTheDocument();
+    expect(screen.queryByText(/IdentityAccess/)).not.toBeInTheDocument();
+  });
+
   it("tells the buyer when the cart changed in another session and reloads the review on request", async () => {
     signIn();
     let version = "AAAAAAAAB9Q=";

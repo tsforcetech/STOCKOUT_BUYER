@@ -23,7 +23,7 @@ import { useServerCart } from "@/lib/cart/server-cart";
 import { isApiError } from "@/lib/api/errors";
 import { marketplaceService } from "@/services/marketplace.service";
 import { useAuth } from "@/lib/auth/auth-context";
-import { useBuyerEligibility } from "@/features/cart/components/buyer-eligibility";
+import { DENIED, useBuyerEligibility } from "@/features/cart/components/buyer-eligibility";
 import { BLOCKER_TEXT, blockerText } from "@/features/cart/blockers";
 import { formatDate, formatMoney, formatNumber } from "@/lib/utils/format";
 import { listingPath } from "@/lib/seo/site";
@@ -83,12 +83,13 @@ function BuyerSection() {
         <p role="status" className={cn("flex items-start gap-2 rounded-lg p-3 text-sm", canBuy ? "bg-success-soft text-success-soft-foreground" : "bg-warning-soft text-warning-soft-foreground")}>
           {canBuy ? <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> : <WarningCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />}
           <span>
-            {canBuy ? "Your account is allowed to buy." : elig.error ? "We couldn't confirm your buying access right now." : (e?.reason ?? "Your account can't buy right now.")}
-            {e && (
-              <span className="mt-0.5 block text-xs opacity-80">
-                Status: {e.verificationStatus.replace(/_/g, " ").toLowerCase()}
-              </span>
-            )}
+            {canBuy
+              ? "Your account is allowed to buy."
+              : elig.error
+                ? DENIED.UNAVAILABLE
+                : // Known statuses get shopper wording; backend reasons can be internal (e.g. service configuration).
+                  (DENIED[(e?.verificationStatus ?? "").toUpperCase()] ?? "Your account can't buy right now. Contact StockOut support.")}
+
           </span>
         </p>
       )}

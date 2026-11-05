@@ -18,7 +18,7 @@ export function useBuyerEligibility() {
   });
 }
 
-const DENIED: Record<string, string> = {
+export const DENIED: Record<string, string> = {
   SUSPENDED: "Your account is suspended, so buying is turned off. Contact StockOut support.",
   LOCKED: "Your account is locked, so buying is turned off. Reset your password or contact support.",
   DISABLED: "Your account is disabled, so buying is turned off. Contact StockOut support.",
