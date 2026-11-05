@@ -637,6 +637,61 @@ export interface UpdateSellerProfileRequest {
 }
 
 /**
+ * C#: Contracts.Marketplace.BuyerProfileDto — GET /api/v1/marketplace/buyer/profile (user-organization, envelope).
+ * 404 MARKETPLACE_BUYER_NOT_FOUND when the signed-in user has no buyer business profile yet.
+ */
+export interface BuyerProfileDto {
+  buyerId: Guid;
+  organizationId: Guid;
+  organizationType: string;
+  legalName: string | null;
+  tradingName: string | null;
+  tradeLicenseNumber: string | null;
+  issuingAuthority: string | null;
+  tradeLicenseIssuedAtUtc: string | null;
+  tradeLicenseExpiresAtUtc: string | null;
+  isVatRegistered: boolean;
+  /** UAE TRN (15 digits) when VAT registered. */
+  taxRegistrationNumber: string | null;
+  hasVatDeclaration: boolean;
+  signatoryName: string | null;
+  signatoryEmail: string | null;
+  signatoryPhone: string | null;
+  signatoryAuthorityRole: string | null;
+  businessContactEmail: string | null;
+  businessContactPhone: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  city: string | null;
+  stateOrEmirate: string | null;
+  postalCode: string | null;
+  countryCode: string;
+  defaultCurrency: string;
+  bankName: string | null;
+  bankAccountNumber: string | null;
+  bankIban: string | null;
+  bankSwiftCode: string | null;
+  bankBeneficiaryName: string | null;
+  verificationStatus: string;
+  orgStatus: string;
+  submittedAtUtc: string | null;
+  verifiedAtUtc: string | null;
+  rejectedAtUtc: string | null;
+  suspendedAtUtc: string | null;
+  rejectionReason: string | null;
+  suspensionReason: string | null;
+  canPurchase: boolean;
+  mandatoryDocumentsComplete: boolean;
+  missingDocumentCategories: string[];
+  pendingPolicies: string[];
+  /** C#: List<BuyerDocumentResponse>; not rendered at checkout. */
+  documents: unknown[];
+  createdAtUtc: string;
+  updatedAtUtc: string;
+  rowVersion: string;
+}
+
+/**
  * C#: Contracts.Marketplace.BuyerEligibilityResponse — GET /marketplace/buyer/eligibility (BK-1, 27 Oct).
  * Any active signed-in user can buy without buyer KYC (verificationStatus "NOT_REQUIRED"); denied for
  * SUSPENDED / LOCKED / DISABLED, and UNAVAILABLE when the identity check can't run (never treat that as allowed).

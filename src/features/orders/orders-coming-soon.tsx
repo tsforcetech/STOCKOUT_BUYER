@@ -2,9 +2,9 @@ import type * as React from "react";
 import { ReceiptIcon } from "@phosphor-icons/react";
 
 /**
- * Orders screens for buyers and sellers. The backend has no order/deal/payment API yet
- * (bidding-deal and subscription-payment expose only /system/version; the gateway's /api/v1/deals
- * route has no endpoints behind it), so these pages explain what is coming instead of showing data.
+ * Orders screens for buyers and sellers. Stage 8B.3 order persistence exists in bidding-deal, but no order read
+ * endpoint is published (GET /api/v1/orders, /seller/orders → 404 unmatched_gateway_route, 5 Nov 2026), so these
+ * pages explain what is coming. The data views are ready in components/order-views.tsx (ORDER_API flags).
  */
 export function OrdersComingSoon({ title, intro, features, action }: { title: string; intro: string; features: string[]; action?: React.ReactNode }) {
   return (

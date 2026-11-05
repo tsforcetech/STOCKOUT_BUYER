@@ -9,6 +9,7 @@ import type {
   SellerDocumentResponse,
   SellerEligibilityResponse,
   BuyerEligibilityResponse,
+  BuyerProfileDto,
   UpdateSellerProfileRequest,
   UserProfileResponse,
   UpdateUserProfileRequest,
@@ -38,6 +39,8 @@ export const marketplaceService = {
   eligibility: (sellerId: string, signal?: AbortSignal) => get<SellerEligibilityResponse>(`/api/v1/marketplace/sellers/${seg(sellerId)}/eligibility`, signal),
   /** BK-1: buying needs no buyer KYC; this only says whether this account may buy. Not a checkout API. */
   buyerEligibility: (signal?: AbortSignal) => get<BuyerEligibilityResponse>("/api/v1/marketplace/buyer/eligibility", signal),
+  /** Buyer business profile; 404 MARKETPLACE_BUYER_NOT_FOUND when none exists. Identity comes from the token. */
+  buyerProfile: (signal?: AbortSignal) => get<BuyerProfileDto>("/api/v1/marketplace/buyer/profile", signal),
   submitSeller: (sellerId: string, expectedRowVersion: string) => post<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}/submit`, { expectedRowVersion }),
 
   documents: (sellerId: string, signal?: AbortSignal) => get<SellerDocumentResponse[]>(`/api/v1/marketplace/sellers/${seg(sellerId)}/documents`, signal),

@@ -54,7 +54,7 @@ describe("Stage 8A.2 server cart", () => {
     expect(screen.getByRole("spinbutton", { name: "Quantity" })).toHaveValue(4); // never silently reduced
     expect(screen.getByText("Estimated VAT (7.5%)")).toBeInTheDocument(); // rate from the API, not a hardcoded 5%
     expect(screen.getByRole("link", { name: "Verify my account" })).toHaveAttribute("href", "/account");
-    expect(screen.getByRole("button", { name: /Checkout · coming soon/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Proceed to checkout/ })).toBeDisabled();
   });
 
   it("sends the cart rowVersion as a quoted If-Match (when enabled) and reloads the cart after a concurrency conflict", async () => {

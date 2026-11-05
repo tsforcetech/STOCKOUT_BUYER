@@ -2,6 +2,7 @@ import * as React from "react";
 import { Link } from "react-router";
 import {
   ArrowCounterClockwiseIcon,
+  ArrowRightIcon,
   BookmarkSimpleIcon,
   InfoIcon,
   LockSimpleIcon,
@@ -27,21 +28,8 @@ import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { useGuestMerge } from "./merge-prompt";
 import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
 import { listingPath } from "@/lib/seo/site";
+import { BLOCKER_TEXT, blockerText } from "./blockers";
 
-/** Checkout-readiness blocker codes (stable) → shopper wording. The backend `message` is shown as detail. */
-const BLOCKER_TEXT: Record<string, string> = {
-  BUYER_IDENTITY_VERIFICATION_REQUIRED: "Verify your account before buying. You can keep adding to your cart in the meantime.",
-  MULTIPLE_ORGANIZATIONS: "Your account belongs to more than one organisation. Choosing which one buys isn't available yet, so checkout is blocked. Contact StockOut support.",
-  LISTING_UNAVAILABLE: "An item is no longer available. Remove it or save it for later.",
-  INSUFFICIENT_STOCK: "An item has less stock than you asked for. Change the quantity.",
-  COMMERCE_WHOLE_LOT_REQUIRED: "An item is sold as a whole lot only.",
-  COMMERCE_MIN_ORDER_QTY_NOT_MET: "An item is below the seller's minimum order quantity.",
-  MIXED_CURRENCY_NOT_SUPPORTED: "Your cart has items in different currencies, so it can't be totalled or checked out together.",
-  TAX_RATE_UNAVAILABLE: "VAT can't be estimated right now. Your cart still works; checkout waits until it can.",
-  CART_EMPTY: "Your cart is empty.",
-};
-
-const blockerText = (b: CheckoutBlockerDto) => BLOCKER_TEXT[b.code] ?? b.message;
 
 function MergeBanner() {
   const cart = useCart();
@@ -205,12 +193,24 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
         )}
       </section>
 
-      <Button size="lg" variant="secondary" className="mt-4 w-full rounded-full" disabled aria-describedby="checkout-note">
-        <LockSimpleIcon /> Checkout · coming soon
-      </Button>
+      {cart.checkoutReadiness.canProceed ? (
+        <Button asChild size="lg" className="mt-4 w-full rounded-full">
+          <Link to="/checkout">
+            Proceed to checkout <ArrowRightIcon />
+          </Link>
+        </Button>
+      ) : (
+        <Button size="lg" variant="secondary" className="mt-4 w-full rounded-full" disabled aria-describedby="checkout-note">
+          <LockSimpleIcon /> Proceed to checkout
+        </Button>
+      )}
       <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        <span className="font-medium text-foreground">Online checkout is coming soon.</span> Your cart is saved to your account. VAT shown is an estimate; the final amount
-        is confirmed at checkout.
+        {cart.checkoutReadiness.canProceed ? (
+          <>Review your order on the next step. Placing orders and payment open at launch.</>
+        ) : (
+          <>Checkout opens once the points above are resolved. Your cart is saved to your account.</>
+        )}{" "}
+        VAT shown is an estimate.
       </p>
       <button type="button" onClick={onClear} disabled={busy} className="mt-3 w-full cursor-pointer text-center text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
         Clear cart

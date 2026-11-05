@@ -28,8 +28,8 @@ const DENIED: Record<string, string> = {
 };
 
 /**
- * Shows whether this account may buy (BK-1: no buyer KYC needed). Kept separate from checkout itself,
- * which stays "coming soon" until the order and payment services exist.
+ * Shows whether this account may buy (BK-1 account check). Cart checkout readiness can still require identity
+ * verification (BUYER_IDENTITY_VERIFICATION_REQUIRED), so this never claims that no verification is needed.
  */
 export function BuyerEligibilityNote({ className }: { className?: string }) {
   const { status } = useAuth();
@@ -38,7 +38,7 @@ export function BuyerEligibilityNote({ className }: { className?: string }) {
   const e = q.data;
   const ok = !!e && e.canPurchase && e.eligible;
   const text = ok
-    ? "Your account can buy on StockOut — no company verification needed."
+    ? "Your account is active and allowed to buy on StockOut."
     : q.error
       ? DENIED.UNAVAILABLE
       : (DENIED[(e?.verificationStatus ?? "").toUpperCase()] ?? e?.reason ?? DENIED.UNAVAILABLE);

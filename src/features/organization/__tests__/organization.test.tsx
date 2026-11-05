@@ -155,6 +155,6 @@ describe("Buyer eligibility (BK-1)", () => {
       { method: "GET", path: "/api/v1/marketplace/buyer/eligibility", respond: () => ok({ buyerId: "b", eligible: true, verificationStatus: "NOT_REQUIRED", canPurchase: true, reason: null }) },
     ]);
     renderWithApp([{ path: "/", element: <BuyerEligibilityNote /> }], "/");
-    expect(await screen.findByText(/no company verification needed/)).toBeInTheDocument();
+    expect(await screen.findByText(/active and allowed to buy/)).toBeInTheDocument();
   });
 });
