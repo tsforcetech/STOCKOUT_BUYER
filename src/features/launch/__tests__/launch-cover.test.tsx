@@ -20,7 +20,7 @@ describe("launch-soon cover", () => {
     expect(screen.getByRole("link", { name: /Get early access/ })).toHaveAttribute("href", expect.stringMatching(/^mailto:info@stockoutme\.com\?subject=/));
     expect(screen.getAllByRole("link", { name: /info@stockoutme\.com/ }).length).toBeGreaterThan(0);
     expect(screen.queryByText("Marketplace home")).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Explore preview/ }));
+    await userEvent.click(screen.getAllByRole("button", { name: /Explore marketplace/ })[0]);
     expect(await screen.findByText("Marketplace home")).toBeInTheDocument();
     expect(localStorage.getItem("stockout.preview")).toBe("1");
   });

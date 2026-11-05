@@ -2,7 +2,7 @@ import * as React from "react";
 
 /**
  * Pre-launch cover. While on, the public home page ("/") shows the "launching soon" cover; the rest of the site
- * stays reachable for testing via the small "Explore preview" link, which remembers the choice on this device.
+ * stays reachable for testing via the "Explore marketplace" button, which remembers the choice on this device.
  * `?preview=1` turns preview on, `?cover=1` shows the cover again. Turn the cover off at launch with
  * VITE_LAUNCH_COVER=off in the deploy workflow.
  */
