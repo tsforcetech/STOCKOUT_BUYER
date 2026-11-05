@@ -295,18 +295,19 @@ export function LaunchCover({ onExplore }: { onExplore: () => void }) {
           <button
             type="button"
             onClick={onExplore}
-            className="hidden min-h-10 cursor-pointer items-center gap-2 rounded-full border border-action/60 px-4 text-sm font-semibold text-action transition hover:bg-action hover:text-action-foreground md:inline-flex"
+            className="inline-flex min-h-10 cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full bg-action px-4 text-sm font-bold text-action-foreground shadow-[0_0_24px_-6px] shadow-action/70 transition hover:bg-action-hover"
           >
-            Explore marketplace{" "}
-            <ArrowRightIcon className="size-4" aria-hidden />
+            <span className="sm:hidden">Explore</span>
+            <span className="hidden sm:inline">Explore marketplace</span>
+            <ArrowRightIcon className="size-4" weight="bold" aria-hidden />
           </button>
           <a
             href={`mailto:${CONTACT_EMAIL}`}
-            className="inline-flex min-h-10 items-center gap-2 rounded-full border border-white/15 px-3.5 text-sm text-white/80 transition hover:border-white/40 hover:text-white"
+            aria-label={`Email ${CONTACT_EMAIL}`}
+            className="inline-flex min-h-10 min-w-10 items-center justify-center gap-2 rounded-full border border-white/15 px-2.5 text-sm text-white/80 transition hover:border-white/40 hover:text-white lg:px-3.5"
           >
             <EnvelopeSimpleIcon className="size-4" aria-hidden />
-            <span className="hidden sm:inline">{CONTACT_EMAIL}</span>
-            <span className="sm:hidden">Contact</span>
+            <span className="hidden lg:inline">{CONTACT_EMAIL}</span>
           </a>
         </div>
       </header>
