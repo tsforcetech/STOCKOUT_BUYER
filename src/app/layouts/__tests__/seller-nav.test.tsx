@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch } from "@/test/http";
 import { RequireAuth } from "@/lib/auth/guards";
@@ -32,28 +33,34 @@ const api = (stripe = "NOT_STARTED") => [
 ];
 
 describe("Seller menu (grouped, 6 items)", () => {
-  it("shows three groups with six items, Add listing first, account items moved out, and badges", async () => {
+  it("shows three groups with six items (no Add listing button), account items moved out, and badges", async () => {
     signIn();
     mockFetch(api());
     routes("/seller/listings");
     const nav = await screen.findByRole("navigation", { name: "Seller" });
-    expect(within(nav).getAllByRole("link").map((a) => a.textContent?.replace(/\d+$/, "").replace(/Soon$/, "").trim())).toEqual(["Add listing", "Home", "Listings", "Orders", "Payouts", "Business profile"]);
+    expect(within(nav).getAllByRole("link").map((a) => a.textContent?.replace(/\d+$/, "").replace(/Soon$/, "").trim())).toEqual(["Home", "Listings", "All listings", "Needs action", "Bulk upload", "Orders", "Payouts", "Business profile"]);
     for (const g of ["Sell", "Orders & money", "Business"]) expect(within(nav).getByText(g)).toBeInTheDocument();
     expect(within(nav).queryByText("My profile")).not.toBeInTheDocument();
     expect(within(nav).queryByText("Bulk import")).not.toBeInTheDocument();
     expect(await within(nav).findByLabelText("2 need your action")).toBeInTheDocument();
     expect(await within(nav).findByLabelText("Needs setting up")).toBeInTheDocument();
-    expect(within(nav).getByRole("link", { name: /Listings/ })).toHaveAttribute("aria-current", "page");
+    expect(within(nav).getByRole("link", { name: "All listings" })).toHaveAttribute("aria-current", "page");
   });
 
-  it("listings pages get All / Needs action / Bulk upload tabs; business pages get their own tabs", async () => {
+  it("Listings opens to show its child pages; Business profile stays closed until clicked", async () => {
     signIn();
     mockFetch(api("COMPLETED"));
     routes("/seller/corrections");
-    const tabs = await screen.findByRole("navigation", { name: "Listings sections" });
-    expect(within(tabs).getByRole("link", { name: /Needs action/ })).toHaveAttribute("aria-current", "page");
-    expect(within(tabs).getByRole("link", { name: "Bulk upload" })).toHaveAttribute("href", "/seller/listings/import");
-    // The Listings menu item stays highlighted on its sub-pages.
-    expect(within(screen.getByRole("navigation", { name: "Seller" })).getByRole("link", { name: /Listings/ })).toHaveAttribute("aria-current", "page");
+    const nav = await screen.findByRole("navigation", { name: "Seller" });
+    const children = await within(nav).findByRole("list", { name: "Listings pages" });
+    expect(within(children).getAllByRole("link").map((a) => a.textContent?.replace(/\d+$/, ""))).toEqual(["All listings", "Needs action", "Bulk upload"]);
+    expect(within(children).getByRole("link", { name: /Needs action/ })).toHaveAttribute("aria-current", "page");
+    expect(within(children).getByRole("link", { name: "Bulk upload" })).toHaveAttribute("href", "/seller/listings/import");
+    expect(within(nav).queryByRole("list", { name: "Business profile pages" })).not.toBeInTheDocument();
+    // Clicking the open parent folds it.
+    await userEvent.click(within(nav).getByRole("link", { name: /^Listings/ }));
+    expect(within(nav).queryByRole("list", { name: "Listings pages" })).not.toBeInTheDocument();
+    // No page tabs any more.
+    expect(screen.queryByRole("navigation", { name: "Listings sections" })).not.toBeInTheDocument();
   });
 });

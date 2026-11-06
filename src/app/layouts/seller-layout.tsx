@@ -45,6 +45,8 @@ type NavItem = {
   also?: string[];
   badge?: "corrections" | "payouts";
   soon?: boolean;
+  /** Child pages listed under the item when it is open. */
+  children?: Array<{ label: string; to: string; badge?: "corrections"; active: (path: string) => boolean }>;
 };
 
 /** Six items in three groups; sub-pages live as tabs inside their section (see SectionTabs). */
@@ -53,7 +55,18 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     title: "Sell",
     items: [
       { label: "Home", to: "/seller", icon: HouseIcon, end: true },
-      { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon, also: ["/seller/corrections"], badge: "corrections" },
+      {
+        label: "Listings",
+        to: "/seller/listings",
+        icon: ListNumbersIcon,
+        also: ["/seller/corrections"],
+        badge: "corrections",
+        children: [
+          { label: "All listings", to: "/seller/listings", active: (p) => (p === "/seller/listings" || p.startsWith("/seller/listings/")) && !p.startsWith("/seller/listings/import") },
+          { label: "Needs action", to: "/seller/corrections", badge: "corrections", active: (p) => p === "/seller/corrections" },
+          { label: "Bulk upload", to: "/seller/listings/import", active: (p) => p.startsWith("/seller/listings/import") },
+        ],
+      },
     ],
   },
   {
@@ -65,28 +78,18 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
   },
   {
     title: "Business",
-    items: [{ label: "Business profile", to: "/seller/business", icon: IdentificationCardIcon, also: ["/seller/team", "/seller/business-changes", "/seller/verify"] }],
-  },
-];
-
-/** Sub-pages shown as tabs at the top of a section (formerly separate menu items). */
-const SECTION_TABS: Array<{ match: (path: string) => boolean; label: string; tabs: Array<{ label: string; to: string; badge?: "corrections"; active: (path: string) => boolean }> }> = [
-  {
-    label: "Listings sections",
-    match: (p) => p === "/seller/listings" || p === "/seller/corrections" || p.startsWith("/seller/listings/import"),
-    tabs: [
-      { label: "All listings", to: "/seller/listings", active: (p) => p === "/seller/listings" },
-      { label: "Needs action", to: "/seller/corrections", badge: "corrections", active: (p) => p === "/seller/corrections" },
-      { label: "Bulk upload", to: "/seller/listings/import", active: (p) => p.startsWith("/seller/listings/import") },
-    ],
-  },
-  {
-    label: "Business sections",
-    match: (p) => p === "/seller/business" || p === "/seller/team" || p === "/seller/business-changes",
-    tabs: [
-      { label: "Business & verification", to: "/seller/business", active: (p) => p === "/seller/business" },
-      { label: "Team", to: "/seller/team", active: (p) => p === "/seller/team" },
-      { label: "Business changes", to: "/seller/business-changes", active: (p) => p === "/seller/business-changes" },
+    items: [
+      {
+        label: "Business profile",
+        to: "/seller/business",
+        icon: IdentificationCardIcon,
+        also: ["/seller/team", "/seller/business-changes", "/seller/verify"],
+        children: [
+          { label: "Business & verification", to: "/seller/business", active: (p) => p === "/seller/business" || p.startsWith("/seller/verify") },
+          { label: "Team", to: "/seller/team", active: (p) => p === "/seller/team" },
+          { label: "Business changes", to: "/seller/business-changes", active: (p) => p === "/seller/business-changes" },
+        ],
+      },
     ],
   },
 ];
@@ -109,34 +112,6 @@ function useSellerBadges() {
   };
 }
 
-function SectionTabs() {
-  const { pathname } = useLocation();
-  const badges = useSellerBadges();
-  const section = SECTION_TABS.find((sct) => sct.match(pathname));
-  if (!section) return null;
-  return (
-    <nav aria-label={section.label} className="-mt-1 mb-5 flex gap-1 overflow-x-auto border-b border-border">
-      {section.tabs.map((t) => {
-        const on = t.active(pathname);
-        const count = t.badge === "corrections" ? badges.corrections : 0;
-        return (
-          <Link
-            key={t.to}
-            to={t.to}
-            aria-current={on ? "page" : undefined}
-            className={cn(
-              "-mb-px inline-flex min-h-10 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-sm transition-colors",
-              on ? "border-foreground font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {t.label}
-            {count > 0 && <span className="rounded-full bg-action px-1.5 text-xs font-bold text-action-foreground">{count}</span>}
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
 
 
 /** Leaves the portal for the home page first (seller routes would bounce to the login page), then signs out. */
@@ -305,15 +280,10 @@ function navActive(item: NavItem, pathname: string): boolean {
 function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const badges = useSellerBadges();
+  // Open/closed per parent, chosen by the seller; by default only the section you're in is open.
+  const [openState, setOpenState] = React.useState<Record<string, boolean>>({});
   return (
-    <nav aria-label="Seller" className="flex-1 px-5">
-      <Link
-        to="/seller/listings/quick"
-        onClick={onNavigate}
-        className="mb-5 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover"
-      >
-        <PlusIcon className="size-4" /> Add listing
-      </Link>
+    <nav aria-label="Seller" className="flex-1 overflow-y-auto px-5 pb-4">
       {NAV_GROUPS.map((g) => (
         <div key={g.title} className="mb-4">
           <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.title}</p>
@@ -322,27 +292,73 @@ function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
               const active = navActive(item, pathname);
               const count = item.badge === "corrections" ? badges.corrections : 0;
               const warn = item.badge === "payouts" && badges.payoutsNeedAttention;
+              const showChildren = !!item.children && (openState[item.to] ?? active);
               return (
                 <li key={item.to}>
                   <Link
                     to={item.to}
-                    onClick={onNavigate}
-                    aria-current={active ? "page" : undefined}
+                    onClick={(e) => {
+                      if (item.children) {
+                        // Clicking an open parent you're already in just folds/unfolds it.
+                        if (active) {
+                          e.preventDefault();
+                          setOpenState((o) => ({ ...o, [item.to]: !showChildren }));
+                          return;
+                        }
+                        setOpenState((o) => ({ ...o, [item.to]: true }));
+                      }
+                      onNavigate?.();
+                    }}
+                    aria-current={active && !item.children ? "page" : undefined}
+                    aria-expanded={item.children ? showChildren : undefined}
                     className={cn(
                       "flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors",
-                      active ? "bg-ink font-medium text-ink-foreground" : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                      active && !item.children
+                        ? "bg-ink font-medium text-ink-foreground"
+                        : active
+                          ? "font-semibold text-foreground"
+                          : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
                     )}
                   >
                     <item.icon className="size-5 shrink-0" />
                     <span className="min-w-0 flex-1 truncate">{item.label}</span>
-                    {count > 0 && (
+                    {count > 0 && !showChildren && (
                       <span className="rounded-full bg-action px-1.5 text-xs font-bold text-action-foreground" aria-label={`${count} need your action`}>
                         {count}
                       </span>
                     )}
                     {warn && <span className="size-2 rounded-full bg-warning" aria-label="Needs setting up" title="Payout account not set up" />}
                     {item.soon && <span className={cn("rounded px-1.5 text-[10px] font-semibold uppercase", active ? "bg-white/15" : "bg-surface-muted text-muted-foreground")}>Soon</span>}
+                    {item.children && <CaretDownIcon className={cn("size-4 shrink-0 transition-transform", showChildren ? "rotate-180" : "")} aria-hidden />}
                   </Link>
+                  {showChildren && (
+                    <ul className="ml-[22px] mt-1 space-y-0.5 border-l border-border pl-3" aria-label={`${item.label} pages`}>
+                      {item.children!.map((c) => {
+                        const on = c.active(pathname);
+                        const n = c.badge === "corrections" ? badges.corrections : 0;
+                        return (
+                          <li key={c.to}>
+                            <Link
+                              to={c.to}
+                              onClick={onNavigate}
+                              aria-current={on ? "page" : undefined}
+                              className={cn(
+                                "flex h-8 items-center gap-2 rounded-md px-2.5 text-sm transition-colors",
+                                on ? "bg-ink font-medium text-ink-foreground" : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                              )}
+                            >
+                              <span className="min-w-0 flex-1 truncate">{c.label}</span>
+                              {n > 0 && (
+                                <span className="rounded-full bg-action px-1.5 text-xs font-bold text-action-foreground" aria-label={`${n} need your action`}>
+                                  {n}
+                                </span>
+                              )}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </li>
               );
             })}
@@ -456,7 +472,6 @@ export function SellerLayout() {
           className="min-w-0 flex-1 bg-surface-muted px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8"
         >
           <div className="mx-auto w-full max-w-[1200px]">
-            <SectionTabs />
             <ErrorBoundary resetKey={location.pathname}>
               <React.Suspense fallback={<PageSkeleton />}>
                 <Outlet />
