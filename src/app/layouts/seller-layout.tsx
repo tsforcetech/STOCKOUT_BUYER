@@ -3,7 +3,6 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeftIcon,
   BankIcon,
   DotsThreeOutlineIcon,
   HouseIcon,
@@ -141,6 +140,12 @@ function MenuItem({ icon: Icon, label, onSelect, tone }: { icon: React.ElementTy
   );
 }
 
+/** "MUHAMMED HAKEEM M" → "Muhammed": short, normal case for the header (the full name stays in the menu). */
+function firstName(name: string): string {
+  const first = name.includes("@") ? name.split("@")[0] : name.trim().split(/\s+/)[0];
+  return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : name;
+}
+
 function SellerAccountMenu() {
   const { user } = useAuth();
   const { activeSeller } = useSellerMode();
@@ -153,13 +158,13 @@ function SellerAccountMenu() {
         <button
           type="button"
           aria-label="Account menu"
-          className="flex cursor-pointer items-center gap-2 rounded-full border border-transparent py-0.5 pl-0.5 pr-2 transition-colors hover:border-border hover:bg-surface-muted data-[state=open]:border-border data-[state=open]:bg-surface-muted"
+          className="flex h-9 cursor-pointer items-center gap-2 rounded-md px-1.5 transition-colors hover:bg-surface-muted data-[state=open]:bg-surface-muted"
         >
-          <span className="flex size-9 items-center justify-center rounded-full bg-ink font-heading text-xs font-bold text-ink-foreground" aria-hidden>
+          <span className="flex size-8 items-center justify-center rounded-full bg-ink font-heading text-[11px] font-bold text-ink-foreground" aria-hidden>
             {initials(name)}
           </span>
-          <span className="hidden max-w-36 truncate text-sm font-medium text-foreground md:block">{name}</span>
-          <CaretDownIcon className="hidden size-4 text-muted-foreground sm:block" />
+          <span className="hidden max-w-32 truncate text-sm font-medium text-foreground md:block">{firstName(name)}</span>
+          <CaretDownIcon className="hidden size-3.5 text-muted-foreground sm:block" aria-hidden />
         </button>
       </PopoverPrimitive.Trigger>
       <PopoverPrimitive.Portal>
@@ -186,7 +191,7 @@ function SellerAccountMenu() {
             <MenuItem icon={UserIcon} label="My profile" onSelect={() => navigate("/seller/profile")} />
             <MenuItem icon={LockKeyIcon} label="Security" onSelect={() => navigate("/seller/security")} />
             <MenuItem icon={ShieldCheckIcon} label="Privacy" onSelect={() => navigate("/seller/privacy")} />
-            <MenuItem icon={StorefrontIcon} label="Back to marketplace" onSelect={() => navigate("/")} />
+            <MenuItem icon={StorefrontIcon} label="Go to marketplace" onSelect={() => navigate("/")} />
           </div>
           <div className="border-t border-border p-1.5">
             <ThemeSwitch />
@@ -434,15 +439,19 @@ export function SellerLayout() {
             Seller
           </span>
         </Link>
-        <Link
-          to="/"
-          className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-secondary-border px-3 py-1.5 text-sm text-foreground hover:bg-surface-muted"
-        >
-          <ArrowLeftIcon className="hidden size-4 sm:block" />{" "}
-          <span className="hidden sm:inline">Back to marketplace</span>
-          <span className="sm:hidden">Shop</span>
-        </Link>
-        <SellerAccountMenu />
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <Link
+            to="/"
+            title="Go to the StockOut marketplace"
+            aria-label="Marketplace"
+            className="inline-flex h-9 items-center gap-2 rounded-md px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-muted hover:text-foreground"
+          >
+            <StorefrontIcon className="size-5" aria-hidden />
+            <span className="hidden sm:inline">Marketplace</span>
+          </Link>
+          <span className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
+          <SellerAccountMenu />
+        </div>
       </header>
       <div className="flex flex-1">
         {open && (
