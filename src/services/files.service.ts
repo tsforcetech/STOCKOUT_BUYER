@@ -30,6 +30,8 @@ export const FILE_LIMITS: Record<FilePurpose, { maxBytes: number; accept: string
   SELLER_PROFILE_LOGO: { maxBytes: 5 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp", extensions: IMAGE_EXT },
   LISTING_IMAGE: { maxBytes: 10 * 1024 * 1024, accept: "image/jpeg,image/png,image/webp", extensions: IMAGE_EXT },
   SELLER_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png", extensions: DOC_EXT },
+  /** Private buyer identity document (FileAssetService.cs:35). */
+  BUYER_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png", extensions: DOC_EXT },
   LISTING_DOCUMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png", extensions: DOC_EXT },
   INSPECTION_EVIDENCE: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },
   CHAT_ATTACHMENT: { maxBytes: 20 * 1024 * 1024, accept: "application/pdf,image/jpeg,image/png,image/webp", extensions: EVIDENCE_EXT },

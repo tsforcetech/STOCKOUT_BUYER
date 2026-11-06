@@ -10,6 +10,9 @@ import type {
   SellerEligibilityResponse,
   BuyerEligibilityResponse,
   BuyerProfileDto,
+  BuyerDocumentResponse,
+  CreateBuyerDocumentRequest,
+  UpsertBuyerProfileRequest,
   UpdateSellerProfileRequest,
   UserProfileResponse,
   UpdateUserProfileRequest,
@@ -39,8 +42,16 @@ export const marketplaceService = {
   eligibility: (sellerId: string, signal?: AbortSignal) => get<SellerEligibilityResponse>(`/api/v1/marketplace/sellers/${seg(sellerId)}/eligibility`, signal),
   /** BK-1: buying needs no buyer KYC; this only says whether this account may buy. Not a checkout API. */
   buyerEligibility: (signal?: AbortSignal) => get<BuyerEligibilityResponse>("/api/v1/marketplace/buyer/eligibility", signal),
-  /** Buyer business profile; 404 MARKETPLACE_BUYER_NOT_FOUND when none exists. Identity comes from the token. */
+  /** Buyer profile incl. identity verification state; 404 MARKETPLACE_BUYER_NOT_FOUND when none exists. Identity comes from the token. */
   buyerProfile: (signal?: AbortSignal) => get<BuyerProfileDto>("/api/v1/marketplace/buyer/profile", signal),
+  /** Create/update the buyer's identity details (account holder only). Use the latest rowVersion, or null when creating. */
+  saveBuyerProfile: async (body: UpsertBuyerProfileRequest) => unwrapData<BuyerProfileDto>(await http.put<Envelope<BuyerProfileDto>>("/api/v1/marketplace/buyer/profile", body)),
+  buyerDocuments: async (signal?: AbortSignal) => expectArray<BuyerDocumentResponse>(await get("/api/v1/marketplace/buyer/documents", signal)),
+  /** Attach a completed private BUYER_DOCUMENT upload (fileAssetId = media fileId). */
+  addBuyerDocument: async (body: CreateBuyerDocumentRequest) => unwrapData<BuyerDocumentResponse>(await http.post<Envelope<BuyerDocumentResponse>>("/api/v1/marketplace/buyer/documents", body)),
+  deleteBuyerDocument: (documentId: string) => http.delete<unknown>(`/api/v1/marketplace/buyer/documents/${encodeURIComponent(documentId)}`),
+  /** Body is only { expectedRowVersion }. Policy acceptance is a separate flow (POLICY_ACCEPTANCE_REQUIRED). */
+  submitBuyer: async (expectedRowVersion: string) => unwrapData<BuyerProfileDto>(await http.post<Envelope<BuyerProfileDto>>("/api/v1/marketplace/buyer/submit", { expectedRowVersion })),
   submitSeller: (sellerId: string, expectedRowVersion: string) => post<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}/submit`, { expectedRowVersion }),
 
   documents: (sellerId: string, signal?: AbortSignal) => get<SellerDocumentResponse[]>(`/api/v1/marketplace/sellers/${seg(sellerId)}/documents`, signal),

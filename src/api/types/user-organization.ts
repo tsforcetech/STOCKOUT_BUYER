@@ -684,11 +684,100 @@ export interface BuyerProfileDto {
   mandatoryDocumentsComplete: boolean;
   missingDocumentCategories: string[];
   pendingPolicies: string[];
-  /** C#: List<BuyerDocumentResponse>; not rendered at checkout. */
-  documents: unknown[];
+  documents: BuyerDocumentResponse[];
   createdAtUtc: string;
   updatedAtUtc: string;
   rowVersion: string;
+  /** Q2: the registered buyer account holder whose identity is verified. */
+  accountHolderUserId: Guid | null;
+  /** Q4 identity fields (one-ID buyer verification, handoff 2026-11-06). */
+  fullName: string | null;
+  nationality: string | null;
+  documentType: string | null;
+  documentNumber: string | null;
+  issuingCountry: string | null;
+  documentExpiresAtUtc: string | null;
+  mobileNumber: string | null;
+  residentialAddress: string | null;
+  /** Q10: buyers verified under the old policy must submit a fresh ID before purchasing. */
+  requiresReverification: boolean;
+  reverificationReason: string | null;
+  reverificationRequiredAtUtc: string | null;
+}
+
+/** C#: BuyerDocumentResponse — GET/POST /api/v1/marketplace/buyer/documents. */
+export interface BuyerDocumentResponse {
+  buyerDocumentId: Guid;
+  buyerId: Guid;
+  documentType: string;
+  fileAssetId: Guid;
+  documentNumber: string | null;
+  issuedAt: string | null;
+  expiresAt: string | null;
+  /** PENDING / VERIFIED / REJECTED (values from PR_BUYER_DOCUMENT_REVIEW). */
+  verificationStatus: string;
+  reviewRemark: string | null;
+  containsSignatoryId: boolean | null;
+  containsSignatoryAuthorityProof: boolean | null;
+  verifiedSignatoryId: boolean | null;
+  verifiedSignatoryAuthorityProof: boolean | null;
+  reviewedByUserId: Guid | null;
+  reviewedAtUtc: string | null;
+  createdAtUtc: string;
+}
+
+/**
+ * C#: UpsertBuyerProfileRequest — PUT /api/v1/marketplace/buyer/profile. The seven Q4 fields plus documentType are required;
+ * company invoicing fields are optional. organizationType: the service accepts "BUSINESS", anything else → INDIVIDUAL.
+ */
+export interface UpsertBuyerProfileRequest {
+  organizationType: "INDIVIDUAL" | "BUSINESS";
+  fullName: string;
+  nationality: string;
+  documentType: string;
+  documentNumber: string;
+  issuingCountry: string;
+  documentExpiresAtUtc: string | null;
+  mobileNumber: string;
+  residentialAddress: string;
+  legalName?: string | null;
+  tradingName?: string | null;
+  tradeLicenseNumber?: string | null;
+  issuingAuthority?: string | null;
+  tradeLicenseIssuedAtUtc?: string | null;
+  tradeLicenseExpiresAtUtc?: string | null;
+  isVatRegistered?: boolean;
+  taxRegistrationNumber?: string | null;
+  hasVatDeclaration?: boolean;
+  signatoryName?: string | null;
+  signatoryEmail?: string | null;
+  signatoryPhone?: string | null;
+  signatoryAuthorityRole?: string | null;
+  businessContactEmail?: string | null;
+  businessContactPhone?: string | null;
+  addressLine1?: string | null;
+  addressLine2?: string | null;
+  city?: string | null;
+  stateOrEmirate?: string | null;
+  postalCode?: string | null;
+  countryCode?: string;
+  defaultCurrency?: string;
+  bankName?: string | null;
+  bankAccountNumber?: string | null;
+  bankIban?: string | null;
+  bankSwiftCode?: string | null;
+  bankBeneficiaryName?: string | null;
+  expectedRowVersion: string | null;
+}
+
+/** C#: CreateBuyerDocumentRequest — POST /api/v1/marketplace/buyer/documents. Note: `expiresAt`, not expiresAtUtc. */
+export interface CreateBuyerDocumentRequest {
+  documentType: string;
+  fileAssetId: Guid;
+  documentNumber?: string | null;
+  issuedAt?: string | null;
+  expiresAt?: string | null;
+  issuingCountry?: string | null;
 }
 
 /**

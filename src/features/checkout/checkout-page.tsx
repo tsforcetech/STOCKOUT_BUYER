@@ -8,6 +8,7 @@ import {
   BuildingsIcon,
   CheckCircleIcon,
   CreditCardIcon,
+  IdentificationCardIcon,
   LockSimpleIcon,
   MoneyIcon,
   PackageIcon,
@@ -104,17 +105,48 @@ function BuyerSection() {
         ) : notFound ? (
           <div className="rounded-lg border border-dashed border-border-strong p-4 text-sm">
             <p className="flex items-center gap-2 font-medium text-foreground">
-              <BuildingsIcon className="size-4" aria-hidden /> No business details on file
+              <IdentificationCardIcon className="size-4" aria-hidden /> Identity not verified yet
             </p>
-            <p className="mt-1 text-muted-foreground">Your company's legal name, trade licence and TRN will appear here. They're needed on invoices when ordering opens.</p>
+            <p className="mt-1 text-muted-foreground">Purchasing needs one approved ID for the account holder.</p>
+            <Button asChild size="sm" variant="secondary" className="mt-3">
+              <Link to="/account/verification">Verify my identity</Link>
+            </Button>
           </div>
         ) : profile.error ? (
           <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />
         ) : p ? (
-          <BusinessDetails p={p} />
+          <>
+            <IdentityStatus p={p} />
+            {(p.legalName || p.tradeLicenseNumber || p.taxRegistrationNumber) && <BusinessDetails p={p} />}
+          </>
         ) : null}
       </div>
     </section>
+  );
+}
+
+function IdentityStatus({ p }: { p: BuyerProfileDto }) {
+  const verified = p.verificationStatus === "VERIFIED" && !p.requiresReverification;
+  const label = p.requiresReverification
+    ? "Verification required again"
+    : verified
+      ? "Identity verified"
+      : p.verificationStatus === "SUBMITTED" || p.verificationStatus === "UNDER_REVIEW"
+        ? "Identity under review"
+        : p.verificationStatus === "REJECTED"
+          ? "Identity verification not approved"
+          : "Identity not verified yet";
+  return (
+    <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+      <IdentificationCardIcon className="size-4" aria-hidden />
+      <span className="font-medium text-foreground">{p.fullName || "Account holder"}</span>
+      <Badge tone={verified ? "success" : "warning"}>{label}</Badge>
+      {!verified && (
+        <Link to="/account/verification" className="ml-auto text-sm underline underline-offset-4">
+          {p.verificationStatus === "SUBMITTED" || p.verificationStatus === "UNDER_REVIEW" ? "View status" : "Verify my identity"}
+        </Link>
+      )}
+    </div>
   );
 }
 

@@ -53,7 +53,7 @@ describe("Stage 8A.2 server cart", () => {
     expect(screen.getByText(/Only 2 available/)).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: "Quantity" })).toHaveValue(4); // never silently reduced
     expect(screen.getByText("Estimated VAT (7.5%)")).toBeInTheDocument(); // rate from the API, not a hardcoded 5%
-    expect(screen.getByRole("link", { name: "Verify my account" })).toHaveAttribute("href", "/account");
+    expect(screen.getByRole("link", { name: "Verify my identity" })).toHaveAttribute("href", "/account/verification");
     expect(screen.getByRole("button", { name: /Proceed to checkout/ })).toBeDisabled();
   });
 

@@ -7,6 +7,7 @@ import {
   LeafIcon,
   BookmarkSimpleIcon,
   ReceiptIcon,
+  ShieldCheckIcon,
   ShoppingCartSimpleIcon,
   HeartIcon,
   CaretRightIcon,
@@ -358,6 +359,7 @@ function AccountMenu() {
               icon: StorefrontIcon,
             },
             { label: "My orders", to: "/account/orders", icon: ReceiptIcon },
+            { label: "Identity verification", to: "/account/verification", icon: ShieldCheckIcon },
             {
               label: "Saved searches",
               to: "/account/saved-searches",

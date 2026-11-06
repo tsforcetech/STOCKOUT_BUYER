@@ -82,14 +82,14 @@ describe("Stage 8B.2 checkout review", () => {
     expect(calls.some((c) => /\/orders|checkout/.test(c.url.pathname))).toBe(false);
   });
 
-  it("shows readiness blockers, a missing business profile and no organisation picker", async () => {
+  it("shows readiness blockers, an unverified identity with a link to verify, and no organisation picker", async () => {
     signIn();
     const blocked = cart({ checkoutReadiness: { canProceed: false, blockers: [{ code: "MULTIPLE_ORGANIZATIONS", message: "x", listingId: null }, { code: "INSUFFICIENT_STOCK", message: "y", listingId: L2 }] } });
     mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: blocked }) }, eligibility, profile404, wishIds]);
     page(<CheckoutPage />, "/checkout");
     expect(await screen.findByText(/belongs to more than one organisation/)).toBeInTheDocument();
     expect(screen.getByText(/less stock than you asked for/)).toBeInTheDocument();
-    expect(await screen.findByText("No business details on file")).toBeInTheDocument();
+    expect(await screen.findByText("Identity not verified yet")).toBeInTheDocument();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
 

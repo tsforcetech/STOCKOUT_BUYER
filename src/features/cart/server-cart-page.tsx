@@ -183,7 +183,7 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
                 <p>{blockerText(b)}</p>
                 {b.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED" && (
                   <Button asChild size="sm" variant="secondary" className="mt-2">
-                    <Link to="/account">Verify my account</Link>
+                    <Link to="/account/verification">Verify my identity</Link>
                   </Button>
                 )}
               </li>
