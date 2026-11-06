@@ -8,6 +8,9 @@ import {
   HouseIcon,
   ShieldCheckIcon,
   CaretDownIcon,
+  CaretUpDownIcon,
+  CheckIcon,
+  SealCheckIcon,
   IdentificationCardIcon,
   LockKeyIcon,
   ListIcon,
@@ -22,9 +25,6 @@ import {
 import { Logo } from "@/components/common/logo";
 import { ErrorBoundary } from "@/components/feedback/error-boundary";
 import { PageSkeleton } from "@/components/feedback/states";
-import { StatusBadge } from "@/components/common/status-badge";
-import { NativeSelect } from "@/components/ui/input";
-import { Avatar } from "@/components/ui/misc";
 import { humanize, initials } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
@@ -205,74 +205,60 @@ function SellerAccountMenu() {
   );
 }
 
-/** Sidebar footer: who is signed in, with a one-click sign out. */
-function SidebarUser({ onSignOut }: { onSignOut: () => void }) {
-  const { user } = useAuth();
-  const name = user?.displayName || user?.firstName || user?.email || "Account";
-  return (
-    <div className="flex items-center gap-3">
-      <Link to="/seller/profile" className="flex min-w-0 flex-1 items-center gap-3 rounded-md p-1 -m-1 hover:bg-surface-muted">
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-ink font-heading text-xs font-bold text-ink-foreground" aria-hidden>
-          {initials(name)}
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-foreground">{name}</span>
-          {user?.email && <span className="block truncate text-xs text-muted-foreground">{user.email}</span>}
-        </span>
-      </Link>
-      <button
-        type="button"
-        onClick={onSignOut}
-        aria-label="Sign out"
-        title="Sign out"
-        className="flex size-9 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-danger-soft hover:text-danger-soft-foreground"
-      >
-        <SignOutIcon className="size-5" />
-      </button>
-    </div>
-  );
-}
 
 function SellerSwitcher() {
   const { sellers, activeSeller, setActiveSellerId } = useSellerMode();
   if (!activeSeller) return null;
   const name = activeSeller.displayName || "Unnamed seller";
-  return (
-    <div className="mx-5 mb-4 rounded-lg border border-border bg-surface-muted p-3">
-      <div className="flex items-center gap-3">
-        <Avatar name={name} className="size-9 rounded-md" />
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-foreground" title={name}>
+  const verified = activeSeller.verificationStatus === "VERIFIED";
+  const many = sellers.length > 1;
+  const card = (
+    <span className="flex w-full items-center gap-3 rounded-xl p-2 text-left transition-colors">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-ink font-heading text-base font-bold text-ink-foreground" aria-hidden>
+        {name.trim().charAt(0).toUpperCase()}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="flex items-center gap-1">
+          <span className="truncate font-heading text-[15px] font-bold text-foreground" title={name}>
             {name}
-          </p>
-          <p className="truncate text-xs text-muted-foreground">
-            {humanize(activeSeller.sellerType)} · {activeSeller.isOwner ? "Owner" : "Member"}
-          </p>
-        </div>
-      </div>
-      <div className="mt-2.5 flex flex-wrap gap-1">
-        <StatusBadge value={activeSeller.verificationStatus} />
-        {activeSeller.status !== "ACTIVE" && <StatusBadge value={activeSeller.status} />}
-      </div>
-      {sellers.length > 1 && (
-        <div className="mt-3 border-t border-border pt-3">
-          <label htmlFor="seller-switcher" className="mb-1 block text-xs text-muted-foreground">
-            Switch seller account
-          </label>
-          <NativeSelect
-            id="seller-switcher"
-            className="h-9 bg-surface text-sm"
-            value={activeSeller.sellerId}
-            onChange={(e) => setActiveSellerId(e.target.value)}
-          >
-            {sellers.map((s) => (
-              <option key={s.sellerId} value={s.sellerId}>
-                {s.displayName || "Unnamed seller"}
-              </option>
+          </span>
+          {verified && <SealCheckIcon className="size-4 shrink-0 text-success" weight="fill" aria-label="Verified" />}
+        </span>
+        <span className="block truncate text-xs text-muted-foreground">
+          {humanize(activeSeller.sellerType)} · {activeSeller.isOwner ? "Owner" : "Member"}
+          {activeSeller.status !== "ACTIVE" && <> · {humanize(activeSeller.status)}</>}
+        </span>
+      </span>
+      {many && <CaretUpDownIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
+    </span>
+  );
+  if (!many) return <div className="mx-3 mb-4 border-b border-border pb-4">{card}</div>;
+  return (
+    <div className="mx-3 mb-4 border-b border-border pb-4">
+      <PopoverPrimitive.Root>
+        <PopoverPrimitive.Trigger asChild>
+          <button type="button" aria-label={`Seller account: ${name}. Switch account`} className="block w-full cursor-pointer rounded-xl hover:bg-surface-muted data-[state=open]:bg-surface-muted">
+            {card}
+          </button>
+        </PopoverPrimitive.Trigger>
+        <PopoverPrimitive.Portal>
+          <PopoverPrimitive.Content align="start" sideOffset={6} className="z-50 w-64 rounded-xl border border-border bg-surface p-1.5 shadow-raised focus:outline-none">
+            <p className="px-2.5 pb-1 pt-1.5 text-xs text-muted-foreground">Switch seller account</p>
+            {sellers.map((sl) => (
+              <PopoverPrimitive.Close asChild key={sl.sellerId}>
+                <button
+                  type="button"
+                  onClick={() => setActiveSellerId(sl.sellerId)}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md px-2.5 py-2 text-left text-sm hover:bg-surface-muted"
+                >
+                  <span className="min-w-0 flex-1 truncate">{sl.displayName || "Unnamed seller"}</span>
+                  {sl.sellerId === activeSeller.sellerId && <CheckIcon className="size-4" aria-label="Current" />}
+                </button>
+              </PopoverPrimitive.Close>
             ))}
-          </NativeSelect>
-        </div>
-      )}
+          </PopoverPrimitive.Content>
+        </PopoverPrimitive.Portal>
+      </PopoverPrimitive.Root>
     </div>
   );
 }
@@ -411,7 +397,6 @@ function MobileTabBar({ onMore, moreOpen }: { onMore: () => void; moreOpen: bool
 /** Seller portal shell: admin-console design system (white sidebar, grey canvas). */
 export function SellerLayout() {
   const [open, setOpen] = React.useState(false);
-  const signOut = useSellerSignOut();
   const location = useLocation();
   React.useEffect(() => {
     setOpen(false);
@@ -472,9 +457,7 @@ export function SellerLayout() {
         >
           <SellerSwitcher />
           <SellerNav onNavigate={() => setOpen(false)} />
-          <div className="mt-auto border-t border-border p-4">
-            <SidebarUser onSignOut={() => void signOut()} />
-          </div>
+
         </aside>
         <main
           id="main"
