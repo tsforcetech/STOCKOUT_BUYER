@@ -51,6 +51,9 @@ export const marketplaceService = {
   addBuyerDocument: async (body: CreateBuyerDocumentRequest) => unwrapData<BuyerDocumentResponse>(await http.post<Envelope<BuyerDocumentResponse>>("/api/v1/marketplace/buyer/documents", body)),
   deleteBuyerDocument: (documentId: string) => http.delete<unknown>(`/api/v1/marketplace/buyer/documents/${encodeURIComponent(documentId)}`),
   /** Body is only { expectedRowVersion }. Policy acceptance is a separate flow (POLICY_ACCEPTANCE_REQUIRED). */
+  /** BV-04: account holder starts re-verification (verified identity is otherwise locked). Returns the updated profile. */
+  initiateReverification: async (reason: string, expectedRowVersion: string) =>
+    unwrapData<BuyerProfileDto>(await http.post<Envelope<BuyerProfileDto>>("/api/v1/marketplace/buyer/reverification/initiate", { reason, expectedRowVersion })),
   submitBuyer: async (expectedRowVersion: string) => unwrapData<BuyerProfileDto>(await http.post<Envelope<BuyerProfileDto>>("/api/v1/marketplace/buyer/submit", { expectedRowVersion })),
   submitSeller: (sellerId: string, expectedRowVersion: string) => post<MarketplaceSellerDto>(`/api/v1/marketplace/sellers/${seg(sellerId)}/submit`, { expectedRowVersion }),
 

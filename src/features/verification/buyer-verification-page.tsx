@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
 import { Badge, Skeleton } from "@/components/ui/misc";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { FormField } from "@/components/forms/form-field";
 import { ErrorState } from "@/components/feedback/states";
 import { Notice } from "@/features/seller/components/notice";
@@ -40,6 +41,8 @@ const ID_TYPES = [
 ];
 const ID_TYPE_SET = new Set(["EMIRATES_ID", "PASSPORT", "NATIONAL_ID", "GOVERNMENT_ID", "OTHER_GOVERNMENT_ID", "EID", "NATIONAL_IDENTITY"]);
 const isIdDoc = (d: BuyerDocumentResponse) => ID_TYPE_SET.has(d.documentType.toUpperCase());
+/** The current submission's documents: not rejected and not a kept record of an earlier verification. */
+const isActiveDoc = (d: BuyerDocumentResponse) => d.verificationStatus.toUpperCase() !== "REJECTED" && !d.isHistorical;
 const idLabel = (t: string | null | undefined) => ID_TYPES.find((x) => x.value === t?.toUpperCase())?.label ?? (t ? t.replace(/_/g, " ").toLowerCase() : "—");
 
 const regionNames = (() => {
@@ -131,6 +134,7 @@ export default function BuyerVerificationPage() {
       </p>
       <div className="mt-5 space-y-4">
         <StatusCard phase={phase} p={p} canPurchase={elig.data?.canPurchase === true && elig.data.eligible} eligibilityLoaded={!!elig.data} />
+        {p && phase === "verified" && <ReverifyCard />}
         <DetailsStep p={p} phase={phase} />
         {p && <DocumentStep p={p} phase={phase} documents={documents} loading={docs.isLoading} error={docs.error} onRetry={() => void docs.refetch()} />}
         {p && editablePhase(phase) && <SubmitStep p={p} documents={documents} />}
@@ -423,14 +427,12 @@ function DocumentStep({ p, phase, documents, loading, error, onRetry }: { p: Buy
   const [busyId, setBusyId] = React.useState<string | null>(null);
   const [problem, setProblem] = React.useState<string | null>(null);
 
-  const cutoff = p.requiresReverification && p.reverificationRequiredAtUtc ? new Date(p.reverificationRequiredAtUtc).getTime() : null;
-  const isStale = (d: BuyerDocumentResponse) => cutoff !== null && new Date(d.createdAtUtc).getTime() < cutoff;
-  const active = documents.filter((d) => d.verificationStatus.toUpperCase() !== "REJECTED");
-  const current = active.filter((d) => isIdDoc(d) && !isStale(d));
-  const stale = active.filter(isStale);
-  const history = documents.filter((d) => !active.includes(d));
+  // Sprint 2 (BV-05/06): earlier verified IDs are kept as `isHistorical` records and never block a fresh upload.
+  const active = documents.filter(isActiveDoc);
+  const current = active.filter(isIdDoc);
+  const history = documents.filter((d) => !isActiveDoc(d));
   const detailsReady = !!(p.documentType && p.documentNumber && p.issuingCountry && p.documentExpiresAtUtc);
-  const canUpload = editable && detailsReady && current.length === 0 && stale.length === 0;
+  const canUpload = editable && detailsReady && current.length === 0;
 
   const refresh = () => {
     void qc.invalidateQueries({ queryKey: verificationKeys.documents });
@@ -498,26 +500,17 @@ function DocumentStep({ p, phase, documents, loading, error, onRetry }: { p: Buy
         <ErrorState error={error} onRetry={onRetry} />
       ) : (
         <div className="space-y-3">
-          {stale.length > 0 && editable && (
-            <Notice tone="warning" title="Remove your previous ID first">
-              The ID from your earlier verification can't be used again. Remove it below, then upload a current ID.
-            </Notice>
-          )}
-          {(current.length > 0 || stale.length > 0) && (
+          {current.length > 0 && (
             <ul className="space-y-2" aria-label="Your ID">
-              {[...current, ...stale].map((d) =>
+              {current.map((d) =>
                 row(
                   d,
-                  editable && d.verificationStatus.toUpperCase() !== "VERIFIED" ? (
+                  // Only an unreviewed upload can be replaced (BV-05: reviewed evidence is never deleted).
+                  editable && d.verificationStatus.toUpperCase() === "UNVERIFIED" ? (
                     <Button size="sm" variant="ghost" loading={busyId === d.buyerDocumentId} onClick={() => void remove(d)}>
-                      <TrashIcon /> {isStale(d) ? "Remove" : "Replace"}
-                    </Button>
-                  ) : editable && isStale(d) ? (
-                    <Button size="sm" variant="ghost" loading={busyId === d.buyerDocumentId} onClick={() => void remove(d)}>
-                      <TrashIcon /> Remove
+                      <TrashIcon /> Replace
                     </Button>
                   ) : undefined,
-                  isStale(d) ? <p className="mt-1 text-xs text-warning-soft-foreground">From your previous verification</p> : undefined,
                 ),
               )}
             </ul>
@@ -553,12 +546,14 @@ function DocumentStep({ p, phase, documents, loading, error, onRetry }: { p: Buy
             </div>
           )}
           {editable && !detailsReady && <p className="text-sm text-muted-foreground">Save your details first, then upload your ID.</p>}
-          {!editable && current.length === 0 && stale.length === 0 && <p className="text-sm text-muted-foreground">No ID on file.</p>}
+          {!editable && current.length === 0 && <p className="text-sm text-muted-foreground">No ID on file.</p>}
           {problem && <Notice tone="danger">{problem}</Notice>}
           {history.length > 0 && (
             <details className="text-sm">
-              <summary className="cursor-pointer text-muted-foreground">Earlier uploads ({history.length})</summary>
-              <ul className="mt-2 space-y-2">{history.map((d) => row(d))}</ul>
+              <summary className="cursor-pointer text-muted-foreground">Earlier uploads, kept for your records ({history.length})</summary>
+              <ul className="mt-2 space-y-2">
+                {history.map((d) => row(d, undefined, d.isHistorical ? <p className="mt-1 text-xs text-muted-foreground">From a previous verification</p> : undefined))}
+              </ul>
             </details>
           )}
         </div>
@@ -581,10 +576,8 @@ function SubmitStep({ p, documents }: { p: BuyerProfileDto; documents: BuyerDocu
   const gate = usePolicyGate();
   const [busy, setBusy] = React.useState(false);
   const [problem, setProblem] = React.useState<string | null>(null);
-  const cutoff = p.requiresReverification && p.reverificationRequiredAtUtc ? new Date(p.reverificationRequiredAtUtc).getTime() : null;
-  const active = documents.filter((d) => d.verificationStatus.toUpperCase() !== "REJECTED");
-  const fresh = active.filter((d) => isIdDoc(d) && (cutoff === null || new Date(d.createdAtUtc).getTime() >= cutoff));
-  const ready = fresh.length === 1 && active.filter(isIdDoc).length === 1;
+  const active = documents.filter(isActiveDoc);
+  const ready = active.filter(isIdDoc).length === 1;
 
   const submit = async () => {
     setBusy(true);
@@ -629,5 +622,65 @@ function SubmitStep({ p, documents }: { p: BuyerProfileDto; documents: BuyerDocu
         Questions? See our <Link to="/legal" className="underline underline-offset-4">policies</Link> or email info@stockoutme.com.
       </p>
     </StepShell>
+  );
+}
+
+/**
+ * BV-04 (Option A): a verified buyer's identity can't be edited. To change it (new ID, renewed passport) the account holder
+ * starts re-verification: earlier documents are kept as history, purchasing pauses until the new ID is approved.
+ */
+function ReverifyCard() {
+  const qc = useQueryClient();
+  const [open, setOpen] = React.useState(false);
+  const [reason, setReason] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [problem, setProblem] = React.useState<string | null>(null);
+  const start = async () => {
+    if (!reason.trim()) return setProblem("Tell us why, for example \u201cRenewed Emirates ID\u201d.");
+    setBusy(true);
+    setProblem(null);
+    try {
+      const latest = await marketplaceService.buyerProfile();
+      const updated = await marketplaceService.initiateReverification(reason.trim(), latest.rowVersion);
+      qc.setQueryData(verificationKeys.profile, updated);
+      void qc.invalidateQueries({ queryKey: verificationKeys.documents });
+      void qc.invalidateQueries({ queryKey: buyerEligibilityKey });
+      setOpen(false);
+      setReason("");
+      toast.success("Re-verification started. Update your details and upload your new ID.");
+    } catch (e) {
+      setProblem(verificationMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <section className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-surface p-4 text-sm">
+      <IdentificationCardIcon className="size-5 shrink-0 text-muted-foreground" aria-hidden />
+      <p className="min-w-0 flex-1 text-body">Got a new or renewed ID? Your verified details are locked; verify again to change them.</p>
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        Verify again with a new ID
+      </Button>
+      <Dialog open={open} onOpenChange={(o) => !busy && setOpen(o)}>
+        <DialogContent
+          title="Verify again with a new ID?"
+          description="Purchasing pauses until StockOut approves your new ID. Your current verification stays on record."
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setOpen(false)} disabled={busy}>
+                Cancel
+              </Button>
+              <Button onClick={() => void start()} loading={busy}>
+                Start re-verification
+              </Button>
+            </>
+          }
+        >
+          <FormField label="Why are you verifying again?" htmlFor="rv-reason" required error={problem ?? undefined}>
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Renewed Emirates ID" maxLength={500} />
+          </FormField>
+        </DialogContent>
+      </Dialog>
+    </section>
   );
 }

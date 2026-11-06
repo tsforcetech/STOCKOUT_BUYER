@@ -724,6 +724,8 @@ export interface BuyerDocumentResponse {
   reviewedByUserId: Guid | null;
   reviewedAtUtc: string | null;
   createdAtUtc: string;
+  /** Sprint 2 (BV-05/06): a kept record of an earlier verification; never part of the current submission. */
+  isHistorical?: boolean;
 }
 
 /**

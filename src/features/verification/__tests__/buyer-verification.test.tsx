@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch } from "@/test/http";
@@ -131,26 +131,42 @@ describe("Buyer identity verification (one ID, handoff 2026-11-06)", () => {
     expect(await screen.findByText("Verification wasn't approved")).toBeInTheDocument();
     expect(screen.getByText(/Reason: The photo is blurred\./)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Choose file" })).toBeInTheDocument();
-    expect(screen.getByText(/Earlier uploads \(1\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Earlier uploads, kept for your records \(1\)/)).toBeInTheDocument();
   });
 
-  it("re-verification: the previous ID must be removed before a new one can be uploaded; submit stays disabled", async () => {
+  it("re-verification: the earlier verified ID is kept as history (never deleted) and a new ID can be uploaded", async () => {
     signIn();
-    let docs = [doc({ verificationStatus: "VERIFIED", createdAtUtc: "2026-10-01T00:00:00Z" })];
     const { calls } = mockFetch([
       ...common,
       { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(profile({ verificationStatus: "VERIFIED", requiresReverification: true, reverificationRequiredAtUtc: "2026-11-05T00:00:00Z" })) },
-      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env(docs) },
-      { method: "DELETE", path: "/api/v1/marketplace/buyer/documents/d-1", respond: () => ((docs = []), env(true)) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([doc({ verificationStatus: "VERIFIED", createdAtUtc: "2026-10-01T00:00:00Z", isHistorical: true })]) },
     ]);
     page();
     expect(await screen.findByText("Verification required again")).toBeInTheDocument();
-    expect(await screen.findByText("Remove your previous ID first")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Choose file" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Submit for review" })).toBeDisabled();
-    await userEvent.click(within(screen.getByRole("list", { name: "Your ID" })).getByRole("button", { name: /Remove/ }));
-    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
     expect(await screen.findByRole("button", { name: "Choose file" })).toBeInTheDocument();
+    expect(screen.getByText(/kept for your records \(1\)/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove|Replace/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Submit for review" })).toBeDisabled();
+    expect(calls.some((c) => c.method === "DELETE")).toBe(false);
+  });
+
+  it("verified buyer: identity is locked; 'Verify again' starts re-verification with a reason and the latest rowVersion", async () => {
+    signIn();
+    let body: unknown = null;
+    mockFetch([
+      ...common,
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(profile({ verificationStatus: "VERIFIED", verifiedAtUtc: "2026-11-06T10:00:00Z", rowVersion: "AAAAAAAAD1A=" })) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([doc({ verificationStatus: "VERIFIED" })]) },
+      { method: "POST", path: "/api/v1/marketplace/buyer/reverification/initiate", respond: ({ body: b }) => ((body = b), env(profile({ verificationStatus: "VERIFIED", requiresReverification: true }))) },
+    ]);
+    page();
+    expect(await screen.findByText("Verified")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Verify again with a new ID" }));
+    await userEvent.type(await screen.findByLabelText(/Why are you verifying again/), "Renewed Emirates ID");
+    await userEvent.click(screen.getByRole("button", { name: "Start re-verification" }));
+    await waitFor(() => expect(body).toEqual({ reason: "Renewed Emirates ID", expectedRowVersion: "AAAAAAAAD1A=" }));
+    expect(await screen.findByText("Verification required again")).toBeInTheDocument();
   });
 
   it("under review: details are read-only and there is nothing to submit", async () => {
