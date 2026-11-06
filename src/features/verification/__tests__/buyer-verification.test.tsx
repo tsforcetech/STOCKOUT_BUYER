@@ -106,6 +106,20 @@ describe("Buyer identity verification (one ID, handoff 2026-11-06)", () => {
     expect(screen.queryByText("Verified")).not.toBeInTheDocument();
   });
 
+  it("an existing profile without identity details (pre-Q1–Q15) opens the form, keeping the company buyer type", async () => {
+    signIn();
+    mockFetch([
+      ...common,
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(profile({ organizationType: "BUSINESS", fullName: null, documentType: null, documentNumber: null, documentExpiresAtUtc: null, accountHolderUserId: null })) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([]) },
+    ]);
+    page();
+    expect(await screen.findByRole("button", { name: "Save details" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "A company" })).toBeChecked();
+    expect(screen.queryByRole("button", { name: "Cancel" })).not.toBeInTheDocument();
+    expect(await screen.findByText("Save your details first, then upload your ID.")).toBeInTheDocument();
+  });
+
   it("rejected: shows the reason and the reviewer note, keeps the old file as history and allows a new upload", async () => {
     signIn();
     mockFetch([

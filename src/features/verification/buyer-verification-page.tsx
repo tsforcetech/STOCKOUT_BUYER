@@ -244,7 +244,9 @@ function validate(f: Form): Partial<Record<keyof Form, string>> {
 function DetailsStep({ p, phase }: { p: BuyerProfileDto | null; phase: Phase }) {
   const qc = useQueryClient();
   const editable = editablePhase(phase);
-  const [editing, setEditing] = React.useState(!p);
+  // Open the form while the identity details are still missing (e.g. an older buyer profile created before Q1–Q15).
+  const incomplete = !p || !(p.fullName && p.documentType && p.documentNumber && p.documentExpiresAtUtc);
+  const [editing, setEditing] = React.useState(incomplete);
   const [form, setForm] = React.useState<Form>(() => formFrom(p));
   const [touched, setTouched] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
@@ -299,9 +301,9 @@ function DetailsStep({ p, phase }: { p: BuyerProfileDto | null; phase: Phase }) 
     }
   };
 
-  const showForm = editable && (editing || !p);
+  const showForm = editable && (editing || incomplete);
   return (
-    <StepShell n={1} title="Your details" done={!!p && !showForm}>
+    <StepShell n={1} title="Your details" done={!incomplete && !showForm}>
       {showForm ? (
         <form
           noValidate
@@ -375,7 +377,7 @@ function DetailsStep({ p, phase }: { p: BuyerProfileDto | null; phase: Phase }) 
             <Button type="submit" loading={saving}>
               Save details
             </Button>
-            {p && (
+            {!incomplete && (
               <Button type="button" variant="ghost" disabled={saving} onClick={() => setEditing(false)}>
                 Cancel
               </Button>
