@@ -419,7 +419,7 @@ export function SellerLayout() {
 
   return (
     <div className="flex min-h-dvh flex-col bg-surface">
-      <header className="sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-border bg-surface px-4 sm:px-6">
+      <header className="sticky top-0 z-30 flex h-[64px] items-center gap-3 border-b border-border bg-surface px-4 sm:px-6 lg:border-b-0">
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -464,7 +464,7 @@ export function SellerLayout() {
         )}
         <aside
           className={cn(
-            "w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)]",
+            "w-[250px] shrink-0 flex-col border-r border-border bg-surface pt-5 lg:sticky lg:top-[64px] lg:flex lg:h-[calc(100dvh-64px)] lg:border-r-0",
             open
               ? "fixed bottom-0 left-0 top-[64px] z-30 flex h-[calc(100dvh-64px)] overflow-y-auto overscroll-contain shadow-raised"
               : "hidden",
@@ -478,7 +478,7 @@ export function SellerLayout() {
         </aside>
         <main
           id="main"
-          className="min-w-0 flex-1 bg-surface-muted px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8"
+          className="min-w-0 flex-1 bg-surface-muted px-4 pb-24 pt-6 sm:px-6 lg:mr-0 lg:rounded-tl-3xl lg:border-l lg:border-t lg:border-border lg:px-8 lg:py-8"
         >
           <div className="mx-auto w-full max-w-[1200px]">
             <ErrorBoundary resetKey={location.pathname}>
