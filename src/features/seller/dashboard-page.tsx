@@ -15,6 +15,7 @@ import type { ListingStatus, SellerListingListItemResponse, SellerListingListQue
 import { LISTING_STATUS_LABELS } from "./lib/listing";
 import { ListingAccessNotice, canManageListings } from "./components/listing-access-notice";
 import { VerificationCard } from "./components/verification-card";
+import { NextSteps } from "./components/next-steps";
 import { sellerErrorMessage } from "./lib/errors";
 import { sellerKeys, useActiveSeller, useCategoryIndex, useSellerAccount } from "./lib/queries";
 
@@ -60,7 +61,7 @@ export default function SellerDashboardPage() {
       <PageHeader
         eyebrow="Seller portal"
         title={`Welcome${seller.displayName ? `, ${seller.displayName}` : ""}`}
-        description="Your verification status, listings at a glance and quick actions."
+        description="What to do next, and your listings at a glance."
         actions={
           enabled && (
             <Button asChild variant="action">
@@ -72,6 +73,7 @@ export default function SellerDashboardPage() {
         }
       />
       <div className="space-y-4">
+        <NextSteps seller={seller} listingCount={enabled ? counts[0].data?.totalCount : undefined} listingCountLoading={enabled && counts[0].isLoading} />
         <VerificationCard seller={account.data} isLoading={account.isLoading} error={account.error} onRetry={() => void account.refetch()} />
         <ListingAccessNotice seller={seller} />
         <StatCards items={stats} className="grid-cols-2" />
@@ -131,7 +133,7 @@ export default function SellerDashboardPage() {
               </Button>
               <Button asChild variant="secondary" className="justify-start">
                 <Link to="/seller/business">
-                  <IdentificationCardIcon /> Business & verification
+                  <IdentificationCardIcon /> Business profile
                 </Link>
               </Button>
             </nav>

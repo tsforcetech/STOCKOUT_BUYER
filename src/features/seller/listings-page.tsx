@@ -267,7 +267,7 @@ export default function SellerListingsPage() {
             <>
               <Button asChild variant="secondary">
                 <Link to="/seller/listings/import">
-                  <UploadSimpleIcon /> Bulk import
+                  <UploadSimpleIcon /> Bulk upload
                 </Link>
               </Button>
               <Button asChild variant="action">
@@ -436,7 +436,7 @@ export default function SellerListingsPage() {
                       <>
                         <Button asChild variant="secondary">
                           <Link to="/seller/listings/import">
-                            <UploadSimpleIcon /> Bulk import
+                            <UploadSimpleIcon /> Bulk upload
                           </Link>
                         </Button>
                         <Button asChild variant="action">

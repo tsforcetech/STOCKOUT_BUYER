@@ -1,24 +1,23 @@
 import * as React from "react";
-import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
+import { Link, Outlet, useLocation, useNavigate } from "react-router";
 import { Popover as PopoverPrimitive } from "radix-ui";
+import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   BankIcon,
+  DotsThreeOutlineIcon,
+  HouseIcon,
+  ShieldCheckIcon,
   CaretDownIcon,
   IdentificationCardIcon,
   LockKeyIcon,
   ListIcon,
   ListNumbersIcon,
-  NotePencilIcon,
   PlusIcon,
   ReceiptIcon,
   SignOutIcon,
-  SquaresFourIcon,
   StorefrontIcon,
-  UploadSimpleIcon,
   UserIcon,
-  UsersThreeIcon,
-  ClipboardTextIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { Logo } from "@/components/common/logo";
@@ -32,29 +31,113 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { cn } from "@/lib/utils/cn";
 import { ThemeSwitch } from "./site-header";
+import { sellerListingsService } from "@/services/seller-listings.service";
+import { correctionKeys } from "@/features/seller/lib/corrections";
+import { canManageListings } from "@/features/seller/components/listing-access-notice";
+import { useStripeStatus } from "@/features/seller/payouts/payout-shared";
 
-const NAV = [
-  { label: "Dashboard", to: "/seller", icon: SquaresFourIcon, end: true },
+type NavItem = {
+  label: string;
+  to: string;
+  icon: React.ElementType;
+  end?: boolean;
+  /** Other pages that belong to this item (it stays highlighted there). */
+  also?: string[];
+  badge?: "corrections" | "payouts";
+  soon?: boolean;
+};
+
+/** Six items in three groups; sub-pages live as tabs inside their section (see SectionTabs). */
+const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
   {
-    label: "Listings",
-    to: "/seller/listings",
-    icon: ListNumbersIcon,
-    notUnder: "/seller/listings/import",
+    title: "Sell",
+    items: [
+      { label: "Home", to: "/seller", icon: HouseIcon, end: true },
+      { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon, also: ["/seller/corrections"], badge: "corrections" },
+    ],
   },
-  { label: "Bulk import", to: "/seller/listings/import", icon: UploadSimpleIcon },
-  { label: "Inspector proposals", to: "/seller/corrections", icon: NotePencilIcon },
-  { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
-  { label: "Payout account", to: "/seller/payout-settings", icon: BankIcon },
   {
-    label: "Business & verification",
-    to: "/seller/business",
-    icon: IdentificationCardIcon,
+    title: "Orders & money",
+    items: [
+      { label: "Orders", to: "/seller/orders", icon: ReceiptIcon, soon: true },
+      { label: "Payouts", to: "/seller/payout-settings", icon: BankIcon, also: ["/seller/stripe"], badge: "payouts" },
+    ],
   },
-  { label: "Team", to: "/seller/team", icon: UsersThreeIcon },
-  { label: "Business changes", to: "/seller/business-changes", icon: ClipboardTextIcon },
-  { label: "My profile", to: "/seller/profile", icon: UserIcon },
-  { label: "Security", to: "/seller/security", icon: LockKeyIcon },
+  {
+    title: "Business",
+    items: [{ label: "Business profile", to: "/seller/business", icon: IdentificationCardIcon, also: ["/seller/team", "/seller/business-changes", "/seller/verify"] }],
+  },
 ];
+
+/** Sub-pages shown as tabs at the top of a section (formerly separate menu items). */
+const SECTION_TABS: Array<{ match: (path: string) => boolean; label: string; tabs: Array<{ label: string; to: string; badge?: "corrections"; active: (path: string) => boolean }> }> = [
+  {
+    label: "Listings sections",
+    match: (p) => p === "/seller/listings" || p === "/seller/corrections" || p.startsWith("/seller/listings/import"),
+    tabs: [
+      { label: "All listings", to: "/seller/listings", active: (p) => p === "/seller/listings" },
+      { label: "Needs action", to: "/seller/corrections", badge: "corrections", active: (p) => p === "/seller/corrections" },
+      { label: "Bulk upload", to: "/seller/listings/import", active: (p) => p.startsWith("/seller/listings/import") },
+    ],
+  },
+  {
+    label: "Business sections",
+    match: (p) => p === "/seller/business" || p === "/seller/team" || p === "/seller/business-changes",
+    tabs: [
+      { label: "Business & verification", to: "/seller/business", active: (p) => p === "/seller/business" },
+      { label: "Team", to: "/seller/team", active: (p) => p === "/seller/team" },
+      { label: "Business changes", to: "/seller/business-changes", active: (p) => p === "/seller/business-changes" },
+    ],
+  },
+];
+
+/** Counts behind the menu badges: proposals waiting for the seller, and whether payouts still need setting up. */
+function useSellerBadges() {
+  const { activeSeller } = useSellerMode();
+  const sellerId = activeSeller?.sellerId ?? "";
+  const canList = !!activeSeller && canManageListings(activeSeller);
+  const corrections = useQuery({
+    queryKey: correctionKeys.pending(sellerId),
+    queryFn: ({ signal }) => sellerListingsService.corrections(sellerId, { status: "AWAITING_SELLER_DECISION", page: 1, pageSize: 100 }, signal),
+    enabled: canList,
+    staleTime: 30_000,
+  });
+  const stripe = useStripeStatus(activeSeller?.isOwner ? sellerId : undefined);
+  return {
+    corrections: corrections.data?.totalCount ?? corrections.data?.items?.length ?? 0,
+    payoutsNeedAttention: !!stripe.data && stripe.data.onboardingStatus !== "COMPLETED",
+  };
+}
+
+function SectionTabs() {
+  const { pathname } = useLocation();
+  const badges = useSellerBadges();
+  const section = SECTION_TABS.find((sct) => sct.match(pathname));
+  if (!section) return null;
+  return (
+    <nav aria-label={section.label} className="-mt-1 mb-5 flex gap-1 overflow-x-auto border-b border-border">
+      {section.tabs.map((t) => {
+        const on = t.active(pathname);
+        const count = t.badge === "corrections" ? badges.corrections : 0;
+        return (
+          <Link
+            key={t.to}
+            to={t.to}
+            aria-current={on ? "page" : undefined}
+            className={cn(
+              "-mb-px inline-flex min-h-10 shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 text-sm transition-colors",
+              on ? "border-foreground font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.label}
+            {count > 0 && <span className="rounded-full bg-action px-1.5 text-xs font-bold text-action-foreground">{count}</span>}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
 
 /** Leaves the portal for the home page first (seller routes would bounce to the login page), then signs out. */
 function useSellerSignOut() {
@@ -127,6 +210,7 @@ function SellerAccountMenu() {
           <div className="p-1.5">
             <MenuItem icon={UserIcon} label="My profile" onSelect={() => navigate("/seller/profile")} />
             <MenuItem icon={LockKeyIcon} label="Security" onSelect={() => navigate("/seller/security")} />
+            <MenuItem icon={ShieldCheckIcon} label="Privacy" onSelect={() => navigate("/seller/privacy")} />
             <MenuItem icon={StorefrontIcon} label="Back to marketplace" onSelect={() => navigate("/")} />
           </div>
           <div className="border-t border-border p-1.5">
@@ -213,42 +297,92 @@ function SellerSwitcher() {
   );
 }
 
+function navActive(item: NavItem, pathname: string): boolean {
+  if (item.end) return pathname === item.to;
+  return [item.to, ...(item.also ?? [])].some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
+
 function SellerNav({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
+  const badges = useSellerBadges();
   return (
     <nav aria-label="Seller" className="flex-1 px-5">
-      <ul className="space-y-1.5">
-        {NAV.map((item) => (
-          <li key={item.to}>
-            <NavLink
-              to={item.to}
-              end={item.end}
-              onClick={onNavigate}
-              className={({ isActive: matched }) => {
-                // "Listings" covers its editor pages but not the separate Bulk import pages.
-                const notUnder = "notUnder" in item ? item.notUnder : undefined;
-                const isActive =
-                  matched && !(notUnder && pathname.startsWith(notUnder));
-                return cn(
-                  "flex h-[34px] items-center gap-2 rounded-md border px-3 text-sm transition-colors",
-                  isActive
-                    ? "border-transparent bg-ink font-medium text-ink-foreground"
-                    : "border-transparent text-muted-foreground hover:bg-surface-muted hover:text-foreground",
-                );
-              }}
-            >
-              <item.icon className="size-5" /> {item.label}
-            </NavLink>
-          </li>
-        ))}
-      </ul>
       <Link
         to="/seller/listings/quick"
         onClick={onNavigate}
-        className="mt-6 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover"
+        className="mb-5 flex h-10 items-center justify-center gap-2 rounded-md bg-ink text-sm font-medium text-ink-foreground transition-colors hover:bg-ink-hover"
       >
         <PlusIcon className="size-4" /> Add listing
       </Link>
+      {NAV_GROUPS.map((g) => (
+        <div key={g.title} className="mb-4">
+          <p className="mb-1.5 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{g.title}</p>
+          <ul className="space-y-1">
+            {g.items.map((item) => {
+              const active = navActive(item, pathname);
+              const count = item.badge === "corrections" ? badges.corrections : 0;
+              const warn = item.badge === "payouts" && badges.payoutsNeedAttention;
+              return (
+                <li key={item.to}>
+                  <Link
+                    to={item.to}
+                    onClick={onNavigate}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex h-9 items-center gap-2.5 rounded-md px-3 text-sm transition-colors",
+                      active ? "bg-ink font-medium text-ink-foreground" : "text-muted-foreground hover:bg-surface-muted hover:text-foreground",
+                    )}
+                  >
+                    <item.icon className="size-5 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                    {count > 0 && (
+                      <span className="rounded-full bg-action px-1.5 text-xs font-bold text-action-foreground" aria-label={`${count} need your action`}>
+                        {count}
+                      </span>
+                    )}
+                    {warn && <span className="size-2 rounded-full bg-warning" aria-label="Needs setting up" title="Payout account not set up" />}
+                    {item.soon && <span className={cn("rounded px-1.5 text-[10px] font-semibold uppercase", active ? "bg-white/15" : "bg-surface-muted text-muted-foreground")}>Soon</span>}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+/** Phones: the four most used destinations at the thumb, everything else under More (the full menu). */
+function MobileTabBar({ onMore, moreOpen }: { onMore: () => void; moreOpen: boolean }) {
+  const { pathname } = useLocation();
+  const badges = useSellerBadges();
+  const items: Array<{ label: string; to: string; icon: React.ElementType; active: boolean; count?: number }> = [
+    { label: "Home", to: "/seller", icon: HouseIcon, active: pathname === "/seller" },
+    { label: "Listings", to: "/seller/listings", icon: ListNumbersIcon, active: pathname.startsWith("/seller/listings") || pathname === "/seller/corrections", count: badges.corrections },
+  ];
+  const right: typeof items = [{ label: "Orders", to: "/seller/orders", icon: ReceiptIcon, active: pathname.startsWith("/seller/orders") }];
+  const tab = (i: (typeof items)[number]) => (
+    <Link key={i.to} to={i.to} aria-current={i.active ? "page" : undefined} className={cn("relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[11px]", i.active ? "font-semibold text-foreground" : "text-muted-foreground")}>
+      <i.icon className="size-6" weight={i.active ? "fill" : "regular"} />
+      {i.label}
+      {!!i.count && <span className="absolute right-[calc(50%-20px)] top-1 rounded-full bg-action px-1 text-[10px] font-bold text-action-foreground">{i.count}</span>}
+    </Link>
+  );
+  return (
+    <nav aria-label="Seller shortcuts" className="fixed inset-x-0 bottom-0 z-30 flex h-16 items-stretch border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden">
+      {items.map(tab)}
+      <div className="flex flex-1 items-center justify-center">
+        <Link to="/seller/listings/quick" aria-label="Add listing" className="flex size-12 -translate-y-3 items-center justify-center rounded-full bg-action text-action-foreground shadow-raised ring-4 ring-surface">
+          <PlusIcon className="size-6" weight="bold" />
+        </Link>
+      </div>
+      {right.map(tab)}
+      <button type="button" onClick={onMore} aria-expanded={moreOpen} className={cn("relative flex flex-1 cursor-pointer flex-col items-center justify-center gap-0.5 text-[11px]", moreOpen ? "font-semibold text-foreground" : "text-muted-foreground")}>
+        <DotsThreeOutlineIcon className="size-6" weight={moreOpen ? "fill" : "regular"} />
+        More
+        {badges.payoutsNeedAttention && <span className="absolute right-[calc(50%-16px)] top-2 size-2 rounded-full bg-warning" aria-hidden />}
+      </button>
     </nav>
   );
 }
@@ -319,9 +453,10 @@ export function SellerLayout() {
         </aside>
         <main
           id="main"
-          className="min-w-0 flex-1 bg-surface-muted px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+          className="min-w-0 flex-1 bg-surface-muted px-4 pb-24 pt-6 sm:px-6 lg:px-8 lg:py-8"
         >
           <div className="mx-auto w-full max-w-[1200px]">
+            <SectionTabs />
             <ErrorBoundary resetKey={location.pathname}>
               <React.Suspense fallback={<PageSkeleton />}>
                 <Outlet />
@@ -330,6 +465,7 @@ export function SellerLayout() {
           </div>
         </main>
       </div>
+      <MobileTabBar onMore={() => setOpen((o) => !o)} moreOpen={open} />
     </div>
   );
 }
