@@ -294,13 +294,18 @@ function PaymentSection() {
           </button>
         ))}
       </div>
+      {tab === "card" && (
+        // Stage 8B.4: mount point reserved for Stripe Elements. Nothing is mounted until Stage 8B.5 enables payments;
+        // card details are never collected in this page's own inputs.
+        <div id="payment-element" data-state="disabled" className="mt-4 hidden" aria-hidden />
+      )}
       <div role="tabpanel" className="mt-4 flex items-start gap-3 rounded-xl border border-dashed border-border-strong p-4 text-sm">
         <LockSimpleIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
         <p className="text-body">
           {tab === "card"
             ? "Secure card payment opens at launch. No card details are collected on this page."
             : tab === "bank"
-              ? "Bank transfer instructions will be shown when ordering opens."
+              ? "Bank transfer for company buyers is planned for a later release."
               : "Corporate cheque payments will be available when ordering opens."}
         </p>
       </div>

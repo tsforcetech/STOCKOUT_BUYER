@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router";
 import { Popover as PopoverPrimitive } from "radix-ui";
 import {
   ArrowLeftIcon,
+  BankIcon,
   CaretDownIcon,
   IdentificationCardIcon,
   LockKeyIcon,
@@ -43,6 +44,7 @@ const NAV = [
   { label: "Bulk import", to: "/seller/listings/import", icon: UploadSimpleIcon },
   { label: "Inspector proposals", to: "/seller/corrections", icon: NotePencilIcon },
   { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
+  { label: "Payout account", to: "/seller/payout-settings", icon: BankIcon },
   {
     label: "Business & verification",
     to: "/seller/business",
