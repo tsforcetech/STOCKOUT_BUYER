@@ -71,11 +71,15 @@ function useBuyerProfile() {
 
 const TRN = /^\d{15}$/;
 
-function BuyerSection() {
+/** Account-level readiness blockers: checkout readiness is authoritative over the eligibility banner. */
+const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "MULTIPLE_ORGANIZATIONS", "COMMERCE_SELF_PURCHASE_DENIED"];
+
+function BuyerSection({ readiness }: { readiness: CheckoutValidationResult | undefined }) {
   const elig = useBuyerEligibility();
   const profile = useBuyerProfile();
   const e = elig.data;
-  const canBuy = !!e && e.canPurchase && e.eligible;
+  const buyerBlocker = readiness?.blockers.find((b) => !b.listingId && BUYER_BLOCKERS.includes(b.code));
+  const canBuy = !!e && e.canPurchase && e.eligible && !buyerBlocker;
   const p = profile.data;
   const notFound = isApiError(profile.error) && profile.error.code === "MARKETPLACE_BUYER_NOT_FOUND";
   return (
@@ -89,7 +93,9 @@ function BuyerSection() {
           <span>
             {canBuy
               ? "Your account is allowed to buy."
-              : elig.error
+              : buyerBlocker
+                ? blockerText(buyerBlocker)
+                : elig.error
                 ? DENIED.UNAVAILABLE
                 : // Known statuses get shopper wording; backend reasons can be internal (e.g. service configuration).
                   (DENIED[(e?.verificationStatus ?? "").toUpperCase()] ?? "Your account can't buy right now. Contact StockOut support.")}
@@ -365,6 +371,7 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
   const mixed = codes.has("MIXED_CURRENCY_NOT_SUPPORTED");
   const noTax = codes.has("TAX_RATE_UNAVAILABLE");
   const general = blockers.filter((b) => !b.listingId);
+  const account = general.filter((b) => BUYER_BLOCKERS.includes(b.code));
   const lineIssues = blockers.some((b) => b.listingId) || !!r?.sellerSubOrders.some((g) => g.lines.some((l) => !l.isPurchasable));
   return (
     <aside className="h-fit rounded-2xl border border-border bg-surface p-5 shadow-raised lg:sticky lg:top-[176px]" aria-label="Order summary">
@@ -415,9 +422,19 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
             </p>
           ) : (
             <ul className="space-y-2">
-              {general.map((b) => (
-                <GeneralBlocker key={b.code} code={b.code} text={blockerText(b)} />
-              ))}
+              {account.length > 0 && (
+                <li className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">
+                  Checkout is blocked for your account.{" "}
+                  <a href="#co-buyer" className="font-medium underline underline-offset-2">
+                    See Buyer
+                  </a>
+                </li>
+              )}
+              {general
+                .filter((b) => !BUYER_BLOCKERS.includes(b.code))
+                .map((b) => (
+                  <GeneralBlocker key={b.code} code={b.code} text={blockerText(b)} />
+                ))}
               {lineIssues && <li className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">Some items need attention. See the notes on those items.</li>}
             </ul>
           )}
@@ -510,7 +527,7 @@ export default function CheckoutPage() {
       {changed && <ChangedNotice onReload={reload} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
-          <BuyerSection />
+          <BuyerSection readiness={readiness.data} />
           <ItemsSection cart={cart} readiness={readiness.data} />
           <DeliverySection />
           <PaymentSection />

@@ -117,12 +117,15 @@ describe("Stage 8C checkout readiness", () => {
     });
     mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => r), eligibility, profile404, wishIds]);
     page(<CheckoutPage />, "/checkout");
-    expect(await screen.findByText(/needs a verified company purchasing account/)).toBeInTheDocument();
+    const buyer = await screen.findByRole("region", { name: "Buyer" });
+    expect(await within(buyer).findByText(/needs a verified company purchasing account/)).toBeInTheDocument(); // not "allowed to buy"
+    expect(within(buyer).queryByText(/allowed to buy/)).not.toBeInTheDocument();
     expect(screen.getByText("Minimum order quantity is 10 units.", { exact: false })).toBeInTheDocument();
     expect(screen.getByText(/less stock than you asked for/)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Fix in cart" })).toHaveLength(2);
     const summary = screen.getByRole("complementary", { name: "Order summary" });
-    expect(within(summary).getByRole("link", { name: "Verify my identity" })).toHaveAttribute("href", "/account/verification");
+    expect(within(summary).getByText(/Checkout is blocked for your account/)).toBeInTheDocument();
+    expect(await screen.findByRole("link", { name: "Verify my identity" })).toHaveAttribute("href", "/account/verification");
     expect(within(summary).getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
   });
