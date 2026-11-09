@@ -4,13 +4,11 @@ import { useQuery } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   ArrowsClockwiseIcon,
-  BankIcon,
   BuildingsIcon,
   CheckCircleIcon,
   CreditCardIcon,
   IdentificationCardIcon,
   LockSimpleIcon,
-  MoneyIcon,
   PackageIcon,
   StorefrontIcon,
   TruckIcon,
@@ -302,46 +300,19 @@ function DeliverySection() {
   );
 }
 
-const PAYMENT = [
-  { id: "card", icon: CreditCardIcon, label: "Card" },
-  { id: "bank", icon: BankIcon, label: "Bank transfer" },
-  { id: "cheque", icon: MoneyIcon, label: "Corporate cheque" },
-];
-
 function PaymentSection() {
-  const [tab, setTab] = React.useState("card");
   return (
     <section className={sectionCls} aria-labelledby="co-payment">
       <SectionTitle id="co-payment" n={4} title="Payment" tag={<Badge tone="neutral">Preview</Badge>} />
-      <div role="tablist" aria-label="Payment method" className="inline-flex flex-wrap gap-1 rounded-full bg-surface-muted p-1">
-        {PAYMENT.map(({ id, icon: Icon, label }) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            onClick={() => setTab(id)}
-            className={cn("inline-flex min-h-9 cursor-pointer items-center gap-1.5 rounded-full px-3.5 text-sm transition", tab === id ? "bg-surface font-bold text-foreground shadow-raised" : "text-muted-foreground hover:text-foreground")}
-          >
-            <Icon className="size-4" aria-hidden /> {label}
-          </button>
-        ))}
+      <div className="flex items-center gap-3 rounded-xl border border-border p-4 text-sm">
+        <CreditCardIcon className="size-5 shrink-0 text-foreground" aria-hidden />
+        <div>
+          <p className="font-bold text-foreground">Card payment</p>
+          <p className="text-muted-foreground">Secure card payment opens at launch. No card details are collected on this page.</p>
+        </div>
       </div>
-      {tab === "card" && (
-        // Stage 8B.4: mount point reserved for Stripe Elements. Nothing is mounted until Stage 8B.5 enables payments;
-        // card details are never collected in this page's own inputs.
-        <div id="payment-element" data-state="disabled" className="mt-4 hidden" aria-hidden />
-      )}
-      <div role="tabpanel" className="mt-4 flex items-start gap-3 rounded-xl border border-dashed border-border-strong p-4 text-sm">
-        <LockSimpleIcon className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
-        <p className="text-body">
-          {tab === "card"
-            ? "Secure card payment opens at launch. No card details are collected on this page."
-            : tab === "bank"
-              ? "Bank transfer for company buyers is planned for a later release."
-              : "Corporate cheque payments will be available when ordering opens."}
-        </p>
-      </div>
+      {/* Stage 8B.4: mount point reserved for Stripe Elements. Nothing is mounted until payments are enabled. */}
+      <div id="payment-element" data-state="disabled" className="hidden" aria-hidden />
     </section>
   );
 }
