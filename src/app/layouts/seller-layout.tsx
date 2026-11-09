@@ -71,7 +71,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
   {
     title: "Orders & money",
     items: [
-      { label: "Orders", to: "/seller/orders", icon: ReceiptIcon, soon: true },
+      { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
       { label: "Payouts", to: "/seller/payout-settings", icon: BankIcon, also: ["/seller/stripe"], badge: "payouts" },
     ],
   },

@@ -32,14 +32,17 @@ import { cn } from "@/lib/utils/cn";
 import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
 import type { BuyerProfileDto } from "@/api/types/user-organization";
 import { ORDER_API } from "@/lib/orders/order-api";
+import { orderKeys, ordersService } from "@/services/orders.service";
+import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/orders";
 
 /**
- * Stage 8B.2 checkout review. Everything shown comes from the backend (cart, eligibility, buyer profile); no total is
- * calculated here. Delivery and payment are layout-only (UI ONLY tier) and placing an order stays disabled: there is
- * no order-placement endpoint (POST /api/v1/orders/checkout is policy blocked, CR-01).
+ * Checkout review (Stage 8C). Totals, the seller breakdown, line issues and blockers come from
+ * GET /api/v1/buyer/checkout/readiness (If-Match = the reviewed cart rowVersion); the cart supplies item details.
+ * No total is calculated here. canProceed is not a payment or order authorisation: "Continue to payment" stays disabled
+ * because there is no approved order-placement endpoint. Delivery and payment are layout previews only.
  */
 
-export const PLACE_ORDER_NOTE = "Placing orders isn't open yet. Online checkout and payment are being finalised and will open at launch. Nothing is charged and no order is created.";
+export const PLACE_ORDER_NOTE = "Payment and placing orders aren't open yet; they open at launch. Nothing is charged and no order is created.";
 
 const sectionCls = "rounded-2xl border border-border bg-surface p-5 sm:p-6";
 
@@ -188,8 +191,16 @@ function BusinessDetails({ p }: { p: BuyerProfileDto }) {
   );
 }
 
-function ItemsSection({ cart }: { cart: BuyerCartResponse }) {
-  const lineBlocker = (listingId: string) => cart.checkoutReadiness.blockers.find((b) => b.listingId?.toLowerCase() === listingId.toLowerCase());
+function ItemsSection({ cart, readiness }: { cart: BuyerCartResponse; readiness: CheckoutValidationResult | undefined }) {
+  const same = (a: string | null | undefined, b: string) => !!a && a.toLowerCase() === b.toLowerCase();
+  const lines = new Map<string, OrderLinePreviewDto>();
+  readiness?.sellerSubOrders.forEach((g) => g.lines.forEach((l) => lines.set(l.listingId.toLowerCase(), l)));
+  const groupOf = (sellerId: string) => readiness?.sellerSubOrders.find((g) => same(g.sellerId, sellerId));
+  const lineBlocker = (listingId: string): { code: string; message: string } | undefined => {
+    const l = lines.get(listingId.toLowerCase());
+    if (l && !l.isPurchasable && l.blockerCode) return { code: l.blockerCode, message: l.blockerMessage ?? "" };
+    return readiness?.blockers.find((b) => same(b.listingId, listingId));
+  };
   return (
     <section className={sectionCls} aria-labelledby="co-items">
       <SectionTitle id="co-items" n={2} title="Items" tag={<span className="text-sm text-muted-foreground">{formatNumber(cart.itemCount)} items</span>} />
@@ -201,7 +212,16 @@ function ItemsSection({ cart }: { cart: BuyerCartResponse }) {
                 <StorefrontIcon className="size-4 shrink-0" aria-hidden />
                 <span className="truncate">{g.sellerDisplayName || "Seller"}</span>
               </p>
-              <p className="shrink-0 text-sm text-muted-foreground">{formatMoney(g.groupSubtotal, cart.currency)}</p>
+              <p className="shrink-0 text-right text-sm text-muted-foreground">
+                {groupOf(g.sellerId) ? (
+                  <>
+                    <span className="font-medium text-foreground">{formatMoney(groupOf(g.sellerId)?.groupTotal, readiness?.currency)}</span>
+                    <span className="block text-xs">incl. VAT {formatMoney(groupOf(g.sellerId)?.groupVatAmount, readiness?.currency)}</span>
+                  </>
+                ) : (
+                  formatMoney(g.groupSubtotal, cart.currency)
+                )}
+              </p>
             </div>
             <ul className="divide-y divide-border">
               {g.items.map((i) => {
@@ -217,7 +237,14 @@ function ItemsSection({ cart }: { cart: BuyerCartResponse }) {
                         {formatNumber(i.quantity)} × {formatMoney(i.currentPrice, i.currentCurrency)}
                         {i.hasPriceChanged && <span className="text-warning-soft-foreground"> · price changed from {formatMoney(i.addedPrice, i.addedCurrency)}</span>}
                       </p>
-                      {blocker && <p className="mt-1 text-xs text-danger-soft-foreground">{blockerText(blocker)}</p>}
+                      {blocker && (
+                        <p className="mt-1 text-xs text-danger-soft-foreground">
+                          {blockerText(blocker)}{" "}
+                          <Link to="/cart" className="font-medium underline underline-offset-2">
+                            Fix in cart
+                          </Link>
+                        </p>
+                      )}
                       {!blocker && i.statusMessage && <p className="mt-1 text-xs text-warning-soft-foreground">{i.statusMessage}</p>}
                     </div>
                     <p className="shrink-0 text-sm font-bold text-foreground">{formatMoney(i.lineSubtotal, i.currentCurrency)}</p>
@@ -313,26 +340,61 @@ function PaymentSection() {
   );
 }
 
-function OrderSummary({ cart }: { cart: BuyerCartResponse }) {
-  const blockers = cart.checkoutReadiness.blockers;
+function GeneralBlocker({ code, text }: { code: string; text: string }) {
+  return (
+    <li className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">
+      {text}
+      {code === "BUYER_IDENTITY_VERIFICATION_REQUIRED" && (
+        <Link to="/account/verification" className="mt-1 block font-medium underline underline-offset-2">
+          Verify my identity
+        </Link>
+      )}
+      {code === "CART_EMPTY" && (
+        <Link to="/search" className="mt-1 block font-medium underline underline-offset-2">
+          Browse marketplace
+        </Link>
+      )}
+    </li>
+  );
+}
+
+function OrderSummary({ readiness, loading, error, onRetry }: { readiness: CheckoutValidationResult | undefined; loading: boolean; error: unknown; onRetry: () => void }) {
+  const r = readiness;
+  const blockers = r?.blockers ?? [];
   const codes = new Set(blockers.map((b) => b.code));
   const mixed = codes.has("MIXED_CURRENCY_NOT_SUPPORTED");
   const noTax = codes.has("TAX_RATE_UNAVAILABLE");
   const general = blockers.filter((b) => !b.listingId);
+  const lineIssues = blockers.some((b) => b.listingId) || !!r?.sellerSubOrders.some((g) => g.lines.some((l) => !l.isPurchasable));
   return (
     <aside className="h-fit rounded-2xl border border-border bg-surface p-5 shadow-raised lg:sticky lg:top-[176px]" aria-label="Order summary">
       <h2 className="font-heading text-lg font-bold text-foreground">Order summary</h2>
-      {mixed ? (
+      {loading ? (
+        <div className="mt-4 space-y-2" aria-busy="true">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-7 w-2/3" />
+        </div>
+      ) : !r ? (
+        <div role="alert" className="mt-4 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+          <p>{isApiError(error) && error.code === "INVALID_IF_MATCH_HEADER" ? "Your cart couldn't be checked. Reload the page and try again." : "We couldn't check your cart for checkout right now."}</p>
+          <Button size="sm" variant="secondary" className="mt-2" onClick={onRetry}>
+            <ArrowsClockwiseIcon /> Try again
+          </Button>
+        </div>
+      ) : mixed ? (
         <p className="mt-4 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">{BLOCKER_TEXT.MIXED_CURRENCY_NOT_SUPPORTED}</p>
       ) : (
         <dl className="mt-4 space-y-2 text-sm">
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Subtotal ({formatNumber(cart.totalQuantity)} units)</dt>
-            <dd className="font-medium text-foreground">{formatMoney(cart.totalSubtotal, cart.currency)}</dd>
+            <dt className="text-muted-foreground">
+              Subtotal ({formatNumber(r.totalQuantity)} units, {formatNumber(r.totalDistinctItems)} item{r.totalDistinctItems === 1 ? "" : "s"})
+            </dt>
+            <dd className="font-medium text-foreground">{formatMoney(r.totalMaterialSubtotal, r.currency)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">{noTax ? "Estimated UAE VAT" : `Estimated UAE VAT (${formatNumber(cart.estimatedVatRatePercent)}%)`}</dt>
-            <dd className="text-foreground">{noTax ? "Not available" : formatMoney(cart.estimatedVatAmount, cart.currency)}</dd>
+            <dt className="text-muted-foreground">{noTax ? "Estimated UAE VAT" : `Estimated UAE VAT (${formatNumber(r.applicableVatRatePercent)}%)`}</dt>
+            <dd className="text-foreground">{noTax ? "Not available" : formatMoney(r.estimatedVatAmount, r.currency)}</dd>
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Delivery</dt>
@@ -340,30 +402,30 @@ function OrderSummary({ cart }: { cart: BuyerCartResponse }) {
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <dt className="font-medium text-foreground">Estimated total</dt>
-            <dd className="font-heading text-xl font-bold text-foreground">{noTax ? "—" : formatMoney(cart.estimatedTotal, cart.currency)}</dd>
+            <dd className="font-heading text-xl font-bold text-foreground">{noTax ? "—" : formatMoney(r.estimatedPayableTotal, r.currency)}</dd>
           </div>
         </dl>
       )}
 
-      <div className="mt-4" aria-label="Checkout readiness">
-        {cart.checkoutReadiness.canProceed ? (
-          <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
-            <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Your cart passes every checkout check.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {general.map((b) => (
-              <li key={b.code} className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">
-                {blockerText(b)}
-              </li>
-            ))}
-            {blockers.some((b) => b.listingId) && <li className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">Some items need attention. See the notes on those items.</li>}
-          </ul>
-        )}
-      </div>
+      {r && (
+        <div className="mt-4" aria-label="Checkout readiness">
+          {r.canProceed ? (
+            <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
+              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Your cart passes every checkout check.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {general.map((b) => (
+                <GeneralBlocker key={b.code} code={b.code} text={blockerText(b)} />
+              ))}
+              {lineIssues && <li className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">Some items need attention. See the notes on those items.</li>}
+            </ul>
+          )}
+        </div>
+      )}
 
       <Button size="lg" className="mt-4 w-full rounded-full" disabled={!ORDER_API.placeOrder} aria-describedby="place-order-note">
-        <LockSimpleIcon /> Place order
+        <LockSimpleIcon /> Continue to payment
       </Button>
       <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
         {PLACE_ORDER_NOTE}
@@ -392,6 +454,14 @@ export default function CheckoutPage() {
   React.useEffect(() => {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
+  const readiness = useQuery({
+    queryKey: orderKeys.readiness(reviewed?.rowVersion),
+    queryFn: ({ signal }) => ordersService.checkoutReadiness(reviewed?.rowVersion, signal),
+    enabled: !!reviewed && reviewed.cart.itemCount > 0,
+    // 400/409 are answers, not glitches: never resend the same If-Match.
+    retry: (n, e) => !(isApiError(e) && e.status >= 400 && e.status < 500) && n < 1,
+    staleTime: 0,
+  });
 
   if (q.isLoading || (q.data && !reviewed))
     return (
@@ -413,8 +483,11 @@ export default function CheckoutPage() {
       </div>
     );
 
-  const changed = q.data.rowVersion !== reviewed.rowVersion;
+  const changed = q.data.rowVersion !== reviewed.rowVersion || (isApiError(readiness.error) && readiness.error.code === "CART_CONCURRENCY_CONFLICT");
   const cart = reviewed.cart;
+  const reload = () => {
+    void q.refetch().then((r) => r.data && setReviewed({ rowVersion: r.data.rowVersion, cart: r.data }));
+  };
 
   if (cart.itemCount === 0)
     return (
@@ -434,15 +507,15 @@ export default function CheckoutPage() {
       </Link>
       <h1 className="mt-1 font-heading text-[28px] font-bold text-foreground sm:text-[32px]">Checkout</h1>
       <p className="mb-6 mt-1 text-sm text-muted-foreground">Review your order. Prices, VAT and stock are confirmed by StockOut, not calculated in your browser.</p>
-      {changed && <ChangedNotice onReload={() => setReviewed({ rowVersion: q.data.rowVersion, cart: q.data })} />}
+      {changed && <ChangedNotice onReload={reload} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
           <BuyerSection />
-          <ItemsSection cart={cart} />
+          <ItemsSection cart={cart} readiness={readiness.data} />
           <DeliverySection />
           <PaymentSection />
         </div>
-        <OrderSummary cart={cart} />
+        <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} />
       </div>
     </div>
   );

@@ -1,12 +1,12 @@
 /**
- * Stage 8B.3 marketplace order contracts, copied from the C# source (bidding-deal, commit 689d3f8):
- *   Emcore.BiddingDeal.Contracts/Orders/OrderDtos.cs and Domain/Orders/MarketplaceOrderStatus.cs.
- *
- * IMPORTANT: no controller exposes these yet. GET /api/v1/orders, /orders/{id}, /seller/orders,
- * /seller/orders/{id} and /orders/{id}/history are "PROPOSED FUTURE" in the 8B.3 handoff and return
- * 404 unmatched_gateway_route on the live gateway (checked 5 Nov 2026). Nothing in the app calls them;
- * see src/lib/orders/order-api.ts. Enum values are serialized as names (the handoff samples show "Draft").
+ * Stage 8C marketplace order contracts, copied from the C# source (bidding-deal, commit ee144bd):
+ *   Emcore.BiddingDeal.Contracts/Orders/OrderDtos.cs and CheckoutValidationDtos.cs.
+ * Read-only routes (API gateway): GET /api/v1/buyer/checkout/readiness, /buyer/orders, /buyer/orders/{orderId},
+ * /seller/orders, /seller/orders/{subOrderId}. Responses have no envelope; errors are ProblemDetails with `code`.
+ * Status strings arrive upper-cased without separators (e.g. "PENDINGCONFIRMATION"); see order-status.ts.
  */
+
+import type { CheckoutBlockerDto } from "./buyer-commerce";
 
 type Guid = string;
 /** DateTimeOffset, ISO 8601 */
@@ -73,7 +73,11 @@ export interface SellerSubOrderDto {
   sellerConfirmedAtUtc: IsoDateTime | null;
   sellerRejectedAtUtc: IsoDateTime | null;
   sellerRejectionReason: string | null;
+  rowVersion: string;
+  createdAtUtc: IsoDateTime;
+  updatedAtUtc: IsoDateTime | null;
   items: OrderLineSnapshotDto[];
+  statusHistory: OrderStatusHistoryDto[];
 }
 
 /** C#: Contracts.Orders.MarketplaceOrderDto (buyer's parent order with every seller suborder) */
@@ -98,6 +102,7 @@ export interface MarketplaceOrderDto {
   createdAtUtc: IsoDateTime;
   updatedAtUtc: IsoDateTime | null;
   subOrders: SellerSubOrderDto[];
+  statusHistory: OrderStatusHistoryDto[];
 }
 
 /** C#: Contracts.Orders.OrderStatusHistoryDto */
@@ -113,18 +118,50 @@ export interface OrderStatusHistoryDto {
   changedAtUtc: IsoDateTime;
 }
 
-/**
- * PROPOSED ONLY (8B.3 handoff §3.1 sample). There is no C# list DTO yet, so this mirrors the sample and must be
- * re-checked against the real controller before use.
- */
-export interface ProposedOrderSummary {
-  orderId: Guid;
-  orderNumber: string;
-  orderDateUtc: IsoDateTime;
+/** C#: Contracts.Orders.OrderLinePreviewDto (checkout readiness line) */
+export interface OrderLinePreviewDto {
+  listingId: Guid;
+  sellerId: Guid;
+  title: string;
+  thumbnailUrl: string | null;
+  quantity: number;
+  unitPrice: number;
   currency: string;
-  totalPayableAmount: number;
-  status: MarketplaceOrderStatus | string;
-  paymentStatus: OrderPaymentStatus | string;
-  subOrderCount: number;
-  createdAtUtc: IsoDateTime;
+  taxRatePercent: number;
+  taxAmount: number;
+  lineSubtotal: number;
+  lineTotal: number;
+  isPurchasable: boolean;
+  blockerCode: string | null;
+  blockerMessage: string | null;
+}
+
+/** C#: Contracts.Orders.SellerSubOrderPreviewDto */
+export interface SellerSubOrderPreviewDto {
+  sellerId: Guid;
+  sellerDisplayName: string | null;
+  groupSubtotal: number;
+  groupVatAmount: number;
+  groupTotal: number;
+  lines: OrderLinePreviewDto[];
+}
+
+/** C#: Contracts.Orders.CheckoutValidationResult (GET /api/v1/buyer/checkout/readiness). Informational only: no order is created. */
+export interface CheckoutValidationResult {
+  canProceed: boolean;
+  cartId: Guid;
+  buyerUserId: Guid;
+  buyerProfileId: Guid | null;
+  buyerOrganizationId: Guid | null;
+  currency: string;
+  totalDistinctItems: number;
+  totalQuantity: number;
+  totalMaterialSubtotal: number;
+  applicableVatRatePercent: number;
+  estimatedVatAmount: number;
+  estimatedPayableTotal: number;
+  sellerSubOrders: SellerSubOrderPreviewDto[];
+  blockers: CheckoutBlockerDto[];
+  /** base64 8-byte cart rowversion */
+  cartRowVersion: string;
 }

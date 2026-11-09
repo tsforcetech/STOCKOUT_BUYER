@@ -10,8 +10,12 @@ export const BLOCKER_TEXT: Record<string, string> = {
   COMMERCE_MIN_ORDER_QTY_NOT_MET: "An item is below the seller's minimum order quantity.",
   MIXED_CURRENCY_NOT_SUPPORTED: "Your cart has items in different currencies, so it can't be totalled or checked out together.",
   TAX_RATE_UNAVAILABLE: "VAT can't be estimated right now. Your cart still works; checkout waits until it can.",
-  BUYER_ORGANIZATION_REQUIRED: "Your account isn't linked to an approved business yet. Set up or join your company before checking out.",
+  BUYER_ORGANIZATION_REQUIRED: "Checkout currently needs a verified company purchasing account, and none is linked to your account. Contact StockOut support if your company is already verified.",
+  COMMERCE_SELF_PURCHASE_DENIED: "You can't buy your own business's listings. Remove them from your cart.",
   CART_EMPTY: "Your cart is empty.",
 };
 
-export const blockerText = (b: CheckoutBlockerDto) => BLOCKER_TEXT[b.code] ?? b.message;
+/** Quantity rules carry the exact constraint in the backend message, so that text is shown as-is. */
+const USE_BACKEND_MESSAGE = new Set(["COMMERCE_WHOLE_LOT_REQUIRED", "COMMERCE_MIN_ORDER_QTY_NOT_MET"]);
+
+export const blockerText = (b: Pick<CheckoutBlockerDto, "code" | "message">) => (USE_BACKEND_MESSAGE.has(b.code) && b.message ? b.message : (BLOCKER_TEXT[b.code] ?? b.message));

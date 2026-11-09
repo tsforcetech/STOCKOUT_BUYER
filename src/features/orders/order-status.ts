@@ -1,4 +1,4 @@
-/** Display labels and badge tones for the Stage 8B.3 order enums (src/api/types/orders.ts). Unknown values pass through. */
+/** Display labels and badge tones for the order enums (src/api/types/orders.ts). Unknown values are shown humanised, never guessed. */
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "primary" | "outline";
 type Entry = { label: string; tone: Tone };
 
@@ -62,7 +62,13 @@ const PAYOUT: Record<string, Entry> = {
   Settled: { label: "Paid out", tone: "success" },
 };
 
-const lookup = (map: Record<string, Entry>) => (value: string | null | undefined): Entry => (value && map[value]) || { label: value || "Unknown", tone: "neutral" };
+/** The API sends enum names upper-cased ("PENDINGCONFIRMATION"); history rows use the DB form ("PENDING_CONFIRMATION"). */
+const norm = (v: string) => v.replace(/[^a-z0-9]/gi, "").toUpperCase();
+const humanizeStatus = (v: string) => v.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase().replace(/^\w/, (c) => c.toUpperCase());
+const lookup = (map: Record<string, Entry>) => {
+  const byKey = new Map(Object.entries(map).map(([k, e]) => [norm(k), e]));
+  return (value: string | null | undefined): Entry => (value && byKey.get(norm(value))) || { label: value ? humanizeStatus(value) : "Unknown", tone: "neutral" };
+};
 
 export const orderStatus = lookup(ORDER);
 export const subOrderStatus = lookup(SUBORDER);
@@ -70,3 +76,13 @@ export const paymentStatus = lookup(PAYMENT);
 export const fulfilmentStatus = lookup(FULFILMENT);
 export const claimStatus = lookup(CLAIM);
 export const payoutStatus = lookup(PAYOUT);
+
+/** Any status string (e.g. history from/to): first matching label across the order maps, else humanised. */
+export const anyStatusLabel = (value: string | null | undefined): string => {
+  if (!value) return "—";
+  for (const f of [subOrderStatus, orderStatus, paymentStatus, fulfilmentStatus, claimStatus, payoutStatus]) {
+    const e = f(value);
+    if (e.label !== humanizeStatus(value)) return e.label;
+  }
+  return humanizeStatus(value);
+};
