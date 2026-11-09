@@ -181,4 +181,20 @@ describe("Buyer identity verification (one ID, handoff 2026-11-06)", () => {
     expect(screen.queryByRole("button", { name: "Edit details" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit for review" })).not.toBeInTheDocument();
   });
+
+  it("under review: shows the server review deadline, or a delay note when overdue", async () => {
+    signIn();
+    let over: Record<string, unknown> = { reviewDeadlineUtc: "2026-11-10T09:08:00", isOverdue: false, reviewSlaStatus: "WITHIN_TARGET" };
+    mockFetch([
+      ...common,
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(profile({ verificationStatus: "SUBMITTED", submittedAtUtc: "2026-11-06T09:08:00Z", ...over })) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([doc()]) },
+    ]);
+    const { unmount } = page();
+    expect(await screen.findByText(/We aim to finish by .*\(2 UAE business days\)/)).toBeInTheDocument();
+    unmount();
+    over = { reviewDeadlineUtc: "2026-11-10T09:08:00", isOverdue: true, reviewSlaStatus: "OVERDUE" };
+    page();
+    expect(await screen.findByText(/taking longer than our 2-business-day target/)).toBeInTheDocument();
+  });
 });

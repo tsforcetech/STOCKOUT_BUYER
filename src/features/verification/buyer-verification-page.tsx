@@ -173,7 +173,15 @@ function StatusCard({ phase, p, canPurchase, eligibilityLoaded }: { phase: Phase
     case "reverify":
       return card("warning", WarningCircleIcon, "Verification required again", <>Our verification rules have changed, so a new ID must be submitted before you can purchase.{p?.reverificationReason ? ` ${p.reverificationReason}` : ""}</>);
     case "review":
-      return card("info", ClockIcon, "Under review", <>Submitted {formatDateTime(p?.submittedAtUtc)}. We aim to finish within 2 business days. You'll be able to purchase once it's approved.</>);
+      return card(
+        p?.isOverdue || p?.reviewSlaStatus === "OVERDUE" ? "warning" : "info",
+        ClockIcon,
+        "Under review",
+        <>
+          Submitted {formatDateTime(p?.submittedAtUtc)}. You&apos;ll be able to purchase once it&apos;s approved.
+          <span className="mt-1 block">{reviewTarget(p)}</span>
+        </>,
+      );
     case "rejected":
       return card(
         "danger",
@@ -198,6 +206,19 @@ function StatusCard({ phase, p, canPurchase, eligibilityLoaded }: { phase: Phase
     case "suspended":
       return card("danger", ProhibitIcon, "Purchasing is disabled", <>Your buyer account is suspended{p?.suspensionReason ? `: ${p.suspensionReason}` : "."} Contact StockOut support at info@stockoutme.com.</>);
   }
+}
+
+/**
+ * Review target line from the server's SLA fields (two UAE business days, worked out by the backend with the UAE
+ * calendar). The deadline is shown as given, in local time — never calculated here.
+ */
+function reviewTarget(p: BuyerProfileDto | null): string {
+  const status = p?.reviewSlaStatus;
+  if (status === "OVERDUE" || p?.isOverdue) return "Our review is taking longer than our 2-business-day target. We'll finish it as soon as possible.";
+  if (status === "CALENDAR_COVERAGE_MISSING" || (!p?.reviewDeadlineUtc && status !== "NOT_APPLICABLE"))
+    return "We aim to review within 2 UAE business days. If it takes longer, contact info@stockoutme.com.";
+  if (p?.reviewDeadlineUtc) return `We aim to finish by ${formatDateTime(p.reviewDeadlineUtc)} (2 UAE business days).`;
+  return "We aim to review within 2 UAE business days.";
 }
 
 function StepShell({ n, title, done, children }: { n: number; title: string; done?: boolean; children: React.ReactNode }) {

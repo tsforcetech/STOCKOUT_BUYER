@@ -703,6 +703,11 @@ export interface BuyerProfileDto {
   requiresReverification: boolean;
   reverificationReason: string | null;
   reverificationRequiredAtUtc: string | null;
+  /** Review SLA (2 UAE business days, server-calculated with the UAE calendar). Null when not applicable or calendar missing. */
+  reviewDeadlineUtc?: string | null;
+  isOverdue?: boolean;
+  /** WITHIN_TARGET | OVERDUE | COMPLETED_WITHIN_TARGET | COMPLETED_OVERDUE | CALENDAR_COVERAGE_MISSING | NOT_APPLICABLE */
+  reviewSlaStatus?: string | null;
 }
 
 /** C#: BuyerDocumentResponse — GET/POST /api/v1/marketplace/buyer/documents. */
