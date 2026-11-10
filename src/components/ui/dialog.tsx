@@ -8,7 +8,7 @@ export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
-const overlay = "fixed inset-0 z-50 bg-black/40";
+const overlay = "motion-overlay fixed inset-0 z-50 bg-black/40";
 
 export function DialogContent({
   title,
@@ -38,7 +38,7 @@ export function DialogContent({
         onInteractOutside={dismissible ? onInteractOutside : (e) => e.preventDefault()}
         onEscapeKeyDown={dismissible ? undefined : (e) => e.preventDefault()}
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-surface shadow-raised focus:outline-none",
+          "motion-dialog fixed left-1/2 top-1/2 z-50 flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl bg-surface shadow-raised focus:outline-none",
           width,
           className,
         )}
@@ -73,7 +73,7 @@ export function SheetContent({ children, side = "left", title, className }: { ch
       <DialogPrimitive.Content
         className={cn(
           "fixed inset-y-0 z-50 flex w-72 max-w-[85vw] flex-col shadow-raised focus:outline-none",
-          side === "left" ? "left-0" : "right-0",
+          side === "left" ? "motion-sheet-left left-0" : "motion-sheet-right right-0",
           className,
         )}
       >
@@ -103,7 +103,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
     <AlertPrimitive.Root open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <AlertPrimitive.Portal>
         <AlertPrimitive.Overlay className={overlay} />
-        <AlertPrimitive.Content className="fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-surface p-6 shadow-raised focus:outline-none">
+        <AlertPrimitive.Content className="motion-dialog fixed left-1/2 top-1/2 z-50 w-[calc(100vw-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl bg-surface p-6 shadow-raised focus:outline-none">
           <AlertPrimitive.Title className="font-heading text-xl font-bold text-foreground">{title}</AlertPrimitive.Title>
           <AlertPrimitive.Description className="mt-2 text-sm text-muted-foreground">{description}</AlertPrimitive.Description>
           {children && <div className="mt-4">{children}</div>}

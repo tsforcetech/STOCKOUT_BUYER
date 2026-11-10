@@ -3,6 +3,11 @@ import { MinusIcon, PlusIcon } from "@phosphor-icons/react";
 import { useCart, clampQuantity, type CartItem } from "@/lib/cart/cart-context";
 import { listingsService } from "@/services/listings.service";
 import { isApiError } from "@/lib/api/errors";
+import { toast } from "sonner";
+import { useCartActions } from "@/lib/cart/server-cart";
+import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
+import type { BuyerCartItemResponse } from "@/api/types/buyer-commerce";
+import { undoToast } from "./remove-with-undo";
 
 export interface LiveState {
   loading: boolean;
@@ -77,4 +82,47 @@ export function cartTotals(items: CartItem[], live: Map<string, LiveState>): Map
     totals.set(s.currency, (totals.get(s.currency) ?? 0) + s.price * Math.min(i.quantity, s.max));
   }
   return totals;
+}
+
+/**
+ * Server-cart remove with a slide-out and an Undo toast. Undo re-adds the listing with the same quantity through the
+ * normal add path (so seller rules and If-Match still apply).
+ */
+export function useServerRemove(mutate: ReturnType<typeof useCartActions>["mutate"], leave: (id: string, run: () => void) => void) {
+  const cart = useCart();
+  return (item: BuyerCartItemResponse) =>
+    leave(item.listingId, () =>
+      mutate(
+        { kind: "remove", listingId: item.listingId },
+        {
+          onSuccess: () =>
+            undoToast(item.title, () => {
+              cart
+                .add({
+                  listingId: item.listingId,
+                  sellerId: item.sellerId,
+                  title: item.title,
+                  sellerName: "",
+                  unitPrice: item.currentPrice,
+                  currency: item.currentCurrency,
+                  unitSymbol: null,
+                  imageUrl: item.thumbnailUrl,
+                  quantity: item.quantity,
+                  maxQuantity: item.stockAvailable,
+                })
+                .catch((e: unknown) => toast.error(commerceErrorMessage(e)));
+            }),
+        },
+      ),
+    );
+}
+
+/** Device-cart remove with a slide-out and an Undo toast. */
+export function useGuestRemove(leave: (id: string, run: () => void) => void) {
+  const cart = useCart();
+  return (item: CartItem) =>
+    leave(item.listingId, () => {
+      cart.remove(item.listingId);
+      undoToast(item.title, () => void cart.add({ ...item, sellerId: item.sellerId ?? "" }));
+    });
 }

@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useBump } from "@/hooks/use-bump";
 import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { Popover as PopoverPrimitive } from "radix-ui";
@@ -169,6 +170,7 @@ export function sellHref(status: string, hasSeller: boolean): string {
 
 function SavedButton() {
   const { count: n } = useFavorites();
+  const bump = useBump(n);
   return (
     <NavLink
       to="/saved"
@@ -183,7 +185,9 @@ function SavedButton() {
       <HeartIcon className="size-5" />
       {n > 0 && (
         <span
-          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e0245e] px-1 text-[11px] font-bold text-white ring-2 ring-surface"
+          key={bump}
+          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[#e0245e] px-1 text-[11px] font-bold text-white ring-2 ring-surface data-[bump=true]:animate-pop"
+          data-bump={bump > 0}
           aria-hidden
         >
           {n > 99 ? "99+" : n}
@@ -195,6 +199,7 @@ function SavedButton() {
 
 function CartButton() {
   const { count, setOpen } = useCart();
+  const bump = useBump(count);
   return (
     <button
       type="button"
@@ -207,7 +212,9 @@ function CartButton() {
       <ShoppingCartSimpleIcon className="size-5" />
       {count > 0 && (
         <span
-          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-[11px] font-bold text-action-foreground ring-2 ring-surface"
+          key={bump}
+          data-bump={bump > 0}
+          className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-action px-1 text-[11px] font-bold text-action-foreground ring-2 ring-surface data-[bump=true]:animate-pop"
           aria-hidden
         >
           {count > 99 ? "99+" : count}

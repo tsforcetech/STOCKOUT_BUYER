@@ -11,6 +11,7 @@ export function FavoriteButton({ listing, variant = "overlay", className }: { li
   const { requireAuth } = useAuthDialog();
   const [busy, setBusy] = React.useState(false);
   const on = isFavorite(listing.listingId);
+  const [pop, setPop] = React.useState(0);
   return (
     <button
       type="button"
@@ -24,6 +25,7 @@ export function FavoriteButton({ listing, variant = "overlay", className }: { li
         setBusy(true);
         const r = await toggle(listing);
         setBusy(false);
+        if (r === "added") setPop((n) => n + 1);
         if (r === "auth") requireAuth(() => queue(listing), "Sign in to save listings to your wishlist.");
         else if (r === "added") toast.success("Saved to your wishlist");
         else if (r === "removed") toast.success("Removed from your wishlist");
@@ -34,7 +36,7 @@ export function FavoriteButton({ listing, variant = "overlay", className }: { li
         className,
       )}
     >
-      <HeartIcon className={cn("size-5", on && "text-[#e0245e]")} weight={on ? "fill" : "regular"} />
+      <HeartIcon key={pop} className={cn("size-5 transition-colors", on && "text-[#e0245e]", pop > 0 && "animate-heart-pop")} weight={on ? "fill" : "regular"} />
     </button>
   );
 }

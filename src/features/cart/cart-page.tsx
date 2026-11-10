@@ -1,3 +1,5 @@
+import { useLeavingRows } from "./remove-with-undo";
+import { cn } from "@/lib/utils/cn";
 import { safeSellerLabel } from "@/lib/seller-code";
 import { Link } from "react-router";
 import { InfoIcon, LockSimpleIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
@@ -5,7 +7,7 @@ import { ListingImage } from "@/components/common/listing-image";
 import { BuyerEligibilityNote } from "./components/buyer-eligibility";
 import { Button } from "@/components/ui/button";
 import { useCart, type CartItem } from "@/lib/cart/cart-context";
-import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
+import { QtyStepper, cartTotals, useGuestRemove, useLiveItems } from "./cart-shared";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { ServerCartPage } from "./server-cart-page";
@@ -20,6 +22,8 @@ export default function CartPage() {
 function GuestCartPage() {
   const cart = useCart();
   const live = useLiveItems(cart.items);
+  const rows = useLeavingRows();
+  const removeGuest = useGuestRemove(rows.leave);
 
   if (cart.items.length === 0) {
     return (
@@ -63,7 +67,7 @@ function GuestCartPage() {
                   const s = live.get(item.listingId)!;
                   const qty = Math.min(item.quantity, s.max);
                   return (
-                    <li key={item.listingId} className="flex gap-3 p-4 sm:gap-4">
+                    <li key={item.listingId} className={cn("flex gap-3 p-4 sm:gap-4", rows.isLeaving(item.listingId) && "animate-row-out pointer-events-none")}>
                       <Link to={listingPath(item.listingId, item.title)} className="shrink-0">
                         <ListingImage src={item.imageUrl} alt={item.title} className="size-20 rounded-lg sm:size-24" />
                       </Link>
@@ -92,7 +96,7 @@ function GuestCartPage() {
                         )}
                         <div className="mt-3 flex flex-wrap items-center gap-3">
                           {!s.unavailable && <QtyStepper item={item} max={s.max} />}
-                          <button type="button" onClick={() => cart.remove(item.listingId)} className="inline-flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-danger">
+                          <button type="button" onClick={() => removeGuest(item)} className="inline-flex cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-danger">
                             <TrashIcon className="size-4" /> Remove
                           </button>
                           {!s.unavailable && <span className="ml-auto font-heading font-bold text-foreground sm:hidden">{formatMoney(s.price * qty, s.currency)}</span>}

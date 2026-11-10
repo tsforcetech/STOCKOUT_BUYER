@@ -115,7 +115,7 @@ export function Badge({ className, tone, dot, children, ...props }: React.HTMLAt
 }
 
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("animate-pulse rounded-md bg-border", className)} aria-hidden {...props} />;
+  return <div className={cn("skeleton-shimmer rounded-md bg-border", className)} aria-hidden {...props} />;
 }
 
 export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {

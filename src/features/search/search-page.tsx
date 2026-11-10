@@ -458,11 +458,10 @@ export default function SearchPage({ landing }: { landing?: SearchLanding } = {}
                 <div className={view === "list" ? LIST : GRID}>
                   {data.items.map((item, i) => (
                     <React.Fragment key={item.listingId}>
-                      {view === "list" ? (
-                        <ListingRow item={item} />
-                      ) : (
-                        <ListingCard item={item} />
-                      )}
+                      {/* Results fade up one after another (capped so long pages don't wait). */}
+                      <div className="flex min-w-0 animate-fade-up flex-col [&>*]:flex-1" style={{ animationDelay: `${Math.min(i, 12) * 30}ms` }}>
+                        {view === "list" ? <ListingRow item={item} /> : <ListingCard item={item} />}
+                      </div>
                       {/* One RFQ prompt per page 1, after the first rows (or after the last result on short pages). */}
                       {page === 1 &&
                         i === Math.min(RFQ_AFTER, data.items.length) - 1 && (

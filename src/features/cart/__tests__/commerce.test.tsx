@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { renderWithApp, sessionRoutes } from "@/test/render";
 import { mockFetch } from "@/test/http";
@@ -223,5 +223,25 @@ describe("Stage 8A.2 mini cart (signed in)", () => {
     await userEvent.click(within(drawer).getByRole("button", { name: "Increase quantity" }));
     await waitFor(() => expect(calls.find((c) => c.method === "PUT")?.body).toEqual({ quantity: 5 }));
     expect(within(drawer).getByRole("button", { name: "Continue" })).toBeInTheDocument();
+  });
+});
+
+describe("Motion: remove with Undo", () => {
+  it("removing a line slides it out, then Undo adds it back with the same quantity", async () => {
+    signIn();
+    let removed = false;
+    const { calls } = mockFetch([
+      ...sessionRoutes([]),
+      cartRoute(() => ({ body: removed ? cart({ itemCount: 0, sellerGroups: [] }) : cart() })),
+      empty,
+      wishIds,
+      { method: "DELETE", path: `/api/v1/buyer/cart/items/${L1}`, respond: () => ((removed = true), { body: cart({ itemCount: 0, sellerGroups: [] }) }) },
+      { method: "POST", path: "/api/v1/buyer/cart/items", respond: () => ((removed = false), { body: cart() }) },
+    ]);
+    page(<CartPage />, "/cart");
+    await userEvent.click(await screen.findByRole("button", { name: /Remove/ }));
+    await waitFor(() => expect(calls.some((c) => c.method === "DELETE")).toBe(true));
+    fireEvent.click(await screen.findByRole("button", { name: "Undo" })); // plain click: sonner's swipe handler needs pointer capture (not in jsdom)
+    await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url.pathname === "/api/v1/buyer/cart/items")?.body).toEqual({ listingId: L1, sellerId: S1, quantity: 4 }));
   });
 });

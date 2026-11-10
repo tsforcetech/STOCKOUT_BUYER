@@ -2,6 +2,7 @@ import * as React from "react";
 import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils/cn";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { toast } from "sonner";
 import { useCart, clampQuantity } from "@/lib/cart/cart-context";
@@ -84,6 +85,7 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
   const cart = useCart();
   const own = useOwnListing(listing.sellerId);
   const [qty, setQty] = React.useState(1);
+  const [justAdded, setJustAdded] = React.useState(false);
   const inCartQty = useInCartQuantity(listing.listingId);
   const { add: addToCart, busy, limitReached } = useAddToCart(listing);
   const max = listing.sellableQuantity;
@@ -105,7 +107,12 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
     return <p className="rounded-lg bg-surface-muted p-4 text-sm text-muted-foreground">This listing can't be added to a cart right now (out of stock or no fixed price).</p>;
   }
 
-  const add = () => void addToCart(qty);
+  const add = async () => {
+    if (await addToCart(qty)) {
+      setJustAdded(true);
+      window.setTimeout(() => setJustAdded(false), 1400);
+    }
+  };
 
 
   return (
@@ -130,8 +137,23 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
             <PlusIcon className="size-4" />
           </button>
         </div>
-        <Button size="lg" className="min-w-0 flex-1" onClick={add} loading={busy} disabled={limitReached}>
-          <ShoppingCartSimpleIcon /> Add to cart
+        <Button
+          size="lg"
+          className={cn("min-w-0 flex-1 transition-colors", justAdded && "bg-success text-white hover:bg-success")}
+          onClick={() => void add()}
+          loading={busy}
+          disabled={limitReached}
+          aria-live="polite"
+        >
+          {justAdded ? (
+            <span key="added" className="inline-flex animate-fade-up items-center gap-2">
+              <CheckIcon weight="bold" /> Added to cart
+            </span>
+          ) : (
+            <>
+              <ShoppingCartSimpleIcon /> Add to cart
+            </>
+          )}
         </Button>
       </div>
       <p className="mt-3 text-sm text-body">

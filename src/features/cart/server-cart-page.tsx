@@ -19,6 +19,8 @@ import { ConfirmDialog } from "@/components/ui/dialog";
 import { ErrorState } from "@/components/feedback/states";
 import { Skeleton } from "@/components/ui/misc";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
+import { useLeavingRows } from "./remove-with-undo";
+import { useServerRemove } from "./cart-shared";
 import { cn } from "@/lib/utils/cn";
 import { useCart } from "@/lib/cart/cart-context";
 import { useCartActions, useSavedItems, useServerCart } from "@/lib/cart/server-cart";
@@ -88,11 +90,11 @@ export function ServerQty({ item, disabled, onChange, size = "md" }: { item: Buy
   );
 }
 
-function CartLine({ item, blockers, busy, act }: { item: BuyerCartItemResponse; blockers: CheckoutBlockerDto[]; busy: boolean; act: ReturnType<typeof useCartActions>["mutate"] }) {
+function CartLine({ item, blockers, busy, act, leaving, onRemove }: { item: BuyerCartItemResponse; blockers: CheckoutBlockerDto[]; busy: boolean; act: ReturnType<typeof useCartActions>["mutate"]; leaving: boolean; onRemove: () => void }) {
   const unavailable = !item.isActive || !item.isPurchasable;
   const href = listingPath(item.listingId, item.title);
   return (
-    <li className={cn("flex gap-3 p-4 sm:gap-4", unavailable && "bg-danger-soft/30")}>
+    <li className={cn("flex gap-3 p-4 sm:gap-4", unavailable && "bg-danger-soft/30", leaving && "animate-row-out pointer-events-none")}>
       <Link to={href} className="shrink-0">
         <ListingImage src={assetUrl(item.thumbnailUrl)} alt={item.title} className={cn("size-20 rounded-lg sm:size-24", unavailable && "opacity-60")} />
       </Link>
@@ -127,7 +129,7 @@ function CartLine({ item, blockers, busy, act }: { item: BuyerCartItemResponse; 
           <button type="button" disabled={busy} onClick={() => act({ kind: "save", listingId: item.listingId })} className="inline-flex min-h-10 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-50">
             <BookmarkSimpleIcon className="size-4" /> Save for later
           </button>
-          <button type="button" disabled={busy} onClick={() => act({ kind: "remove", listingId: item.listingId })} className="inline-flex min-h-10 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-danger disabled:opacity-50">
+          <button type="button" disabled={busy || leaving} onClick={onRemove} className="inline-flex min-h-10 cursor-pointer items-center gap-1 text-sm text-muted-foreground hover:text-danger disabled:opacity-50">
             <TrashIcon className="size-4" /> Remove
           </button>
           <span className="ml-auto font-heading font-bold text-foreground sm:hidden">{unavailable ? "—" : formatMoney(item.lineSubtotal, item.currentCurrency)}</span>
@@ -265,6 +267,8 @@ export function ServerCartPage() {
   const actions = useCartActions();
   const [confirmClear, setConfirmClear] = React.useState(false);
   const cart = q.data;
+  const rows = useLeavingRows();
+  const removeLine = useServerRemove(actions.mutate, rows.leave);
 
   if (q.isLoading)
     return (
@@ -317,7 +321,15 @@ export function ServerCartPage() {
                   </header>
                   <ul className="divide-y divide-border">
                     {g.items.map((item) => (
-                      <CartLine key={item.listingId} item={item} blockers={blockersFor(item.listingId)} busy={actions.isPending} act={actions.mutate} />
+                      <CartLine
+                        key={item.listingId}
+                        item={item}
+                        blockers={blockersFor(item.listingId)}
+                        busy={actions.isPending}
+                        act={actions.mutate}
+                        leaving={rows.isLeaving(item.listingId)}
+                        onRemove={() => removeLine(item)}
+                      />
                     ))}
                   </ul>
                 </section>

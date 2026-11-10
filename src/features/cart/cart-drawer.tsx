@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useLeavingRows } from "./remove-with-undo";
+import { cn } from "@/lib/utils/cn";
 import { safeSellerLabel } from "@/lib/seller-code";
 import { Link, useNavigate } from "react-router";
 import { Dialog as DialogPrimitive } from "radix-ui";
@@ -9,7 +11,7 @@ import { ServerQty } from "./server-cart-page";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/lib/cart/cart-context";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
-import { QtyStepper, cartTotals, useLiveItems } from "./cart-shared";
+import { QtyStepper, cartTotals, useGuestRemove, useLiveItems, useServerRemove } from "./cart-shared";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { listingPath } from "@/lib/seo/site";
 
@@ -22,6 +24,9 @@ export function CartDrawer() {
   const navigate = useNavigate();
   const server = useServerCart();
   const actions = useCartActions();
+  const rows = useLeavingRows();
+  const removeServer = useServerRemove(actions.mutate, rows.leave);
+  const removeGuest = useGuestRemove(rows.leave);
   const serverLines = server.data?.sellerGroups.flatMap((g) => g.items) ?? [];
   const live = useLiveItems(cart.isOpen && cart.mode === "guest" ? cart.items : []);
   const totals = cartTotals(cart.items, live);
@@ -62,7 +67,7 @@ export function CartDrawer() {
                     const unavailable = !item.isActive || !item.isPurchasable;
                     const group = server.data?.sellerGroups.find((g) => g.items.includes(item));
                     return (
-                      <li key={item.listingId} className="flex gap-3 py-3">
+                      <li key={item.listingId} className={cn("flex gap-3 py-3", rows.isLeaving(item.listingId) && "animate-row-out pointer-events-none")}>
                         <Link to={listingPath(item.listingId, item.title)} onClick={close} className="shrink-0">
                           <ListingImage src={assetUrl(item.thumbnailUrl)} alt={item.title} className="size-14 rounded-lg" />
                         </Link>
@@ -91,7 +96,7 @@ export function CartDrawer() {
                         <button
                           type="button"
                           disabled={actions.isPending}
-                          onClick={() => actions.mutate({ kind: "remove", listingId: item.listingId })}
+                          onClick={() => removeServer(item)}
                           className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger"
                           aria-label={`Remove ${item.title}`}
                         >
@@ -148,7 +153,7 @@ export function CartDrawer() {
                   const price = s?.price ?? item.unitPrice;
                   const currency = s?.currency ?? item.currency;
                   return (
-                    <li key={item.listingId} className="flex gap-3 py-3">
+                    <li key={item.listingId} className={cn("flex gap-3 py-3", rows.isLeaving(item.listingId) && "animate-row-out pointer-events-none")}>
                       <Link to={listingPath(item.listingId, item.title)} onClick={close} className="shrink-0">
                         <ListingImage src={item.imageUrl} alt={item.title} className="size-14 rounded-lg" />
                       </Link>
@@ -171,7 +176,7 @@ export function CartDrawer() {
                           </div>
                         )}
                       </div>
-                      <button type="button" onClick={() => cart.remove(item.listingId)} className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger" aria-label={`Remove ${item.title}`}>
+                      <button type="button" onClick={() => removeGuest(item)} className="flex size-8 shrink-0 cursor-pointer items-center justify-center rounded-full text-muted-foreground hover:bg-danger-soft hover:text-danger" aria-label={`Remove ${item.title}`}>
                         <TrashIcon className="size-4" />
                       </button>
                     </li>
