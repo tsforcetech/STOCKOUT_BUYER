@@ -245,3 +245,23 @@ describe("Motion: remove with Undo", () => {
     await waitFor(() => expect(calls.find((c) => c.method === "POST" && c.url.pathname === "/api/v1/buyer/cart/items")?.body).toEqual({ listingId: L1, sellerId: S1, quantity: 4 }));
   });
 });
+
+describe("Motion: remove feels instant", () => {
+  it("the line leaves the cart before the server answers, and comes back if the server refuses", async () => {
+    signIn();
+    let release: (v: { status?: number; body?: unknown }) => void = () => {};
+    mockFetch([
+      ...sessionRoutes([]),
+      cartRoute(() => ({ body: cart() })),
+      empty,
+      wishIds,
+      { method: "DELETE", path: `/api/v1/buyer/cart/items/${L1}`, respond: () => new Promise((r) => (release = r)) },
+    ]);
+    page(<CartPage />, "/cart");
+    expect(await screen.findByText("Gate valve DN100")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Remove/ }));
+    await waitFor(() => expect(screen.queryByText("Gate valve DN100")).not.toBeInTheDocument(), { timeout: 1000 }); // server still pending
+    release({ status: 409, body: { status: 409, title: "Conflict", code: "COMMERCE_LISTING_NOT_AVAILABLE" } });
+    expect(await screen.findByText("Gate valve DN100")).toBeInTheDocument(); // restored on failure
+  });
+});

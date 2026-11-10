@@ -74,10 +74,20 @@ export function useCartActions() {
             return svc.removeSaved(op.listingId, rv);
         }
       }),
+    // Remove / save-for-later take the line out of the cart on screen at once (no wait for the server); the server
+    // answer replaces it, and a failure puts the previous cart back. Totals stay the server's until it answers.
+    onMutate: async (op) => {
+      if (op.kind !== "remove" && op.kind !== "save") return undefined;
+      await qc.cancelQueries({ queryKey: commerceKeys.cart });
+      const before = qc.getQueryData<BuyerCartResponse>(commerceKeys.cart);
+      if (before) qc.setQueryData(commerceKeys.cart, withoutLine(before, op.listingId));
+      return { before };
+    },
     onSuccess: (_cart, op) => {
       if (op.kind === "save" || op.kind === "restore" || op.kind === "removeSaved") void qc.invalidateQueries({ queryKey: commerceKeys.saved });
     },
-    onError: (e) => {
+    onError: (e, _op, ctx) => {
+      if (ctx?.before) qc.setQueryData(commerceKeys.cart, ctx.before);
       toast.error(commerceErrorMessage(e));
       reportIfMatchError(e);
       if (commerceCode(e) === "CART_CONCURRENCY_CONFLICT" || commerceCode(e) === "COMMERCE_LISTING_NOT_AVAILABLE") {
@@ -86,4 +96,12 @@ export function useCartActions() {
       }
     },
   });
+}
+
+/** The cart without one line (and without a seller group it empties). rowVersion is kept: it is the server's. */
+export function withoutLine(cart: BuyerCartResponse, listingId: string): BuyerCartResponse {
+  const id = listingId.toLowerCase();
+  const sellerGroups = cart.sellerGroups.map((g) => ({ ...g, items: g.items.filter((i) => i.listingId.toLowerCase() !== id) })).filter((g) => g.items.length > 0);
+  const removed = cart.sellerGroups.reduce((n, g) => n + g.items.filter((i) => i.listingId.toLowerCase() === id).length, 0);
+  return { ...cart, sellerGroups, itemCount: Math.max(0, cart.itemCount - removed) };
 }
