@@ -10,7 +10,7 @@ export function pageWindow(page: number, total: number, size = 5): number[] {
 }
 
 const box =
-  "flex h-12 min-w-12 cursor-pointer items-center justify-center rounded-md border border-border-strong bg-surface px-2 text-base font-medium text-foreground transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40 sm:h-11 sm:min-w-11";
+  "flex h-11 min-w-11 shrink-0 cursor-pointer items-center justify-center rounded-md border border-border-strong bg-surface px-2 text-base font-medium text-foreground transition-colors hover:border-foreground disabled:cursor-not-allowed disabled:opacity-40";
 
 /** Numbered pagination: ◀ 1 2 3 4 5 ▶ (current page filled). */
 export function Pager({ page, totalPages, onChange }: { page: number; totalPages: number; onChange: (page: number) => void }) {
@@ -18,11 +18,11 @@ export function Pager({ page, totalPages, onChange }: { page: number; totalPages
   const pages = pageWindow(page, totalPages);
   return (
     <nav aria-label="Pagination" className="mt-8 flex flex-col items-center gap-2">
-      <div className="flex w-full max-w-md items-center justify-between gap-2 sm:w-auto sm:max-w-none sm:justify-center">
+      <div className="flex w-full max-w-md items-center justify-between gap-1.5 sm:w-auto sm:max-w-none sm:justify-center sm:gap-2">
         <button type="button" className={box} aria-label="Previous page" disabled={page <= 1} onClick={() => onChange(page - 1)}>
           <CaretLeftIcon weight="fill" className="size-5" />
         </button>
-        <ul className="flex items-center gap-2">
+        <ul className="flex items-center gap-1.5 sm:gap-2">
           {pages.map((n) => (
             <li key={n}>
               <button
