@@ -92,7 +92,7 @@ describe("Stage 8C checkout readiness", () => {
     expect(within(items).getByText("Al Futtaim Engineering LLC")).toBeInTheDocument();
     expect(within(items).getAllByText(/537\.5/).length).toBeGreaterThan(0); // group total from readiness
     expect(within(summary).getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
-    expect(within(summary).getByText(/Your cart passes every checkout check/)).toBeInTheDocument();
+    expect(within(summary).getByText(/Readiness confirmed. Ordering will be available in a later release/)).toBeInTheDocument();
     const rc = calls.find((c) => c.url.pathname === "/api/v1/buyer/checkout/readiness");
     expect(rc?.headers.get("If-Match")).toBe('"AAAAAAAAB9Q="');
     expect(ORDER_API.placeOrder).toBe(false);
@@ -118,7 +118,7 @@ describe("Stage 8C checkout readiness", () => {
     mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => r), eligibility, profile404, wishIds]);
     page(<CheckoutPage />, "/checkout");
     const buyer = await screen.findByRole("region", { name: "Buyer" });
-    expect(await within(buyer).findByText(/needs a verified company purchasing account/)).toBeInTheDocument(); // not "allowed to buy"
+    expect(await within(buyer).findByText(/You buy as a business. Linking your company to checkout isn.t available yet/)).toBeInTheDocument(); // not "allowed to buy"
     expect(within(buyer).queryByText(/allowed to buy/)).not.toBeInTheDocument();
     expect(screen.getByText("Minimum order quantity is 10 units.", { exact: false })).toBeInTheDocument();
     expect(screen.getByText(/less stock than you asked for/)).toBeInTheDocument();
@@ -304,5 +304,30 @@ describe("Stage 8C seller orders (read only)", () => {
       </MemoryRouter>,
     );
     expect(screen.getAllByText("No status changes recorded yet.").length).toBe(2);
+  });
+});
+
+describe("Stage 8C.6 buyer capacity (OD-BUYER-01)", () => {
+  it("a verified individual sees no company requirement and readiness confirmed, with ordering still disabled", async () => {
+    signIn();
+    const indiv = { method: "GET", path: "/api/v1/marketplace/buyer/eligibility", respond: () => ({ body: { success: true, data: { buyerId: "b-1", eligible: true, verificationStatus: "VERIFIED", canPurchase: true, reason: null, organizationType: "INDIVIDUAL", organizationId: null, authorizedOrganizationIds: null } } }) };
+    mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => readiness({ buyerOrganizationId: null })), indiv, profileOk, wishIds]);
+    page(<CheckoutPage />, "/checkout");
+    const buyer = await screen.findByRole("region", { name: "Buyer" });
+    expect(await within(buyer).findByText(/Buying as an individual/)).toBeInTheDocument();
+    expect(within(buyer).getByText("Your account is allowed to buy.")).toBeInTheDocument();
+    const summary = screen.getByRole("complementary", { name: "Order summary" });
+    expect(await within(summary).findByText(/Readiness confirmed/)).toBeInTheDocument();
+    expect(within(summary).getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
+  });
+
+  it("unauthorised company context and unknown codes get safe wording", async () => {
+    signIn();
+    const r = readiness({ canProceed: false, blockers: [{ code: "BUYER_ORGANIZATION_UNAUTHORIZED", message: "x", listingId: null }, { code: "SOMETHING_NEW", message: "Internal: stack trace", listingId: null }] });
+    mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => r), eligibility, profileOk, wishIds]);
+    page(<CheckoutPage />, "/checkout");
+    expect(await screen.findByText(/isn.t authorised to buy for this company/)).toBeInTheDocument();
+    expect(screen.getByText(/quote SOMETHING_NEW/)).toBeInTheDocument();
+    expect(screen.queryByText(/stack trace/)).not.toBeInTheDocument();
   });
 });

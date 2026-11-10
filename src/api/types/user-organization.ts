@@ -798,6 +798,10 @@ export interface BuyerEligibilityResponse {
   verificationStatus: string;
   canPurchase: boolean;
   reason: string | null;
+  /** Stage 8C.6 (OD-BUYER-01), live 10 Nov 2026: INDIVIDUAL buyers (B2C) may purchase without a company. */
+  organizationType?: "INDIVIDUAL" | "BUSINESS" | string | null;
+  organizationId?: Guid | null;
+  authorizedOrganizationIds?: Guid[] | null;
 }
 
 /** C#: Contracts.Marketplace.SellerEligibilityResponse — GET /marketplace/sellers/{id}/eligibility. */

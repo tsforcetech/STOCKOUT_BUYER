@@ -70,7 +70,7 @@ function useBuyerProfile() {
 const TRN = /^\d{15}$/;
 
 /** Account-level readiness blockers: checkout readiness is authoritative over the eligibility banner. */
-const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "MULTIPLE_ORGANIZATIONS", "COMMERCE_SELF_PURCHASE_DENIED"];
+const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "BUYER_ORGANIZATION_UNAUTHORIZED", "MULTIPLE_ORGANIZATIONS", "COMMERCE_SELF_PURCHASE_DENIED"];
 
 function BuyerSection({ readiness }: { readiness: CheckoutValidationResult | undefined }) {
   const elig = useBuyerEligibility();
@@ -102,6 +102,11 @@ function BuyerSection({ readiness }: { readiness: CheckoutValidationResult | und
         </p>
       )}
 
+      {e?.organizationType && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Buying as {e.organizationType.toUpperCase() === "INDIVIDUAL" ? "an individual (no company needed)" : "a business"}
+        </p>
+      )}
       <div className="mt-4">
         {profile.isLoading ? (
           <div className="space-y-2">
@@ -389,7 +394,7 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
         <div className="mt-4" aria-label="Checkout readiness">
           {r.canProceed ? (
             <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
-              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Your cart passes every checkout check.
+              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Readiness confirmed. Ordering will be available in a later release.
             </p>
           ) : (
             <ul className="space-y-2">

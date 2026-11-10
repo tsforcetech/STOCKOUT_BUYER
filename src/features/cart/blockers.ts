@@ -10,7 +10,8 @@ export const BLOCKER_TEXT: Record<string, string> = {
   COMMERCE_MIN_ORDER_QTY_NOT_MET: "An item is below the seller's minimum order quantity.",
   MIXED_CURRENCY_NOT_SUPPORTED: "Your cart has items in different currencies, so it can't be totalled or checked out together.",
   TAX_RATE_UNAVAILABLE: "VAT can't be estimated right now. Your cart still works; checkout waits until it can.",
-  BUYER_ORGANIZATION_REQUIRED: "Checkout currently needs a verified company purchasing account, and none is linked to your account. Contact StockOut support if your company is already verified.",
+  BUYER_ORGANIZATION_REQUIRED: "You buy as a business. Linking your company to checkout isn't available yet; StockOut is setting it up. You don't need to do anything.",
+  BUYER_ORGANIZATION_UNAUTHORIZED: "Your account isn't authorised to buy for this company. Ask your company's owner to check your role.",
   COMMERCE_SELF_PURCHASE_DENIED: "You can't buy your own business's listings. Remove them from your cart.",
   CART_EMPTY: "Your cart is empty.",
 };
@@ -18,4 +19,6 @@ export const BLOCKER_TEXT: Record<string, string> = {
 /** Quantity rules carry the exact constraint in the backend message, so that text is shown as-is. */
 const USE_BACKEND_MESSAGE = new Set(["COMMERCE_WHOLE_LOT_REQUIRED", "COMMERCE_MIN_ORDER_QTY_NOT_MET"]);
 
-export const blockerText = (b: Pick<CheckoutBlockerDto, "code" | "message">) => (USE_BACKEND_MESSAGE.has(b.code) && b.message ? b.message : (BLOCKER_TEXT[b.code] ?? b.message));
+/** Unknown codes get a safe generic message with the code as a support reference (never raw backend text). */
+export const blockerText = (b: Pick<CheckoutBlockerDto, "code" | "message">) =>
+  USE_BACKEND_MESSAGE.has(b.code) && b.message ? b.message : (BLOCKER_TEXT[b.code] ?? `Checkout can't continue right now. Contact StockOut support and quote ${b.code}.`);
