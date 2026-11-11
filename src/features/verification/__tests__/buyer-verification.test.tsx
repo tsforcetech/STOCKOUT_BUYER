@@ -198,3 +198,47 @@ describe("Buyer identity verification (one ID, handoff 2026-11-06)", () => {
     expect(await screen.findByText(/taking longer than our 2-business-day target/)).toBeInTheDocument();
   });
 });
+
+describe("BE-08 retry after a failed first save", () => {
+  it("the retry reads the profile the server left behind and saves with its rowVersion, keeping what was typed", async () => {
+    signIn();
+    let created = false;
+    const puts: Array<Record<string, unknown>> = [];
+    mockFetch([
+      ...common,
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => (created ? env(profile({ verificationStatus: "DRAFT", fullName: null, rowVersion: "AAAAAAAAVlA=" })) : { status: 404, body: { status: 404, code: "MARKETPLACE_BUYER_NOT_FOUND" } }) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([]) },
+      {
+        method: "PUT",
+        path: "/api/v1/marketplace/buyer/profile",
+        respond: ({ body }) => {
+          puts.push(body as Record<string, unknown>);
+          if (!created) return (created = true), { status: 500, body: { status: 500, code: "INTERNAL_ERROR", detail: "A database error occurred." } };
+          return env(profile({ verificationStatus: "DRAFT" }));
+        },
+      },
+    ]);
+    page();
+    expect(await screen.findByText("Complete identity verification")).toBeInTheDocument();
+    const pick = async (field: RegExp, option: string) => {
+      await userEvent.click(screen.getByRole("combobox", { name: field }));
+      await userEvent.click(await screen.findByRole("option", { name: option }));
+    };
+    await userEvent.type(screen.getByLabelText(/Full name/), "Aisha Rahman");
+    await pick(/Nationality/, "United Arab Emirates");
+    await pick(/ID type/, "Emirates ID");
+    await userEvent.type(screen.getByLabelText(/ID number/), "784-1990-1234567-1");
+    await pick(/Issuing country/, "United Arab Emirates");
+    await userEvent.type(screen.getByLabelText(/ID expiry date/), "2029-01-01");
+    await userEvent.type(screen.getByLabelText(/Mobile number/), "+971501234567");
+    await userEvent.type(screen.getByLabelText(/Residential address/), "Villa 12, Al Barsha, Dubai");
+    await userEvent.click(screen.getByRole("button", { name: "Save details" }));
+    expect(await screen.findByText(/couldn.t save just now/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Full name/)).toHaveValue("Aisha Rahman"); // nothing typed is lost
+    await userEvent.click(screen.getByRole("button", { name: "Save details" }));
+    await waitFor(() => expect(puts).toHaveLength(2));
+    expect(puts[0].expectedRowVersion).toBeNull();
+    expect(puts[1].expectedRowVersion).toBe("AAAAAAAAVlA=");
+    expect(puts[1].fullName).toBe("Aisha Rahman");
+  });
+});

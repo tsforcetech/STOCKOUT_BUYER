@@ -48,6 +48,7 @@ const MESSAGES: Record<string, string> = {
   BUYER_IBAN_INVALID: "Enter a valid UAE IBAN.",
   FILE_SIZE_EXCEEDED: "The file is too large. The limit is 20 MB.",
   FILE_CONTENT_TYPE_INVALID: "Use a PDF, JPG or PNG file.",
+  INTERNAL_ERROR: "We couldn't save just now. Your details are still here; press Save again in a moment.",
 };
 
 export function verificationMessage(e: unknown): string {

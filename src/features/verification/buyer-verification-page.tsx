@@ -289,7 +289,12 @@ function DetailsStep({ p, phase }: { p: BuyerProfileDto | null; phase: Phase }) 
     setServerError(null);
     try {
       // Always the latest rowVersion; keep any company invoicing details already on the profile.
-      const latest = p ? await marketplaceService.buyerProfile() : null;
+      // Read the server's profile even when the page had none: a failed first save can leave a profile behind
+      // (backend BE-08), and creating again would fail every retry. 404 = genuinely new buyer.
+      const latest = await marketplaceService.buyerProfile().catch((e: unknown) => {
+        if (isApiError(e) && e.status === 404) return null;
+        throw e;
+      });
       const body: UpsertBuyerProfileRequest = {
         ...(latest
           ? {
