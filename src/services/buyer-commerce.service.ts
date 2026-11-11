@@ -32,6 +32,8 @@ export const buyerCommerceService = {
   updateQuantity: (listingId: string, quantity: number, rowVersion?: string | null) =>
     http.put<BuyerCartResponse>(`${cart}/items/${seg(listingId)}`, { quantity }, { headers: ifMatch(rowVersion) }),
   removeItem: (listingId: string, rowVersion?: string | null) => http.delete<BuyerCartResponse>(`${cart}/items/${seg(listingId)}`, { headers: ifMatch(rowVersion) }),
+  /** BE-01: bind the purchasing organisation (null = buy personally, individual buyers only). Server checks authority. */
+  setOrganization: (organizationId: string | null, rowVersion?: string | null) => http.put<BuyerCartResponse>(`${cart}/organization`, { organizationId }, { headers: ifMatch(rowVersion) }),
   clear: (rowVersion?: string | null) => http.delete<BuyerCartResponse>(cart, { headers: ifMatch(rowVersion) }),
   /** Idempotency-Key (8–100 chars, [A-Za-z0-9._-]) is required; retries must reuse the key and the identical payload. */
   merge: (body: MergeGuestCartRequest, idempotencyKey: string) => http.post<BuyerCartResponse>(`${cart}/merge`, body, { headers: { "Idempotency-Key": idempotencyKey } }),

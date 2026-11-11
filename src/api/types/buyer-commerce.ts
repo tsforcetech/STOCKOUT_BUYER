@@ -98,6 +98,8 @@ export interface BuyerCartResponse {
   sellerGroups: CartSellerGroupDto[];
   checkoutReadiness: CheckoutReadinessDto;
   /** Base64 rowversion; send back quoted in If-Match. */
+  /** BE-01 (11 Nov 2026): purchasing organisation bound to this cart; null = personal (individual buyer) or not chosen yet. */
+  buyerOrganizationId?: Guid | null;
   rowVersion: string;
   updatedAt: IsoDateTime;
 }

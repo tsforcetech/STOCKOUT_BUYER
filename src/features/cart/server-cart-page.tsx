@@ -30,7 +30,7 @@ import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { useGuestMerge } from "./merge-prompt";
 import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
 import { listingPath } from "@/lib/seo/site";
-import { BLOCKER_TEXT, blockerText } from "./blockers";
+import { BLOCKER_TEXT, RESOLVED_AT_CHECKOUT, blockerText } from "./blockers";
 
 
 function MergeBanner() {
@@ -147,6 +147,8 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
   const noTax = codes.has("TAX_RATE_UNAVAILABLE");
   // Generic (cart-wide) blockers are listed here; item-specific ones are shown on their line.
   const general = blockers.filter((b) => !b.listingId);
+  // Choosing who is buying happens on the checkout page, so those blockers alone don't keep the buyer in the cart.
+  const canGoToCheckout = cart.checkoutReadiness.canProceed || (cart.itemCount > 0 && blockers.length > 0 && blockers.every((b) => RESOLVED_AT_CHECKOUT.has(b.code)));
   return (
     <aside className="h-fit rounded-2xl border border-border p-5 shadow-raised lg:sticky lg:top-[176px]">
       <h2 className="font-heading text-lg font-bold text-foreground">Summary</h2>
@@ -178,6 +180,8 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
       <section aria-label="Checkout readiness" className="mt-4">
         {cart.checkoutReadiness.canProceed ? (
           <p className="rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">Your cart is ready for checkout.</p>
+        ) : canGoToCheckout ? (
+          <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">{blockerText(general[0])}</p>
         ) : (
           <ul className="space-y-2">
             {general.map((b) => (
@@ -195,7 +199,7 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
         )}
       </section>
 
-      {cart.checkoutReadiness.canProceed ? (
+      {canGoToCheckout ? (
         <Button asChild size="lg" className="mt-4 w-full rounded-full">
           <Link to="/checkout">
             Proceed to checkout <ArrowRightIcon />
@@ -207,7 +211,7 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
         </Button>
       )}
       <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        {cart.checkoutReadiness.canProceed ? (
+        {canGoToCheckout ? (
           <>Review your order on the next step. Placing orders and payment open at launch.</>
         ) : (
           <>Checkout opens once the points above are resolved. Your cart is saved to your account.</>

@@ -265,3 +265,13 @@ describe("Motion: remove feels instant", () => {
     expect(await screen.findByText("Gate valve DN100")).toBeInTheDocument(); // restored on failure
   });
 });
+
+describe("BE-01 cart gate", () => {
+  it("lets the buyer through to checkout when the only blocker is choosing the buying company", async () => {
+    signIn();
+    mockFetch([...sessionRoutes([]), cartRoute(() => ({ body: cart({ checkoutReadiness: { canProceed: false, blockers: [{ code: "BUYER_ORGANIZATION_REQUIRED", message: "x", listingId: null }] } }) })), empty, wishIds]);
+    page(<CartPage />, "/cart");
+    expect(await screen.findByRole("link", { name: /Proceed to checkout/ })).toHaveAttribute("href", "/checkout");
+    expect(screen.getByText(/Choose the company you.re buying for at checkout/)).toBeInTheDocument();
+  });
+});

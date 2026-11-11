@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Link } from "react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   ArrowsClockwiseIcon,
@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { ErrorState } from "@/components/feedback/states";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
-import { useServerCart } from "@/lib/cart/server-cart";
+import { commerceKeys, useServerCart } from "@/lib/cart/server-cart";
 import { isApiError } from "@/lib/api/errors";
 import { marketplaceService } from "@/services/marketplace.service";
 import { useAuth } from "@/lib/auth/auth-context";
@@ -31,6 +31,7 @@ import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
 import type { BuyerProfileDto } from "@/api/types/user-organization";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { orderKeys, ordersService } from "@/services/orders.service";
+import { PurchasingAccount } from "./purchasing-account";
 import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/orders";
 
 /**
@@ -72,7 +73,7 @@ const TRN = /^\d{15}$/;
 /** Account-level readiness blockers: checkout readiness is authoritative over the eligibility banner. */
 const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "BUYER_ORGANIZATION_UNAUTHORIZED", "MULTIPLE_ORGANIZATIONS", "COMMERCE_SELF_PURCHASE_DENIED"];
 
-function BuyerSection({ readiness }: { readiness: CheckoutValidationResult | undefined }) {
+function BuyerSection({ readiness, cart, onCartChanged }: { readiness: CheckoutValidationResult | undefined; cart: BuyerCartResponse; onCartChanged: (cart: BuyerCartResponse) => void }) {
   const elig = useBuyerEligibility();
   const profile = useBuyerProfile();
   const e = elig.data;
@@ -107,6 +108,7 @@ function BuyerSection({ readiness }: { readiness: CheckoutValidationResult | und
           Buying as {e.organizationType.toUpperCase() === "INDIVIDUAL" ? "an individual (no company needed)" : "a business"}
         </p>
       )}
+      <PurchasingAccount cart={cart} eligibility={e} profile={profile.data ?? undefined} onCartChanged={onCartChanged} />
       <div className="mt-4">
         {profile.isLoading ? (
           <div className="space-y-2">
@@ -442,6 +444,7 @@ function ChangedNotice({ onReload }: { onReload: () => void }) {
 
 export default function CheckoutPage() {
   const q = useServerCart();
+  const queryClient = useQueryClient();
   // The rowVersion the buyer is reviewing. If a refetch brings a different one, the cart changed elsewhere.
   const [reviewed, setReviewed] = React.useState<{ rowVersion: string; cart: BuyerCartResponse } | null>(null);
   React.useEffect(() => {
@@ -503,7 +506,7 @@ export default function CheckoutPage() {
       {changed && <ChangedNotice onReload={reload} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
-          <BuyerSection readiness={readiness.data} />
+          <BuyerSection readiness={readiness.data} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
           <ItemsSection cart={cart} readiness={readiness.data} />
           <DeliverySection />
           <PaymentSection />
