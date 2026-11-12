@@ -76,6 +76,11 @@ export interface SellerSubOrderDto {
   rowVersion: string;
   createdAtUtc: IsoDateTime;
   updatedAtUtc: IsoDateTime | null;
+  /** Stage 8C.9: 24 h seller confirmation deadline (starts at payment authorisation); null until then. */
+  confirmationDeadlineUtc?: IsoDateTime | null;
+  /** Stage 8C.9: past the deadline and sent to Platform Admin review (never auto-cancelled). */
+  isEscalated?: boolean;
+  escalatedAtUtc?: IsoDateTime | null;
   items: OrderLineSnapshotDto[];
   statusHistory: OrderStatusHistoryDto[];
 }
@@ -87,6 +92,10 @@ export interface MarketplaceOrderDto {
   buyerUserId: Guid;
   buyerOrganizationId: Guid | null;
   orderDateUtc: IsoDateTime;
+  /** Stage 8C.9 */
+  paymentAuthorizedAtUtc?: IsoDateTime | null;
+  buyerConsentMultiSellerContinuation?: boolean;
+  buyerConsentCapturedAtUtc?: IsoDateTime | null;
   currency: string;
   aggregateMaterialAmount: number;
   applicableMaterialVat: number;

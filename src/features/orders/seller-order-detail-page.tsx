@@ -8,6 +8,7 @@ import { SellerSubOrderDetail } from "./components/order-views";
 import { DetailSkeleton } from "./order-detail-page";
 import { OrderNotFound } from "./order-unavailable";
 import { SellerOrderError } from "./seller-order-error";
+import { SellerDecision } from "./seller-decision";
 
 /** /seller/orders/:subOrderId: GET /api/v1/seller/orders/{subOrderId} for the active seller. Read only. */
 export default function SellerOrderDetailPage() {
@@ -31,7 +32,7 @@ export default function SellerOrderDetailPage() {
         ) : q.error || !q.data ? (
           <SellerOrderError error={q.error} onRetry={() => void q.refetch()} />
         ) : (
-          <SellerSubOrderDetail sub={q.data} />
+          <SellerSubOrderDetail sub={q.data} actions={<SellerDecision sellerId={seller.sellerId} sub={q.data} />} />
         )}
       </div>
     </div>

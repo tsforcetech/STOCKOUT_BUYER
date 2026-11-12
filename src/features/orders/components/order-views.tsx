@@ -1,3 +1,4 @@
+import type * as React from "react";
 import { Link } from "react-router";
 import { CaretRightIcon, LockSimpleIcon, StorefrontIcon } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/misc";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/utils/format";
 import type { MarketplaceOrderDto, OrderLineSnapshotDto, OrderStatusHistoryDto, SellerSubOrderDto } from "@/api/types/orders";
+import { SellerSlaBadge, isPendingConfirmation } from "./seller-sla";
 import { anyStatusLabel, claimStatus, fulfilmentStatus, orderStatus, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
 
 /**
@@ -100,6 +102,11 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
             <StatusBadge entry={paymentStatus(order.paymentStatus)} />
           </div>
         </header>
+        {order.subOrders.some((s) => s.isEscalated && isPendingConfirmation(s.status)) && (
+          <p role="status" className="rounded-2xl bg-warning-soft p-4 text-sm leading-6 text-warning-soft-foreground">
+            One of your sellers is taking longer than usual to confirm. StockOut is following up with them. You don&apos;t need to do anything.
+          </p>
+        )}
         {order.subOrders.map((s) => (
           <section key={s.subOrderId} className="overflow-hidden rounded-2xl border border-border" aria-label={`From ${s.sellerTradingName || s.sellerLegalName || "seller"}`}>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-muted px-4 py-3">
@@ -192,6 +199,9 @@ export function SellerOrderList({ subOrders }: { subOrders: SellerSubOrderDto[] 
                 <StatusBadge entry={subOrderStatus(s.status)} />
                 <StatusBadge entry={fulfilmentStatus(s.fulfillmentStatus)} />
               </div>
+              <div className="mt-2 empty:hidden">
+                <SellerSlaBadge sub={s} />
+              </div>
             </div>
             <p className="shrink-0 font-heading text-lg font-bold text-foreground">{formatMoney(s.subOrderTotal, s.items[0]?.currency ?? "AED")}</p>
             <CaretRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
@@ -202,7 +212,7 @@ export function SellerOrderList({ subOrders }: { subOrders: SellerSubOrderDto[] 
   );
 }
 
-export function SellerSubOrderDetail({ sub }: { sub: SellerSubOrderDto }) {
+export function SellerSubOrderDetail({ sub, actions }: { sub: SellerSubOrderDto; actions?: React.ReactNode }) {
   const currency = sub.items[0]?.currency ?? "AED";
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -216,6 +226,9 @@ export function SellerSubOrderDetail({ sub }: { sub: SellerSubOrderDto }) {
             <StatusBadge entry={subOrderStatus(sub.status)} />
             <StatusBadge entry={fulfilmentStatus(sub.fulfillmentStatus)} />
             <StatusBadge entry={claimStatus(sub.claimStatus)} />
+          </div>
+          <div className="mt-3 empty:hidden">
+            <SellerSlaBadge sub={sub} detailed />
           </div>
         </header>
         <section className="overflow-hidden rounded-2xl border border-border bg-surface" aria-label="Items">
@@ -257,13 +270,17 @@ export function SellerSubOrderDetail({ sub }: { sub: SellerSubOrderDto }) {
       </div>
       <aside className="h-fit space-y-3 rounded-2xl border border-border bg-surface p-5" aria-label="Order actions">
         <h2 className="font-heading text-lg font-bold text-foreground">Actions</h2>
-        <Button className="w-full" disabled>
-          <LockSimpleIcon /> Confirm order
-        </Button>
-        <Button variant="secondary" className="w-full" disabled>
-          Reject order
-        </Button>
-        <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Confirming, rejecting, dispatching and delivery updates aren&apos;t available yet. They open once the seller order rules are approved.</p>
+        {actions ?? (
+          <>
+            <Button className="w-full" disabled>
+              <LockSimpleIcon /> Confirm order
+            </Button>
+            <Button variant="secondary" className="w-full" disabled>
+              Reject order
+            </Button>
+          </>
+        )}
+        <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Dispatch and delivery updates aren&apos;t available yet. They open once the fulfilment rules are approved.</p>
       </aside>
     </div>
   );

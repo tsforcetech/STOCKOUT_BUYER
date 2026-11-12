@@ -11,6 +11,8 @@ export const ORDER_API = {
   sellerOrders: true,
   /** Order placement POST: not implemented / approved. */
   placeOrder: false,
-  /** Seller confirm / reject / dispatch / delivered: no approved contract. */
-  sellerActions: false,
+  /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */
+  sellerConfirmReject: true,
+  /** Dispatch / delivered / claims: no approved contract. */
+  sellerFulfilmentActions: false,
 } as const;

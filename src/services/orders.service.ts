@@ -24,6 +24,14 @@ export const ordersService = {
     http.get<SellerSubOrderDto>(`/api/v1/seller/orders/${seg(subOrderId)}`, { query: { sellerId }, signal }),
 };
 
+/** Stage 8C.9 seller decisions (POST, rowVersion in the body). Both return the updated SellerSubOrderDto. */
+export const sellerOrderActions = {
+  confirm: (sellerId: string, subOrderId: string, expectedRowVersion: string) =>
+    http.post<SellerSubOrderDto>(`/api/v1/seller/orders/${seg(subOrderId)}/confirm`, { expectedRowVersion }, { query: { sellerId } }),
+  reject: (sellerId: string, subOrderId: string, reason: string, expectedRowVersion: string) =>
+    http.post<SellerSubOrderDto>(`/api/v1/seller/orders/${seg(subOrderId)}/reject`, { reason, expectedRowVersion }, { query: { sellerId } }),
+};
+
 export const orderKeys = {
   readiness: (rv: string | null | undefined) => ["checkout", "readiness", rv ?? ""] as const,
   buyerList: ["orders", "buyer"] as const,

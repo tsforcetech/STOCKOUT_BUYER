@@ -284,15 +284,15 @@ describe("Stage 8C seller orders (read only)", () => {
     expect(new Set(calls.filter((x) => x.url.pathname === "/api/v1/seller/orders").map((x) => x.url.searchParams.get("sellerId")))).toEqual(new Set([SELLER]));
   });
 
-  it("suborder detail shows lines, history and payout state with every action disabled", async () => {
+  it("suborder detail shows lines, history and payout state; confirm/reject are live for a pending suborder", async () => {
     signIn();
     mockFetch([...sessionRoutes(sellerCtx), { method: "GET", path: `/api/v1/seller/orders/${SO1}`, respond: () => ({ body: sub() }) }]);
     sellerPage(<SellerOrderDetailPage />, "/seller/orders/:subOrderId", `/seller/orders/${SO1}`);
     expect(await screen.findByRole("heading", { name: "Order SO-ORD-20261109-88A92F-S1" })).toBeInTheDocument();
     expect(screen.getByText("HEB 300 Steel Beam Grade S355JR")).toBeInTheDocument();
     expect(screen.getByText("Not yet eligible")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Confirm order/ })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Reject order/ })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Confirm order/ })).toBeEnabled();
+    expect(screen.getByRole("button", { name: /Reject order/ })).toBeEnabled();
     expect(within(screen.getByRole("region", { name: "History" })).getAllByRole("listitem")).toHaveLength(2);
   });
 
@@ -387,5 +387,74 @@ describe("BE-01 purchasing company on the cart", () => {
     page(<CheckoutPage />, "/checkout");
     expect(await screen.findByText(/Buying personally. No company needed/)).toBeInTheDocument();
     expect(calls.some((x) => x.method === "PUT")).toBe(false);
+  });
+});
+
+describe("Stage 8C.9 seller confirmation SLA and decisions", () => {
+  const future = new Date(Date.now() + 5 * 3_600_000 + 10 * 60_000).toISOString();
+  const past = new Date(Date.now() - 3_600_000).toISOString();
+
+  it("shows a countdown, an expired notice and an escalation alert from the server's deadline", async () => {
+    signIn();
+    mockFetch([...sessionRoutes(sellerCtx), { method: "GET", path: "/api/v1/seller/orders", respond: () => ({ body: [
+      sub({ subOrderId: "11111111-0000-4000-8000-000000000001", subOrderNumber: "SO-1-S1", confirmationDeadlineUtc: future, isEscalated: false }),
+      sub({ subOrderId: "11111111-0000-4000-8000-000000000002", subOrderNumber: "SO-2-S1", confirmationDeadlineUtc: past, isEscalated: false }),
+      sub({ subOrderId: "11111111-0000-4000-8000-000000000003", subOrderNumber: "SO-3-S1", confirmationDeadlineUtc: past, isEscalated: true, escalatedAtUtc: past }),
+      sub({ subOrderId: "11111111-0000-4000-8000-000000000004", subOrderNumber: "SO-4-S1", status: "CONFIRMED", confirmationDeadlineUtc: past }),
+    ] }) }]);
+    sellerPage(<SellerOrdersPage />, "/seller/orders");
+    expect(await screen.findByText(/Confirm within \d+ h \d+ min/)).toBeInTheDocument();
+    expect(screen.getByText(/Confirmation time has passed/)).toBeInTheDocument();
+    expect(screen.getByText(/Under StockOut review/)).toBeInTheDocument();
+    expect(screen.getAllByRole("status").filter((n) => /Confirm within|passed|review/.test(n.textContent ?? ""))).toHaveLength(3); // none for the confirmed one
+  });
+
+  it("confirms with the suborder's rowVersion and sellerId, then shows the server's new status", async () => {
+    signIn();
+    let confirmed = false;
+    const { calls } = mockFetch([
+      ...sessionRoutes(sellerCtx),
+      { method: "GET", path: `/api/v1/seller/orders/${SO1}`, respond: () => ({ body: sub({ status: confirmed ? "CONFIRMED" : "PENDINGCONFIRMATION", confirmationDeadlineUtc: future }) }) },
+      { method: "GET", path: "/api/v1/seller/orders", respond: () => ({ body: [] }) },
+      { method: "POST", path: `/api/v1/seller/orders/${SO1}/confirm`, respond: () => ((confirmed = true), { body: sub({ status: "CONFIRMED", rowVersion: "AAAAAAAAB/I=" }) }) },
+    ]);
+    sellerPage(<SellerOrderDetailPage />, "/seller/orders/:subOrderId", `/seller/orders/${SO1}`);
+    await userEvent.click(await screen.findByRole("button", { name: /Confirm order/ }));
+    await userEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Confirm order" }));
+    expect(await screen.findByText(/No decision needed/)).toBeInTheDocument();
+    const posts = calls.filter((c) => c.method === "POST" && c.url.pathname.endsWith("/confirm"));
+    expect(posts).toHaveLength(1);
+    expect(posts[0].body).toEqual({ expectedRowVersion: "AAAAAAAAB/E=" });
+    expect(posts[0].url.searchParams.get("sellerId")).toBe(SELLER);
+  });
+
+  it("reject needs a reason; StockOut's final decision (409) is explained and the order reloads", async () => {
+    signIn();
+    let gets = 0;
+    const { calls } = mockFetch([
+      ...sessionRoutes(sellerCtx),
+      { method: "GET", path: `/api/v1/seller/orders/${SO1}`, respond: () => (gets++, { body: sub({ isEscalated: true, confirmationDeadlineUtc: past }) }) },
+      { method: "POST", path: `/api/v1/seller/orders/${SO1}/reject`, respond: () => ({ status: 409, body: { status: 409, code: "SUB_ORDER_FINALIZED_BY_ADMIN" } }) },
+    ]);
+    sellerPage(<SellerOrderDetailPage />, "/seller/orders/:subOrderId", `/seller/orders/${SO1}`);
+    await userEvent.click(await screen.findByRole("button", { name: /Reject order/ }));
+    const dlg = await screen.findByRole("alertdialog");
+    await userEvent.click(within(dlg).getByRole("button", { name: "Reject order" }));
+    expect(await within(dlg).findByText(/Tell the buyer why/)).toBeInTheDocument();
+    expect(calls.some((c) => c.url.pathname.endsWith("/reject"))).toBe(false);
+    await userEvent.type(within(dlg).getByLabelText(/Reason for the buyer/), "Sold out at Jebel Ali.");
+    await userEvent.click(within(dlg).getByRole("button", { name: "Reject order" }));
+    expect(await screen.findByText(/StockOut has already decided this order/)).toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname.endsWith("/reject"))?.body).toEqual({ reason: "Sold out at Jebel Ali.", expectedRowVersion: "AAAAAAAAB/E=" });
+    await waitFor(() => expect(gets).toBeGreaterThan(1));
+  });
+
+  it("buyer sees a calm delay notice when a seller is escalated", () => {
+    render(
+      <MemoryRouter>
+        <BuyerOrderDetail order={order({ subOrders: [sub({ isEscalated: true })] })} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByText(/taking longer than usual to confirm/)).toBeInTheDocument();
   });
 });
