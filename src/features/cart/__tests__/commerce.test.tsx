@@ -275,3 +275,16 @@ describe("BE-01 cart gate", () => {
     expect(screen.getByText(/Choose the company you.re buying for at checkout/)).toBeInTheDocument();
   });
 });
+
+describe("Guest cart checkout", () => {
+  it("offers Log in to check out instead of a disabled 'coming soon' button", async () => {
+    localStorage.setItem("stockout.market.cart", JSON.stringify([{ listingId: L1, sellerId: S1, title: "Gate valve DN100", sellerName: "Gulf Valves", unitPrice: 100, currency: "AED", unitSymbol: null, imageUrl: null, quantity: 1, maxQuantity: 5, addedAtUtc: "2026-11-12T00:00:00Z" }]));
+    mockFetch([{ method: "POST", path: "/api/v1/auth/token/refresh", respond: () => ({ status: 401, body: {} }) }, { method: "GET", path: `/api/v1/listings/${L1}`, respond: () => ({ status: 404, body: {} }) }]);
+    renderWithApp([{ path: "/cart", element: <CartPage /> }, { path: "/login", element: <div>login page</div> }], "/cart");
+    const btn = await screen.findByRole("button", { name: /Log in to check out/ });
+    expect(btn).toBeEnabled();
+    expect(screen.queryByText(/coming soon/i)).not.toBeInTheDocument();
+    await userEvent.click(btn);
+    expect(await screen.findByText(/login page|Log in or create a free account to check out/)).toBeInTheDocument();
+  });
+});

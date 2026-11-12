@@ -1,8 +1,9 @@
+import { useAuthDialog } from "@/features/auth/auth-dialog";
 import { useLeavingRows } from "./remove-with-undo";
 import { cn } from "@/lib/utils/cn";
 import { safeSellerLabel } from "@/lib/seller-code";
-import { Link } from "react-router";
-import { InfoIcon, LockSimpleIcon, ShoppingCartSimpleIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
+import { Link, useNavigate } from "react-router";
+import { InfoIcon, ShoppingCartSimpleIcon, SignInIcon, StorefrontIcon, TrashIcon, WarningIcon } from "@phosphor-icons/react";
 import { ListingImage } from "@/components/common/listing-image";
 import { BuyerEligibilityNote } from "./components/buyer-eligibility";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,8 @@ export default function CartPage() {
 /** Signed-out cart: kept on this device; sign in to save it to your account. */
 function GuestCartPage() {
   const cart = useCart();
+  const { requireAuth } = useAuthDialog();
+  const navigate = useNavigate();
   const live = useLiveItems(cart.items);
   const rows = useLeavingRows();
   const removeGuest = useGuestRemove(rows.leave);
@@ -132,13 +135,15 @@ function GuestCartPage() {
               <dd>Agreed with seller</dd>
             </div>
           </dl>
-          <Button size="lg" variant="secondary" className="mt-5 w-full rounded-full" disabled aria-describedby="checkout-note">
-            <LockSimpleIcon /> Checkout · coming soon
+          {/* Checkout needs an account (server cart + readiness). After sign-in the cart page offers to move these items
+              into the account (merge prompt), then "Proceed to checkout". */}
+          <Button size="lg" className="mt-5 w-full rounded-full" aria-describedby="checkout-note" onClick={() => requireAuth(() => navigate("/cart"), "Log in or create a free account to check out.")}>
+            <SignInIcon /> Log in to check out
           </Button>
           <BuyerEligibilityNote className="mt-3" />
           <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-            <span className="font-medium text-foreground">Online checkout is coming soon.</span> Ordering and payments open once StockOut's order and payment
-            services go live. Your cart is saved on this device; sign in to keep it in your account.
+            <span className="font-medium text-foreground">Checkout needs a free StockOut account.</span> Your cart is saved on this device; after you log in we&apos;ll
+            move it to your account so you can review it at checkout.
           </p>
           <button type="button" onClick={() => cart.clear()} className="mt-3 w-full cursor-pointer text-center text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground">
             Clear cart
