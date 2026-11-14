@@ -23,7 +23,7 @@ import { isApiError } from "@/lib/api/errors";
 import { marketplaceService } from "@/services/marketplace.service";
 import { useAuth } from "@/lib/auth/auth-context";
 import { DENIED, useBuyerEligibility } from "@/features/cart/components/buyer-eligibility";
-import { BLOCKER_TEXT, blockerText } from "@/features/cart/blockers";
+import { BLOCKER_TEXT, blockerText, identityBlockerText } from "@/features/cart/blockers";
 import { formatDate, formatMoney, formatNumber } from "@/lib/utils/format";
 import { listingPath } from "@/lib/seo/site";
 import { cn } from "@/lib/utils/cn";
@@ -93,7 +93,9 @@ function BuyerSection({ readiness, cart, onCartChanged }: { readiness: CheckoutV
             {canBuy
               ? "Your account is allowed to buy."
               : buyerBlocker
-                ? blockerText(buyerBlocker)
+                ? buyerBlocker.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED"
+                  ? identityBlockerText(!!e && e.canPurchase && e.verificationStatus === "VERIFIED")
+                  : blockerText(buyerBlocker)
                 : elig.error
                 ? DENIED.UNAVAILABLE
                 : // Known statuses get shopper wording; backend reasons can be internal (e.g. service configuration).

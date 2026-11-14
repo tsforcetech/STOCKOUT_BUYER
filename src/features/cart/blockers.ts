@@ -25,3 +25,12 @@ export const blockerText = (b: Pick<CheckoutBlockerDto, "code" | "message">) =>
 
 /** Blockers the buyer clears on the checkout page itself (choosing who is buying), so the cart still lets them through. */
 export const RESOLVED_AT_CHECKOUT = new Set(["BUYER_ORGANIZATION_REQUIRED", "MULTIPLE_ORGANIZATIONS"]);
+
+/**
+ * BE-12: checkout can report BUYER_IDENTITY_VERIFICATION_REQUIRED for a buyer whose profile is already VERIFIED
+ * (the checkout service's internal account check disagrees). Don't send a verified buyer back to verify.
+ */
+export const IDENTITY_CONFIRMING =
+  "Your identity is verified. Checkout hasn't confirmed your account yet; this usually clears within a few minutes. If it doesn't, contact StockOut support.";
+
+export const identityBlockerText = (alreadyVerified: boolean) => (alreadyVerified ? IDENTITY_CONFIRMING : BLOCKER_TEXT.BUYER_IDENTITY_VERIFICATION_REQUIRED);

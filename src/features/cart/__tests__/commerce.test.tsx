@@ -288,3 +288,14 @@ describe("Guest cart checkout", () => {
     expect(await screen.findByText(/login page|Log in or create a free account to check out/)).toBeInTheDocument();
   });
 });
+
+describe("BE-12 verified buyer blocked by checkout", () => {
+  it("doesn't send an already verified buyer back to verify", async () => {
+    signIn();
+    const elig = { method: "GET", path: "/api/v1/marketplace/buyer/eligibility", respond: () => ({ body: { success: true, data: { buyerId: "b-1", eligible: true, verificationStatus: "VERIFIED", canPurchase: true, reason: null } } }) };
+    mockFetch([...sessionRoutes([]), cartRoute(() => ({ body: cart() })), empty, wishIds, elig]);
+    page(<CartPage />, "/cart");
+    expect(await screen.findByText(/Your identity is verified. Checkout hasn.t confirmed your account yet/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Verify my identity" })).not.toBeInTheDocument();
+  });
+});

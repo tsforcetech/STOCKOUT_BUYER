@@ -30,7 +30,8 @@ import { RfqBanner } from "@/features/rfq/rfq-banner";
 import { useGuestMerge } from "./merge-prompt";
 import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
 import { listingPath } from "@/lib/seo/site";
-import { BLOCKER_TEXT, RESOLVED_AT_CHECKOUT, blockerText } from "./blockers";
+import { useBuyerEligibility } from "./components/buyer-eligibility";
+import { BLOCKER_TEXT, RESOLVED_AT_CHECKOUT, blockerText, identityBlockerText } from "./blockers";
 
 
 function MergeBanner() {
@@ -147,6 +148,8 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
   const noTax = codes.has("TAX_RATE_UNAVAILABLE");
   // Generic (cart-wide) blockers are listed here; item-specific ones are shown on their line.
   const general = blockers.filter((b) => !b.listingId);
+  const elig = useBuyerEligibility().data;
+  const alreadyVerified = !!elig && elig.canPurchase && elig.verificationStatus === "VERIFIED";
   // Choosing who is buying happens on the checkout page, so those blockers alone don't keep the buyer in the cart.
   const canGoToCheckout = cart.checkoutReadiness.canProceed || (cart.itemCount > 0 && blockers.length > 0 && blockers.every((b) => RESOLVED_AT_CHECKOUT.has(b.code)));
   return (
@@ -186,8 +189,8 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
           <ul className="space-y-2">
             {general.map((b) => (
               <li key={b.code} className="rounded-lg bg-warning-soft p-3 text-xs leading-5 text-warning-soft-foreground">
-                <p>{blockerText(b)}</p>
-                {b.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED" && (
+                <p>{b.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED" ? identityBlockerText(alreadyVerified) : blockerText(b)}</p>
+                {b.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED" && !alreadyVerified && (
                   <Button asChild size="sm" variant="secondary" className="mt-2">
                     <Link to="/account/verification">Verify my identity</Link>
                   </Button>
