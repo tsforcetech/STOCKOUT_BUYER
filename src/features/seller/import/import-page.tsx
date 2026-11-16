@@ -13,6 +13,7 @@ import {
   RowsIcon,
   SlidersHorizontalIcon,
   TableIcon,
+  TagIcon,
   UploadSimpleIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -28,11 +29,28 @@ import { ListingAccessNotice, canManageListings } from "../components/listing-ac
 import { Notice } from "../components/notice";
 import { BackLink } from "../components/back-link";
 import { Stepper } from "../components/stepper";
-import { useActiveSeller } from "../lib/queries";
+import { categoryIndexFrom, categoryTreeQuery, useActiveSeller, type CategoryEntry } from "../lib/queries";
 import { DropZone } from "../bulk/drop-zone";
+import { createCategoryMatcher } from "../bulk/rows";
 import { IMPORT_STEPS, importErrorMessage, importKeys, isUncertain, saveBlob, statusLabel } from "./shared";
 import { MatchStep, type ConvertedSheet } from "./own-sheet-mapper";
-import { readSellerFile, templateRowCount, type Sheet } from "./mapping";
+import { TARGETS, convert, readSellerFile, templateRowCount, writeTemplate, type ConvertedRow, type Mapping, type Sheet } from "./mapping";
+import { CATEGORY_COL, applyCategoryChoices, categoryGroups, createCategorySuggester, saveCategoryChoices, type CategoryGroup } from "./category-match";
+import { CategoryStep } from "./category-step";
+
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+/** The template's columns, read in place (column i feeds field i). */
+const TEMPLATE_MAPPING: Mapping = Object.fromEntries(TARGETS.map((t, i) => [t.key, { kind: "column", col: i }]));
+
+/** Rows waiting on "Match your categories" (step 2b), and where Back goes from there. */
+interface CategoryReview {
+  rows: ConvertedRow[];
+  groups: CategoryGroup[];
+  leaves: CategoryEntry[];
+  sourceName: string;
+  template: boolean;
+  choices?: Record<string, string>;
+}
 
 type Stage = "create" | "excel" | "zip" | "validate";
 
@@ -47,7 +65,10 @@ export default function SellerImportPage() {
   const enabled = canManageListings(seller);
   const navigate = useNavigate();
   const qc = useQueryClient();
-  const [step, setStep] = React.useState<1 | 2 | 3>(1);
+  const [step, setStep] = React.useState<1 | 2 | "categories" | 3>(1);
+  const [review, setReview] = React.useState<CategoryReview | null>(null);
+  const [writing, setWriting] = React.useState(false);
+  const [reviewError, setReviewError] = React.useState<string | null>(null);
   const [source, setSource] = React.useState<{ file: File; sheets: Sheet[] } | null>(null);
   const [ready, setReady] = React.useState<ConvertedSheet | null>(null);
   const [zip, setZip] = React.useState<File | null>(null);
@@ -74,10 +95,31 @@ export default function SellerImportPage() {
       if (!sheets.length) throw new Error("This file has no data.");
       const templateRows = /\.xlsx$/i.test(f.name) ? templateRowCount(sheets) : null;
       setSource({ file: f, sheets });
+      setReview(null);
       if (templateRows !== null) {
         if (templateRows === 0) throw new Error("The Products sheet of this template has no products yet.");
         setReady({ file: f, sourceName: f.name, rows: templateRows, template: true });
-        setStep(3);
+        // A template whose category column holds the seller's own names gets "Match your categories" first.
+        const products = sheets.find((s) => s.name.trim().toLowerCase() === "products")!;
+        const index = await loadCategoryIndex();
+        const leaves = [...index.values()].filter((c) => c.isLeaf);
+        const exact = leaves.length ? createCategoryMatcher(leaves) : null;
+        const resolveCategory = (v: string) => {
+          if (GUID.test(v)) return v;
+          const m = exact?.(v);
+          return m?.ok ? m.value.categoryId : null;
+        };
+        const rows = convert(products.rows, 0, TEMPLATE_MAPPING, { resolveCategory });
+        const groups = leaves.length ? categoryGroups(rows, index, createCategorySuggester(leaves)) : [];
+        if (groups.length) {
+          setReview({ rows, groups, leaves, sourceName: f.name, template: true });
+          setStep("categories");
+        } else {
+          // Category names that exactly match ours are swapped for their ids; otherwise the file goes up untouched.
+          const renamed = rows.some((r, i) => String(r.cells[CATEGORY_COL] ?? "") !== String(products.rows[i + 1]?.[CATEGORY_COL] ?? "").trim());
+          if (renamed) setReady({ file: await writeTemplate(rows), sourceName: f.name, rows: rows.length, template: true });
+          setStep(3);
+        }
       } else {
         setReady(null);
         setStep(2);
@@ -115,7 +157,47 @@ export default function SellerImportPage() {
     setStep(1);
     setSource(null);
     setReady(null);
+    setReview(null);
     setError(null);
+  };
+
+  /** The category tree, from the cache when it's there; an empty index (no matching offered) if it can't load. */
+  const loadCategoryIndex = async () => {
+    try {
+      return categoryIndexFrom(await qc.ensureQueryData(categoryTreeQuery));
+    } catch {
+      return new Map<string, CategoryEntry>();
+    }
+  };
+
+  /** From column matching: offer "Match your categories" when some category names aren't ours. */
+  const reviewOwnSheet = (rows: ConvertedRow[], sourceName: string) => {
+    const index = categoryIndexFrom(qc.getQueryData(categoryTreeQuery.queryKey) ?? []);
+    const leaves = [...index.values()].filter((c) => c.isLeaf);
+    const groups = leaves.length ? categoryGroups(rows, index, createCategorySuggester(leaves)) : [];
+    if (!groups.length) return false;
+    setReview({ rows, groups, leaves, sourceName, template: false });
+    setReviewError(null);
+    setStep("categories");
+    return true;
+  };
+
+  const finishCategories = async (choices: Record<string, string>) => {
+    if (!review) return;
+    setWriting(true);
+    setReviewError(null);
+    try {
+      const rows = applyCategoryChoices(review.rows, choices);
+      const file = await writeTemplate(rows);
+      saveCategoryChoices(choices);
+      setReview({ ...review, choices });
+      setReady({ file, sourceName: review.sourceName, rows: rows.length, template: review.template, categoriesMatched: review.groups.filter((g) => choices[g.key]).length });
+      setStep(3);
+    } catch (e) {
+      setReviewError(e instanceof Error ? e.message : "The file couldn't be prepared.");
+    } finally {
+      setWriting(false);
+    }
   };
 
   const start = async () => {
@@ -172,7 +254,7 @@ export default function SellerImportPage() {
         <ListingAccessNotice seller={seller} />
       ) : (
         <>
-          <Stepper steps={IMPORT_STEPS} current={step} />
+          <Stepper steps={IMPORT_STEPS} current={step === "categories" ? 2 : step} />
 
           {step === 1 && (
             <>
@@ -245,10 +327,24 @@ export default function SellerImportPage() {
               sheets={source.sheets}
               preferSheet={ready?.template ? "Products" : undefined}
               onBack={restart}
+              reviewCategories={reviewOwnSheet}
               onReady={(r) => {
                 setReady(r);
                 setStep(3);
               }}
+            />
+          )}
+
+          {step === "categories" && review && (
+            <CategoryStep
+              groups={review.groups}
+              leaves={review.leaves}
+              initial={review.choices}
+              sourceName={review.sourceName}
+              busy={writing}
+              error={reviewError}
+              onBack={() => (review.template ? restart() : setStep(2))}
+              onContinue={(c) => void finishCategories(c)}
             />
           )}
 
@@ -296,10 +392,22 @@ export default function SellerImportPage() {
                       <CheckCircleIcon weight="fill" className="size-4" aria-hidden /> StockOut template recognised. Columns are matched for you.
                     </p>
                   )}
+                  {review && (
+                    <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+                      <TagIcon className="size-4" aria-hidden /> {formatNumber(ready.categoriesMatched ?? 0)} of {formatNumber(review.groups.length)} of your category names matched to StockOut.
+                    </p>
+                  )}
                   {/* Matched automatically or not, the seller can always review and change which column feeds which field. */}
-                  <Button variant="ghost" size="sm" className="mt-2 -ml-2" onClick={() => setStep(2)} disabled={busy}>
-                    <SlidersHorizontalIcon /> Edit column matching
-                  </Button>
+                  <div className="mt-2 -ml-2 flex flex-wrap gap-x-1">
+                    <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={busy}>
+                      <SlidersHorizontalIcon /> Edit column matching
+                    </Button>
+                    {review && (
+                      <Button variant="ghost" size="sm" onClick={() => setStep("categories")} disabled={busy}>
+                        <TagIcon /> Edit categories
+                      </Button>
+                    )}
+                  </div>
 
                   {busy ? (
                     <ul className="mt-4 space-y-2" aria-live="polite" aria-label="Import progress">
@@ -343,7 +451,7 @@ export default function SellerImportPage() {
                   )}
 
                   <div className="mt-4 flex gap-2">
-                    <Button variant="secondary" onClick={() => (ready.template ? restart() : setStep(2))} disabled={busy} aria-label={ready.template ? "Back to file" : "Back to matching"}>
+                    <Button variant="secondary" onClick={() => (review ? setStep("categories") : ready.template ? restart() : setStep(2))} disabled={busy} aria-label={review ? "Back to categories" : ready.template ? "Back to file" : "Back to matching"}>
                       <ArrowLeftIcon />
                     </Button>
                     <Button className="flex-1" onClick={() => void start()} disabled={busy} loading={busy}>

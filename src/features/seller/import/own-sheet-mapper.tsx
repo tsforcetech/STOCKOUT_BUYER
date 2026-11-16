@@ -37,6 +37,8 @@ export interface ConvertedSheet {
   rows: number;
   /** True when the seller's file was already the StockOut template and is uploaded unchanged. */
   template?: boolean;
+  /** How many of the seller's category names were matched on "Match your categories". */
+  categoriesMatched?: number;
 }
 
 const filled = (c: Cell) => c !== null && c !== undefined && String(c).trim() !== "";
@@ -52,6 +54,7 @@ export function MatchStep({
   onBack,
   onReady,
   preferSheet,
+  reviewCategories,
 }: {
   file: File;
   sheets: Sheet[];
@@ -59,6 +62,8 @@ export function MatchStep({
   onReady: (result: ConvertedSheet) => void;
   /** Open on this sheet when present (the StockOut template's "Products"), instead of the first sheet with data. */
   preferSheet?: string;
+  /** Called with the converted rows before the file is written; return true to take over (category matching). */
+  reviewCategories?: (rows: ConvertedRow[], sourceName: string) => boolean;
 }) {
   const preferred = preferSheet ? sheets.findIndex((s) => s.name.trim().toLowerCase() === preferSheet.toLowerCase()) : -1;
   const firstSheet = preferred >= 0 ? preferred : Math.max(0, sheets.findIndex((s) => s.rows.length > 1));
@@ -109,8 +114,9 @@ export function MatchStep({
     setBuilding(true);
     setError(null);
     try {
-      const out = await writeTemplate(converted);
       saveMapping(headerSignature(headers), mapping);
+      if (reviewCategories?.(converted, file.name)) return;
+      const out = await writeTemplate(converted);
       onReady({ file: out, sourceName: file.name, rows: converted.length });
     } catch (e) {
       setError(e instanceof Error ? e.message : "The converted file couldn't be created.");
@@ -337,7 +343,8 @@ export function MatchStep({
           {withNotes.length > 0 && (
             <p className="mt-2 text-xs text-warning-soft-foreground">
               Row {withNotes[0].sourceRow}: {withNotes[0].notes[0]}
-              {withNotes.length > 1 ? ` (+${formatNumber(withNotes.length - 1)} more)` : ""}. Fix it in your file, or set one category for every row.
+              {withNotes.length > 1 ? ` (+${formatNumber(withNotes.length - 1)} more)` : ""}.{" "}
+              {withNotes[0].notes[0].startsWith("Category ") ? "You can match your categories to ours on the next step." : "Fix it in your file."}
             </p>
           )}
           {error && (

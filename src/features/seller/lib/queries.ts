@@ -75,8 +75,10 @@ export function useListingActions(sellerId: string, listing: ListingDetailRespon
   return { ...can, canUpdateDraft: false, canEditAttributes: false, canMutateMedia: false, canSubmit: false };
 }
 
+export const categoryTreeQuery = { queryKey: taxonomyKeys.tree, queryFn: ({ signal }: { signal?: AbortSignal }) => catalogService.categoryTree(signal), staleTime: 10 * 60_000 };
+
 export function useCategoryTree() {
-  return useQuery({ queryKey: taxonomyKeys.tree, queryFn: ({ signal }) => catalogService.categoryTree(signal), staleTime: 10 * 60_000 });
+  return useQuery(categoryTreeQuery);
 }
 
 export interface CategoryEntry {
@@ -88,15 +90,16 @@ export interface CategoryEntry {
 }
 
 /** id → category name/path lookup built from the public tree. */
+export function categoryIndexFrom(tree: Parameters<typeof flattenCategories>[0]): Map<string, CategoryEntry> {
+  const map = new Map<string, CategoryEntry>();
+  for (const c of flattenCategories(tree)) map.set(c.categoryId, { categoryId: c.categoryId, name: c.name, path: c.path, depth: c.depth, isLeaf: (c.children ?? []).length === 0 });
+  return map;
+}
+
+/** The useCategoryIndex hook: the same lookup, kept in step with the cached tree. */
 export function useCategoryIndex() {
   const tree = useCategoryTree();
-  const index = React.useMemo(() => {
-    const map = new Map<string, CategoryEntry>();
-    for (const c of flattenCategories(tree.data ?? [])) {
-      map.set(c.categoryId, { categoryId: c.categoryId, name: c.name, path: c.path, depth: c.depth, isLeaf: (c.children ?? []).length === 0 });
-    }
-    return map;
-  }, [tree.data]);
+  const index = React.useMemo(() => categoryIndexFrom(tree.data ?? []), [tree.data]);
   return { ...tree, index };
 }
 

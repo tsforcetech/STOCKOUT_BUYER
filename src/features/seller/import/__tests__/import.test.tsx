@@ -328,6 +328,104 @@ describe("E2 bulk import", () => {
     expect(localStorage.getItem("stockout.import.mappings")).toContain("item code");
   });
 
+  describe("Match your categories", () => {
+    const leaf = (id: string, name: string, parent: string) => ({ categoryId: id, slug: id, parentCategoryId: parent, name, children: [] });
+    const TREE = [
+      { categoryId: "c-plumb", slug: "plumb", parentCategoryId: null, name: "Plumbing & Piping", children: [leaf("aaaaaaaa-0000-0000-0000-000000000001", "PPR Pipes & Fittings", "c-plumb"), leaf("aaaaaaaa-0000-0000-0000-000000000002", "GI & Malleable Fittings", "c-plumb")] },
+      { categoryId: "c-steel", slug: "steel", parentCategoryId: null, name: "Steel & Metals", children: [leaf("aaaaaaaa-0000-0000-0000-000000000003", "Stainless Steel", "c-steel"), leaf("aaaaaaaa-0000-0000-0000-000000000004", "Mild Steel", "c-steel")] },
+    ];
+    const routes_ = (onUpload: (f: File) => void): MockRoute[] => [
+      { method: "GET", path: BASE, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) },
+      { method: "GET", path: "/api/v1/catalog/categories", respond: () => ({ body: { success: true, data: TREE } }) },
+      { method: "POST", path: BASE, respond: () => ({ status: 201, body: jobDto("CREATED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/upload-excel`, respond: ({ body }) => (onUpload((body as FormData).get("file") as File), { body: jobDto("EXCEL_UPLOADED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/validate`, respond: () => ({ body: jobDto("VALIDATED") }) },
+      { method: "GET", path: `${BASE}/${JOB}/results`, respond: () => ({ body: results("VALIDATED", { failedRows: 0 }) }) },
+      { method: "GET", path: `${BASE}/${JOB}/preview`, respond: () => ({ body: preview("VALIDATED", []) }) },
+    ];
+    const templateWith = async (rows: Array<[string, string, string]>) => {
+      const cells = rows.map(([sku, title, category], i) => ({ sourceRow: i + 2, cells: TEMPLATE_HEADERS.map((_, c) => (c === 0 ? sku : c === 1 ? title : c === 2 ? category : c === 6 || c === 10 ? 10 : c === 11 ? "PCS" : "")), missing: [], notes: [] }));
+      return new File([await writeTemplate(cells)], "Emcore_inventory.xlsx");
+    };
+
+    it("lets the seller match their own category names once per name before upload, with best guesses filled in", async () => {
+      let uploaded: File | null = null;
+      setup(routes_((f) => (uploaded = f)));
+      const user = userEvent.setup({ applyAccept: false });
+      renderWithApp(routes, "/seller/listings/import");
+      await user.upload(
+        await screen.findByLabelText(/Upload your product list/),
+        await templateWith([
+          ["EMC-1", "1in GI tee", "GI & MI FITTINGS"],
+          ["EMC-2", "PPR elbow", "PLUMBING_PPR PIPES & FITTINGS"],
+          ["EMC-3", "GI elbow", "gi & mi fittings"],
+          ["EMC-4", "MS flange", "MS FITTINGS"],
+          ["EMC-5", "Valve", "aaaaaaaa-0000-0000-0000-000000000001"],
+        ]),
+      );
+
+      expect(await screen.findByRole("heading", { name: "Match your categories" })).toBeInTheDocument();
+      const list = screen.getByRole("list", { name: "Your categories" });
+      expect(within(list).getAllByRole("listitem")).toHaveLength(3); // the existing id isn't asked about
+      expect(within(list).getByText("2 products · e.g. 1in GI tee, GI elbow")).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: "StockOut category for GI & MI FITTINGS" })).toHaveTextContent("Plumbing & Piping › GI & Malleable Fittings");
+      expect(screen.getByRole("combobox", { name: "StockOut category for PLUMBING_PPR PIPES & FITTINGS" })).toHaveTextContent("Plumbing & Piping › PPR Pipes & Fittings");
+      expect(screen.getByTestId("category-counts")).toHaveTextContent("2 of 3 matched");
+      expect(screen.getByText(/1 name is kept as written/)).toBeInTheDocument();
+
+      await user.click(screen.getByRole("combobox", { name: "StockOut category for MS FITTINGS" }));
+      await user.click(await screen.findByRole("option", { name: "Steel & Metals › Mild Steel" }));
+      expect(screen.getByTestId("category-counts")).toHaveTextContent("3 of 3 matched");
+
+      await user.click(screen.getByRole("button", { name: /Continue/ }));
+      expect(await screen.findByText(/3 of 3 of your category names matched/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Edit categories/ })).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+      await waitFor(() => expect(uploaded).not.toBeNull());
+      const sheets = (await readExcelFile(await readAs(uploaded!, "arrayBuffer"))) as Array<{ sheet: string; data: unknown[][] }>;
+      expect(sheets[0].data.slice(1).map((r) => r[2])).toEqual([
+        "aaaaaaaa-0000-0000-0000-000000000002",
+        "aaaaaaaa-0000-0000-0000-000000000001",
+        "aaaaaaaa-0000-0000-0000-000000000002",
+        "aaaaaaaa-0000-0000-0000-000000000004",
+        "aaaaaaaa-0000-0000-0000-000000000001",
+      ]);
+      expect(sheets[0].data[1][11]).toBe("PCS");
+      // Remembered for the next import.
+      expect(JSON.parse(localStorage.getItem("stockout.import.categoryChoices")!)).toMatchObject({ "ms fittings": "aaaaaaaa-0000-0000-0000-000000000004" });
+    });
+
+    it("uploads a template unchanged when every category is already a StockOut category", async () => {
+      let uploaded: File | null = null;
+      setup(routes_((f) => (uploaded = f)));
+      const user = userEvent.setup({ applyAccept: false });
+      renderWithApp(routes, "/seller/listings/import");
+      const file = await templateWith([["EMC-1", "Valve", "aaaaaaaa-0000-0000-0000-000000000001"]]);
+      await user.upload(await screen.findByLabelText(/Upload your product list/), file);
+      expect(await screen.findByText(/StockOut template recognised/)).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Match your categories" })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+      await waitFor(() => expect(uploaded).not.toBeNull());
+      expect(uploaded!.name).toBe(file.name); // the seller's own file, not a rewritten copy
+    });
+
+    it("follows column matching for the seller's own sheet, and Back returns to the matching", async () => {
+      setup(routes_(() => undefined));
+      const csv = "Item Code,Item Description,Group,UOM,Qty,Rate\r\nE-1,PPR pipe 25mm,PLUMBING_PPR PIPES,MTR,120,5\r\nE-2,SS elbow,STAINLESS STEEL_FITTINGS,PCS,4,9\r\n";
+      const user = userEvent.setup({ applyAccept: false });
+      renderWithApp(routes, "/seller/listings/import");
+      await user.upload(await screen.findByLabelText(/Upload your product list/), new File([csv], "ledger.csv", { type: "text/csv" }));
+      expect(await screen.findByRole("combobox", { name: "Source for Category" })).toHaveTextContent("C · Group");
+      expect(await screen.findByText(/match your categories to ours on the next step/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Continue with 2/ }));
+      expect(await screen.findByRole("heading", { name: "Match your categories" })).toBeInTheDocument();
+      expect(screen.getByRole("combobox", { name: "StockOut category for STAINLESS STEEL_FITTINGS" })).toHaveTextContent("Steel & Metals › Stainless Steel");
+      expect(screen.getAllByText("Suggested · please check")).toHaveLength(2);
+      await user.click(screen.getByRole("button", { name: "Back" }));
+      expect(await screen.findByRole("combobox", { name: "Source for Category" })).toBeInTheDocument();
+    });
+  });
+
   it("is locked for members who aren't the seller owner", async () => {
     sessionStorage.setItem("stockout.market.rt", "rt-1");
     const { calls } = mockFetch([...sessionRoutes([{ ...sellerCtx, isOwner: false }])]);
