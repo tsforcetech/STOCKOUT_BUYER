@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { BuildingsIcon, CheckCircleIcon, MapPinIcon, MapTrifoldIcon, XIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
@@ -7,7 +9,14 @@ import { COUNTRY_OPTIONS } from "@/features/verification/countries";
 import { UAE_EMIRATES, type BuyerDeliveryAddressDto, type SaveBuyerDeliveryAddressRequest } from "@/api/types/addresses";
 import { addressesService, type AddressOwner } from "@/services/addresses.service";
 import { newId } from "@/lib/utils/id";
+import { useAuth } from "@/lib/auth/auth-context";
+import { marketplaceService } from "@/services/marketplace.service";
 import { addressCode, addressMessage } from "./address-messages";
+import { mapLink, pinFromNotes, withMapPin, type LatLng, type Place } from "./geocode";
+import { addressFromProfile, contactFromProfile } from "./profile-prefill";
+
+// Leaflet + map tiles load only when the buyer opens the map.
+const MapPicker = React.lazy(() => import("./map-picker"));
 
 /** Form state: every text field is a string (blank = not given); toBody() turns blanks into null. */
 type Form = { [K in Exclude<keyof SaveBuyerDeliveryAddressRequest, "isDefault">]: string } & { isDefault: boolean };
@@ -104,6 +113,23 @@ export function AddressFormDialog({
   const [serverError, setServerError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState(false);
   const idem = React.useRef<{ key: string; body: string } | null>(null);
+  const [mapOpen, setMapOpen] = React.useState(false);
+  const [filledFrom, setFilledFrom] = React.useState<"company" | "map" | null>(null);
+  const contactFilled = React.useRef(false);
+
+  // What the buyer gave us during verification. Only offered for the book it belongs to.
+  const { status } = useAuth();
+  const profileQuery = useQuery({
+    queryKey: ["buyer", "profile"],
+    queryFn: ({ signal }) => marketplaceService.buyerProfile(signal),
+    enabled: open && status === "authenticated",
+    retry: false,
+    staleTime: 60_000,
+  });
+  const profile = profileQuery.data;
+  const profileFits = !!profile && (owner.kind === "individual" || profile.organizationId?.toLowerCase() === owner.organizationId.toLowerCase());
+  const contact = profileFits ? contactFromProfile(profile) : null;
+  const companyAddress = profileFits ? addressFromProfile(profile) : null;
 
   React.useEffect(() => {
     if (!open) return;
@@ -111,10 +137,56 @@ export function AddressFormDialog({
     setCurrent(editing);
     setErrors({});
     setServerError(null);
+    setMapOpen(false);
+    setFilledFrom(null);
+    contactFilled.current = !!editing;
     idem.current = null;
   }, [open, editing, firstAddress]);
 
+  // A new address starts with the buyer's own name and phone; they can change them.
+  React.useEffect(() => {
+    if (!open || contactFilled.current || !contact) return;
+    contactFilled.current = true;
+    setForm((f) => ({ ...f, contactName: f.contactName || contact.contactName, contactPhone: f.contactPhone || contact.contactPhone }));
+  }, [open, contact]);
+
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
+  const pin = pinFromNotes(form.deliveryNotes);
+
+  const fillFromCompany = () => {
+    if (!companyAddress) return;
+    setForm((f) => ({
+      ...f,
+      label: f.label || companyAddress.label,
+      contactName: f.contactName || contact?.contactName || "",
+      contactPhone: f.contactPhone || contact?.contactPhone || "",
+      countryCode: companyAddress.countryCode,
+      stateOrEmirate: companyAddress.stateOrEmirate,
+      city: companyAddress.city,
+      area: companyAddress.area,
+      street: companyAddress.street,
+      postalCode: companyAddress.postalCode,
+    }));
+    setErrors({});
+    setFilledFrom("company");
+  };
+
+  const fillFromPlace = (p: Place) => {
+    const at: LatLng = { lat: p.lat, lng: p.lng };
+    setForm((f) => ({
+      ...f,
+      countryCode: p.parts.countryCode ?? f.countryCode,
+      stateOrEmirate: p.parts.stateOrEmirate ?? (p.parts.countryCode && p.parts.countryCode !== f.countryCode ? "" : f.stateOrEmirate),
+      city: p.parts.city ?? f.city,
+      area: p.parts.area ?? f.area,
+      street: p.parts.street ?? f.street,
+      building: p.parts.building ?? f.building,
+      deliveryNotes: withMapPin(f.deliveryNotes, at),
+    }));
+    setErrors({});
+    setMapOpen(false);
+    setFilledFrom("map");
+  };
 
   const save = async () => {
     const errs = validateAddress(form);
@@ -187,6 +259,61 @@ export function AddressFormDialog({
               {serverError}
             </p>
           )}
+          <section aria-label="Fill in faster" className="space-y-3">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {companyAddress && (
+                <button
+                  type="button"
+                  onClick={fillFromCompany}
+                  className="flex items-start gap-3 rounded-xl border border-border p-3 text-left text-sm transition-colors hover:border-action-border hover:bg-surface-muted"
+                >
+                  <BuildingsIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
+                  <span className="min-w-0">
+                    <span className="block font-medium text-foreground">Use {owner.kind === "individual" ? "my address" : "my company address"}</span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">{companyAddress.summary}</span>
+                  </span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setMapOpen((o) => !o)}
+                aria-expanded={mapOpen}
+                className="flex items-start gap-3 rounded-xl border border-border p-3 text-left text-sm transition-colors hover:border-action-border hover:bg-surface-muted"
+              >
+                <MapTrifoldIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
+                <span className="min-w-0">
+                  <span className="block font-medium text-foreground">{pin ? "Move the pin on the map" : "Pick on map"}</span>
+                  <span className="text-xs text-muted-foreground">Drop a pin on the exact gate. We fill the address and send the pin to the driver.</span>
+                </span>
+              </button>
+            </div>
+            {mapOpen && (
+              <React.Suspense fallback={<p className="text-sm text-muted-foreground">Loading the map…</p>}>
+                <MapPicker initial={pin} onPick={fillFromPlace} onCancel={() => setMapOpen(false)} />
+              </React.Suspense>
+            )}
+            {filledFrom && !mapOpen && (
+              <p className="flex items-center gap-1.5 text-xs text-success" role="status">
+                <CheckCircleIcon weight="fill" className="size-4" aria-hidden />
+                {filledFrom === "company" ? "Filled from your verified details. Check the area and building, then save." : "Filled from the map. Check the details, then save."}
+              </p>
+            )}
+            {pin && !mapOpen && (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                <MapPinIcon className="size-4 text-foreground" aria-hidden />
+                <span>
+                  Map pin saved ({pin.lat.toFixed(5)}, {pin.lng.toFixed(5)})
+                </span>
+                <a href={mapLink(pin)} target="_blank" rel="noreferrer" className="underline underline-offset-4">
+                  View
+                </a>
+                <button type="button" className="inline-flex items-center gap-1 underline underline-offset-4" onClick={() => set("deliveryNotes", withMapPin(form.deliveryNotes, null))}>
+                  <XIcon className="size-3" aria-hidden /> Remove pin
+                </button>
+              </p>
+            )}
+          </section>
+
           <FormField label="Address name" htmlFor="ad-label" required error={errors.label} hint="For example: Dubai warehouse, Head office.">
             <Input {...field("label")} maxLength={100} />
           </FormField>
@@ -267,7 +394,7 @@ export function AddressFormDialog({
 
           <fieldset>
             <legend className="mb-1 text-sm font-semibold text-foreground">Delivery instructions</legend>
-            <FormField label="Notes for the driver (optional)" htmlFor="ad-notes" error={errors.deliveryNotes}>
+            <FormField label="Notes for the driver (optional)" htmlFor="ad-notes" error={errors.deliveryNotes} hint={pin ? "The map pin is kept as the last line here so the driver gets it." : undefined}>
               <Textarea {...field("deliveryNotes")} maxLength={500} placeholder="For example: call before unloading; gate 3." />
             </FormField>
           </fieldset>
