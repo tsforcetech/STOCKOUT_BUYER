@@ -11,6 +11,7 @@ import {
   ShieldCheckIcon,
   ShoppingCartSimpleIcon,
   HeartIcon,
+  MapPinIcon,
   CaretRightIcon,
   CaretDownIcon,
   ListIcon,
@@ -367,6 +368,7 @@ function AccountMenu() {
             },
             { label: "My orders", to: "/account/orders", icon: ReceiptIcon },
             { label: "Identity verification", to: "/account/verification", icon: ShieldCheckIcon },
+            { label: "Delivery addresses", to: "/account/addresses", icon: MapPinIcon },
             {
               label: "Saved searches",
               to: "/account/saved-searches",

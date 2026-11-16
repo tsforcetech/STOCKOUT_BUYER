@@ -36,3 +36,15 @@ export const ISO_COUNTRIES: ReadonlyArray<readonly [alpha2: string, alpha3: stri
   ["VN", "VNM"], ["VU", "VUT"], ["WF", "WLF"], ["WS", "WSM"], ["YE", "YEM"], ["YT", "MYT"], ["ZA", "ZAF"], ["ZM", "ZMB"],
   ["ZW", "ZWE"],
 ];
+
+const regionNames = (() => {
+  try {
+    return new Intl.DisplayNames(["en"], { type: "region" });
+  } catch {
+    return null;
+  }
+})();
+
+/** Country picker options (value = alpha-3, label from the browser), sorted by name. */
+export const COUNTRY_OPTIONS = ISO_COUNTRIES.map(([a2, a3]) => ({ value: a3, alpha2: a2, label: regionNames?.of(a2) ?? a2 })).sort((a, b) => a.label.localeCompare(b.label));
+export const countryLabel = (alpha3: string | null | undefined) => COUNTRY_OPTIONS.find((o) => o.value === alpha3?.toUpperCase())?.label ?? alpha3 ?? "";

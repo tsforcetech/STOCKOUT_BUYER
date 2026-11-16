@@ -9,6 +9,8 @@ export const ORDER_API = {
   buyerOrders: true,
   /** GET /api/v1/seller/orders and /seller/orders/{subOrderId} */
   sellerOrders: true,
+  /** Stage 8C.10 payment pre-authorisation: client prepared (src/lib/orders/payment-preauth.ts); Stripe not activated. */
+  paymentPreAuth: false,
   /** Order placement POST: not implemented / approved. */
   placeOrder: false,
   /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */

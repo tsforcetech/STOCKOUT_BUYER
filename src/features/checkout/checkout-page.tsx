@@ -32,6 +32,8 @@ import type { BuyerProfileDto } from "@/api/types/user-organization";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { orderKeys, ordersService } from "@/services/orders.service";
 import { PurchasingAccount } from "./purchasing-account";
+import { CheckoutAddressPicker } from "@/features/addresses/checkout-address-picker";
+import type { AddressOwner } from "@/services/addresses.service";
 import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/orders";
 
 /**
@@ -281,11 +283,21 @@ const DELIVERY = [
   { id: "COLLECTION", icon: BuildingsIcon, title: "Collect from seller", text: "Pick up from the seller's warehouse." },
 ];
 
-function DeliverySection() {
+/** The address book matching the buying context: the cart's purchasing company, or the individual buyer when none is needed. */
+function addressOwnerFor(cart: BuyerCartResponse, readiness: CheckoutValidationResult | undefined): AddressOwner | null {
+  if (cart.buyerOrganizationId) return { kind: "organization", organizationId: cart.buyerOrganizationId };
+  const needsCompany = readiness?.blockers.some((b) => b.code === "BUYER_ORGANIZATION_REQUIRED" || b.code === "MULTIPLE_ORGANIZATIONS");
+  return readiness && !needsCompany ? { kind: "individual" } : null;
+}
+
+function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }) {
   const [choice, setChoice] = React.useState("FREIGHT");
   return (
     <section className={sectionCls} aria-labelledby="co-delivery-h">
       <SectionTitle id="co-delivery-h" n={3} title="Delivery" tag={<Badge tone="neutral">Preview</Badge>} />
+      <div className="mb-5">
+        <CheckoutAddressPicker owner={addressOwner} />
+      </div>
       <fieldset>
         <legend id="co-delivery" className="sr-only">
           Delivery method (preview)
@@ -510,7 +522,7 @@ export default function CheckoutPage() {
         <div className="min-w-0 space-y-4">
           <BuyerSection readiness={readiness.data} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
           <ItemsSection cart={cart} readiness={readiness.data} />
-          <DeliverySection />
+          <DeliverySection addressOwner={addressOwnerFor(reviewed.cart, readiness.data)} />
           <PaymentSection />
         </div>
         <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} />
