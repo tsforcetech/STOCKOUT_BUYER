@@ -119,7 +119,7 @@ describe("Stage 8C checkout readiness", () => {
     page(<CheckoutPage />, "/checkout");
     const buyer = await screen.findByRole("region", { name: "Buyer" });
     expect(await within(buyer).findByText(/You buy as a business. Choose the company you.re buying for at checkout/)).toBeInTheDocument(); // not "allowed to buy"
-    expect(within(buyer).queryByText(/allowed to buy/)).not.toBeInTheDocument();
+    expect(within(buyer).queryByText("Ready to buy")).not.toBeInTheDocument();
     expect(screen.getByText("Minimum order quantity is 10 units.", { exact: false })).toBeInTheDocument();
     expect(screen.getByText(/less stock than you asked for/)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: "Fix in cart" })).toHaveLength(2);
@@ -128,6 +128,19 @@ describe("Stage 8C checkout readiness", () => {
     expect(await screen.findByRole("link", { name: "Verify my identity" })).toHaveAttribute("href", "/account/verification");
     expect(within(summary).getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+  });
+
+  it("buyer card lists only the details on file, never \"not provided\" rows", async () => {
+    signIn();
+    const sparse = { ...profile, fullName: "MUHAMMED HAKEEM M", tradeLicenseNumber: null, tradeLicenseExpiresAtUtc: null, isVatRegistered: false, taxRegistrationNumber: null, addressLine1: null, city: null, stateOrEmirate: null, signatoryName: null };
+    mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => readiness()), eligibility, { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => ({ body: { success: true, data: sparse } }) }, wishIds]);
+    page(<CheckoutPage />, "/checkout");
+    const buyer = await screen.findByRole("region", { name: "Buyer" });
+    expect(await within(buyer).findByText("MUHAMMED HAKEEM M")).toBeInTheDocument();
+    expect(within(buyer).getByText("Identity verified")).toBeInTheDocument();
+    expect(within(buyer).getByText("Not VAT registered")).toBeInTheDocument();
+    expect(within(buyer).queryByText(/not provided/i)).not.toBeInTheDocument();
+    expect(within(buyer).queryByText(/^verified$/)).not.toBeInTheDocument(); // no stray status chip
   });
 
   it("a readiness failure fails closed with a retry, never totals from the browser", async () => {
@@ -314,8 +327,8 @@ describe("Stage 8C.6 buyer capacity (OD-BUYER-01)", () => {
     mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => readiness({ buyerOrganizationId: null })), indiv, profileOk, wishIds]);
     page(<CheckoutPage />, "/checkout");
     const buyer = await screen.findByRole("region", { name: "Buyer" });
-    expect(await within(buyer).findByText(/Buying as an individual/)).toBeInTheDocument();
-    expect(within(buyer).getByText("Your account is allowed to buy.")).toBeInTheDocument();
+    expect(await within(buyer).findByText(/Personal purchase. No company needed/)).toBeInTheDocument();
+    expect(within(buyer).getByText("Ready to buy")).toBeInTheDocument();
     const summary = screen.getByRole("complementary", { name: "Order summary" });
     expect(await within(summary).findByText(/Readiness confirmed/)).toBeInTheDocument();
     expect(within(summary).getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
@@ -385,7 +398,7 @@ describe("BE-01 purchasing company on the cart", () => {
     signIn();
     const { calls } = mockFetch([...sessionRoutes([]), { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart() }) }, readinessRoute(() => readiness()), elig({ organizationType: "INDIVIDUAL", organizationId: null }), profileOk, wishIds]);
     page(<CheckoutPage />, "/checkout");
-    expect(await screen.findByText(/Buying personally. No company needed/)).toBeInTheDocument();
+    expect(await screen.findByText(/Personal purchase. No company needed/)).toBeInTheDocument();
     expect(calls.some((x) => x.method === "PUT")).toBe(false);
   });
 });

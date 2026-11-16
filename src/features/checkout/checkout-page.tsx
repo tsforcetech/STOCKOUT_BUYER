@@ -85,124 +85,138 @@ function BuyerSection({ readiness, cart, onCartChanged }: { readiness: CheckoutV
   const notFound = isApiError(profile.error) && profile.error.code === "MARKETPLACE_BUYER_NOT_FOUND";
   return (
     <section className={sectionCls} aria-labelledby="co-buyer">
-      <SectionTitle id="co-buyer" n={1} title="Buyer" />
+      <SectionTitle
+        id="co-buyer"
+        n={1}
+        title="Buyer"
+        tag={
+          canBuy ? (
+            <Badge tone="success" role="status">
+              <CheckCircleIcon className="size-3.5" weight="fill" aria-hidden /> Ready to buy
+            </Badge>
+          ) : undefined
+        }
+      />
       {elig.isLoading ? (
-        <Skeleton className="h-10 w-full" />
-      ) : (
-        <p role="status" className={cn("flex items-start gap-2 rounded-lg p-3 text-sm", canBuy ? "bg-success-soft text-success-soft-foreground" : "bg-warning-soft text-warning-soft-foreground")}>
-          {canBuy ? <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> : <WarningCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />}
+        <Skeleton className="mb-3 h-10 w-full" />
+      ) : !canBuy ? (
+        <p role="status" className="mb-3 flex items-start gap-2 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+          <WarningCircleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span>
-            {canBuy
-              ? "Your account is allowed to buy."
-              : buyerBlocker
-                ? buyerBlocker.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED"
-                  ? identityBlockerText(!!e && e.canPurchase && e.verificationStatus === "VERIFIED")
-                  : blockerText(buyerBlocker)
-                : elig.error
+            {buyerBlocker
+              ? buyerBlocker.code === "BUYER_IDENTITY_VERIFICATION_REQUIRED"
+                ? identityBlockerText(!!e && e.canPurchase && e.verificationStatus === "VERIFIED")
+                : blockerText(buyerBlocker)
+              : elig.error
                 ? DENIED.UNAVAILABLE
                 : // Known statuses get shopper wording; backend reasons can be internal (e.g. service configuration).
                   (DENIED[(e?.verificationStatus ?? "").toUpperCase()] ?? "Your account can't buy right now. Contact StockOut support.")}
-
           </span>
         </p>
-      )}
+      ) : null}
 
-      {e?.organizationType && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Buying as {e.organizationType.toUpperCase() === "INDIVIDUAL" ? "an individual (no company needed)" : "a business"}
-        </p>
-      )}
-      <PurchasingAccount cart={cart} eligibility={e} profile={profile.data ?? undefined} onCartChanged={onCartChanged} />
-      <div className="mt-4">
-        {profile.isLoading ? (
-          <div className="space-y-2">
-            <Skeleton className="h-5 w-1/2" />
-            <Skeleton className="h-4 w-2/3" />
-            <Skeleton className="h-4 w-1/3" />
-          </div>
-        ) : notFound ? (
-          <div className="rounded-lg border border-dashed border-border-strong p-4 text-sm">
-            <p className="flex items-center gap-2 font-medium text-foreground">
-              <IdentificationCardIcon className="size-4" aria-hidden /> Identity not verified yet
-            </p>
-            <p className="mt-1 text-muted-foreground">Purchasing needs one approved ID for the account holder.</p>
-            <Button asChild size="sm" variant="secondary" className="mt-3">
-              <Link to="/account/verification">Verify my identity</Link>
-            </Button>
-          </div>
-        ) : profile.error ? (
-          <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />
-        ) : p ? (
-          <>
-            <IdentityStatus p={p} />
-            {(p.legalName || p.tradeLicenseNumber || p.taxRegistrationNumber) && <BusinessDetails p={p} />}
-          </>
-        ) : null}
+      <div className="rounded-xl border border-border">
+        <div className="border-b border-border p-4 empty:hidden">
+          <PurchasingAccount cart={cart} eligibility={e} profile={profile.data ?? undefined} onCartChanged={onCartChanged} />
+        </div>
+        <div className="p-4">
+          {profile.isLoading ? (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Skeleton className="h-9 w-2/3" />
+              <Skeleton className="h-9 w-1/2" />
+            </div>
+          ) : notFound ? (
+            <div className="text-sm">
+              <p className="flex items-center gap-2 font-medium text-foreground">
+                <IdentificationCardIcon className="size-4" aria-hidden /> Identity not verified yet
+              </p>
+              <p className="mt-1 text-muted-foreground">Purchasing needs one approved ID for the account holder.</p>
+              <Button asChild size="sm" variant="secondary" className="mt-3">
+                <Link to="/account/verification">Verify my identity</Link>
+              </Button>
+            </div>
+          ) : profile.error ? (
+            <ErrorState error={profile.error} onRetry={() => void profile.refetch()} />
+          ) : p ? (
+            <BuyerDetails p={p} />
+          ) : null}
+        </div>
       </div>
     </section>
   );
 }
 
-function IdentityStatus({ p }: { p: BuyerProfileDto }) {
+/** Account holder and the company facts on file. Only what exists is listed: no "not provided" rows. */
+function BuyerDetails({ p }: { p: BuyerProfileDto }) {
   const verified = p.verificationStatus === "VERIFIED" && !p.requiresReverification;
-  const label = p.requiresReverification
+  const reviewing = p.verificationStatus === "SUBMITTED" || p.verificationStatus === "UNDER_REVIEW";
+  const idLabel = p.requiresReverification
     ? "Verification required again"
     : verified
       ? "Identity verified"
-      : p.verificationStatus === "SUBMITTED" || p.verificationStatus === "UNDER_REVIEW"
-        ? "Identity under review"
+      : reviewing
+        ? "Under review"
         : p.verificationStatus === "REJECTED"
-          ? "Identity verification not approved"
-          : "Identity not verified yet";
-  return (
-    <div className="mb-4 flex flex-wrap items-center gap-2 text-sm">
-      <IdentificationCardIcon className="size-4" aria-hidden />
-      <span className="font-medium text-foreground">{p.fullName || "Account holder"}</span>
-      <Badge tone={verified ? "success" : "warning"}>{label}</Badge>
-      {!verified && (
-        <Link to="/account/verification" className="ml-auto text-sm underline underline-offset-4">
-          {p.verificationStatus === "SUBMITTED" || p.verificationStatus === "UNDER_REVIEW" ? "View status" : "Verify my identity"}
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function BusinessDetails({ p }: { p: BuyerProfileDto }) {
+          ? "Not approved"
+          : "Not verified yet";
+  const business = (p.organizationType ?? "").toUpperCase() !== "INDIVIDUAL";
   const address = [p.addressLine1, p.addressLine2, p.city, p.stateOrEmirate, p.postalCode].filter(Boolean).join(", ");
   const trn = p.isVatRegistered && p.taxRegistrationNumber;
-  return (
-    <div className="grid gap-4 text-sm sm:grid-cols-2">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Company</p>
-        <p className="mt-1 font-heading font-bold text-foreground">{p.legalName || p.tradingName || "Name not provided"}</p>
-        {p.tradingName && p.tradingName !== p.legalName && <p className="text-muted-foreground">Trading as {p.tradingName}</p>}
-        <p className="mt-2 text-body">
-          Trade licence {p.tradeLicenseNumber || "not provided"}
-          {p.tradeLicenseExpiresAtUtc && <span className="text-muted-foreground"> · valid until {formatDate(p.tradeLicenseExpiresAtUtc)}</span>}
-        </p>
-        <div className="mt-2 flex flex-wrap gap-2">
-          {trn ? (
-            <Badge tone={TRN.test(p.taxRegistrationNumber ?? "") ? "success" : "warning"}>TRN {p.taxRegistrationNumber}</Badge>
-          ) : (
-            <Badge tone="neutral">{p.hasVatDeclaration ? "Not VAT registered (declaration on file)" : "Not VAT registered"}</Badge>
-          )}
-          <Badge tone={p.verificationStatus === "VERIFIED" ? "success" : "warning"}>{p.verificationStatus.replace(/_/g, " ").toLowerCase()}</Badge>
-        </div>
-      </div>
-      <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Billing & contact</p>
-        <p className="mt-1 text-body">{address || "Registered address not provided"}</p>
-        {(p.signatoryName || p.signatoryEmail) && (
-          <p className="mt-2 text-body">
-            {p.signatoryName}
-            {p.signatoryAuthorityRole && <span className="text-muted-foreground"> · {p.signatoryAuthorityRole}</span>}
-            {p.signatoryEmail && <span className="block text-muted-foreground">{p.signatoryEmail}</span>}
-            {p.signatoryPhone && <span className="block text-muted-foreground">{p.signatoryPhone}</span>}
-          </p>
+  const rows: Array<[string, React.ReactNode]> = [
+    [
+      "Account holder",
+      <span key="h" className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <span className="font-medium">{p.fullName || "Account holder"}</span>
+        <Badge tone={verified ? "success" : "warning"}>
+          {verified && <CheckCircleIcon className="size-3.5" weight="fill" aria-hidden />}
+          {idLabel}
+        </Badge>
+        {!verified && (
+          <Link to="/account/verification" className="text-xs underline underline-offset-4">
+            {reviewing ? "View status" : "Verify my identity"}
+          </Link>
         )}
-      </div>
-    </div>
+      </span>,
+    ],
+  ];
+  if (business)
+    rows.push([
+      "VAT",
+      trn ? (
+        <span className={cn(!TRN.test(p.taxRegistrationNumber ?? "") && "text-warning-soft-foreground")}>TRN {p.taxRegistrationNumber}</span>
+      ) : p.hasVatDeclaration ? (
+        "Not VAT registered (declaration on file)"
+      ) : (
+        "Not VAT registered"
+      ),
+    ]);
+  if (business && p.tradeLicenseNumber)
+    rows.push([
+      "Trade licence",
+      <span key="tl">
+        {p.tradeLicenseNumber}
+        {p.tradeLicenseExpiresAtUtc && <span className="text-muted-foreground"> · valid until {formatDate(p.tradeLicenseExpiresAtUtc)}</span>}
+      </span>,
+    ]);
+  if (address) rows.push(["Billing address", address]);
+  if (p.signatoryName && p.signatoryName !== p.fullName)
+    rows.push([
+      "Signatory",
+      <span key="s">
+        {p.signatoryName}
+        {p.signatoryAuthorityRole && <span className="text-muted-foreground"> · {p.signatoryAuthorityRole}</span>}
+        {p.signatoryEmail && <span className="block text-muted-foreground">{p.signatoryEmail}</span>}
+      </span>,
+    ]);
+  return (
+    <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+      {rows.map(([k, v]) => (
+        <div key={k} className="min-w-0">
+          <dt className="text-xs text-muted-foreground">{k}</dt>
+          <dd className="mt-0.5 break-words text-foreground">{v}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -295,28 +309,28 @@ function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }
   return (
     <section className={sectionCls} aria-labelledby="co-delivery-h">
       <SectionTitle id="co-delivery-h" n={3} title="Delivery" tag={<Badge tone="neutral">Preview</Badge>} />
-      <div className="mb-5">
+      <div className="mb-6">
         <CheckoutAddressPicker owner={addressOwner} />
       </div>
       <fieldset>
-        <legend id="co-delivery" className="sr-only">
-          Delivery method (preview)
+        <legend id="co-delivery" className="mb-2 text-sm font-semibold text-foreground">
+          Delivery method
         </legend>
         <div className="grid gap-3 sm:grid-cols-3">
           {DELIVERY.map(({ id, icon: Icon, title, text }) => (
-            <label key={id} className={cn("flex cursor-pointer flex-col gap-1 rounded-xl border p-4 text-sm transition", choice === id ? "border-foreground ring-1 ring-foreground" : "border-border hover:border-border-strong")}>
+            <label key={id} className={cn("flex cursor-pointer flex-col gap-1 rounded-xl border p-4 text-sm transition-colors", choice === id ? "border-foreground bg-surface-muted/50 ring-1 ring-foreground" : "border-border hover:border-border-strong")}>
               <span className="flex items-center gap-2">
-                <input type="radio" name="delivery" value={id} checked={choice === id} onChange={() => setChoice(id)} className="accent-foreground" />
+                <input type="radio" name="delivery" value={id} checked={choice === id} onChange={() => setChoice(id)} className="size-4 shrink-0 accent-foreground" />
                 <Icon className="size-4" aria-hidden />
                 <span className="font-bold text-foreground">{title}</span>
               </span>
               <span className="text-muted-foreground">{text}</span>
-              <span className="mt-1 text-xs font-medium text-foreground">Calculated at checkout</span>
+              <span className="mt-auto pt-1 text-xs font-medium text-foreground">Charge shown before you pay</span>
             </label>
           ))}
         </div>
       </fieldset>
-      <p className="mt-3 text-xs text-muted-foreground">Delivery options and charges are confirmed when ordering opens. Your choice here isn't saved.</p>
+      <p className="mt-3 text-xs text-muted-foreground">Delivery methods open with ordering. Until then your choice here isn't saved.</p>
     </section>
   );
 }

@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { BuildingsIcon, CheckCircleIcon, UserIcon } from "@phosphor-icons/react";
+import { BuildingsIcon, UserIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { useSellerMode } from "@/lib/seller/seller-context";
@@ -71,31 +71,35 @@ export function PurchasingAccount({
     }
   };
 
-  // Individual with no company to choose: personal purchase needs no step.
-  if (individual && orgIds.length === 0) {
-    return (
-      <p className="mt-3 flex items-center gap-2 text-sm text-body">
-        <UserIcon className="size-4" aria-hidden /> Buying personally. No company needed.
+  // Who is buying, once settled: one plain row (the section title already says the account can buy).
+  const settled = (name: string, sub: string, icon: React.ReactNode, change?: () => void) => (
+    <div className="flex items-center gap-3">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-surface-muted ring-1 ring-border" aria-hidden>
+        {icon}
+      </span>
+      <p className="min-w-0 flex-1 text-sm">
+        <span className="block text-xs text-muted-foreground">Buying for</span>
+        <span className="block truncate font-heading text-base font-bold text-foreground">{name}</span>
+        {sub && <span className="block truncate text-xs text-muted-foreground">{sub}</span>}
       </p>
-    );
-  }
+      {change && (
+        <Button size="sm" variant="ghost" onClick={change}>
+          Change
+        </Button>
+      )}
+    </div>
+  );
+  const tradingAs = profile?.tradingName && profile.tradingName !== profile.legalName ? `Trading as ${profile.tradingName} · ` : "";
+
+  // Individual with no company to choose: personal purchase needs no step.
+  if (individual && orgIds.length === 0) return settled("Yourself", "Personal purchase. No company needed.", <UserIcon className="size-5" />);
 
   const chosen = currentValid && !editing;
   if (chosen) {
-    return (
-      <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-success-soft/40 p-3 text-sm">
-        <CheckCircleIcon className="size-5 shrink-0 text-success-soft-foreground" weight="fill" aria-hidden />
-        <p className="min-w-0 flex-1">
-          <span className="text-muted-foreground">Buying for </span>
-          <span className="font-bold text-foreground">{current ? label(current) : "yourself (personal purchase)"}</span>
-        </p>
-        {(orgIds.length > 1 || individual) && (
-          <Button size="sm" variant="ghost" onClick={() => (setChoice(current ? current.toLowerCase() : "personal"), setEditing(true))}>
-            Change
-          </Button>
-        )}
-      </div>
-    );
+    const change = orgIds.length > 1 || individual ? () => (setChoice(current ? current.toLowerCase() : "personal"), setEditing(true)) : undefined;
+    return current
+      ? settled(label(current), `${same(current, profile?.organizationId) ? tradingAs : ""}Business purchase`, <BuildingsIcon className="size-5" />, change)
+      : settled("Yourself", "Personal purchase", <UserIcon className="size-5" />, change);
   }
 
   const options: Array<{ value: string; title: string; icon: React.ReactNode }> = [
@@ -106,7 +110,7 @@ export function PurchasingAccount({
   const single = options.length === 1 ? options[0] : null;
 
   return (
-    <div className="mt-4 rounded-xl border border-warning/40 bg-warning-soft/40 p-4 text-sm" role="group" aria-labelledby="who-buys">
+    <div className="rounded-xl border border-warning/40 bg-warning-soft/40 p-4 text-sm" role="group" aria-labelledby="who-buys">
       <p id="who-buys" className="font-bold text-foreground">
         Who is buying?
       </p>
