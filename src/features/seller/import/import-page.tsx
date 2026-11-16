@@ -11,6 +11,7 @@ import {
   FileZipIcon,
   ListChecksIcon,
   RowsIcon,
+  SlidersHorizontalIcon,
   TableIcon,
   UploadSimpleIcon,
   XIcon,
@@ -225,7 +226,7 @@ export default function SellerImportPage() {
                   <Button variant="ghost" size="sm" onClick={() => void downloadTemplate()} loading={templateState === "loading"}>
                     <DownloadSimpleIcon /> Download the StockOut template
                   </Button>
-                  <span className="text-xs">— a filled-in template skips the matching step.</span>
+                  <span className="text-xs">— a filled-in template is matched for you (you can still change it).</span>
                   {templateError && (
                     <p className="w-full text-sm text-danger" role="alert">
                       {templateError}
@@ -242,6 +243,7 @@ export default function SellerImportPage() {
             <MatchStep
               file={source.file}
               sheets={source.sheets}
+              preferSheet={ready?.template ? "Products" : undefined}
               onBack={restart}
               onReady={(r) => {
                 setReady(r);
@@ -291,9 +293,13 @@ export default function SellerImportPage() {
                   </div>
                   {ready.template && (
                     <p className="mt-3 flex items-center gap-1.5 text-xs text-success">
-                      <CheckCircleIcon weight="fill" className="size-4" aria-hidden /> StockOut template recognised — no matching needed.
+                      <CheckCircleIcon weight="fill" className="size-4" aria-hidden /> StockOut template recognised. Columns are matched for you.
                     </p>
                   )}
+                  {/* Matched automatically or not, the seller can always review and change which column feeds which field. */}
+                  <Button variant="ghost" size="sm" className="mt-2 -ml-2" onClick={() => setStep(2)} disabled={busy}>
+                    <SlidersHorizontalIcon /> Edit column matching
+                  </Button>
 
                   {busy ? (
                     <ul className="mt-4 space-y-2" aria-live="polite" aria-label="Import progress">

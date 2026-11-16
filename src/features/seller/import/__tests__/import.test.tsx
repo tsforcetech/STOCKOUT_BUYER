@@ -263,6 +263,25 @@ describe("E2 bulk import", () => {
     expect(screen.getByRole("link", { name: "Open this import" })).toHaveAttribute("href", `/seller/listings/import/${JOB}`);
   });
 
+  it("lets the seller review and change the column matching even when every column matched automatically", async () => {
+    setup([
+      { method: "GET", path: BASE, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) },
+      { method: "GET", path: "/api/v1/catalog/categories", respond: () => ({ body: { success: true, data: [] } }) },
+    ]);
+    const user = userEvent.setup({ applyAccept: false });
+    renderWithApp(routes, "/seller/listings/import");
+    await user.upload(await screen.findByLabelText(/Upload your product list/), await templateFile());
+    expect(await screen.findByText(/StockOut template recognised/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: /Edit column matching/ }));
+    // The matching screen opens on the template's Products sheet with its columns already matched, and every field is editable.
+    const source = await screen.findByRole("combobox", { name: "Source for Product name" });
+    expect(source).toHaveTextContent("B · Title*"); // matched automatically from the template heading
+    expect(screen.getByTestId("mapping-counts")).toHaveTextContent(/^1 products/);
+    await user.click(screen.getByRole("combobox", { name: "Source for Product name" }));
+    await user.click(await screen.findByRole("option", { name: "Same for every row…" }));
+    expect(screen.getByRole("textbox", { name: "Product name for every row" })).toBeInTheDocument();
+  });
+
   it("converts the seller's own sheet into the template after they match the columns", async () => {
     let uploaded: File | null = null;
     setup([

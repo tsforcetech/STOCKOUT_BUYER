@@ -46,8 +46,22 @@ const filled = (c: Cell) => c !== null && c !== undefined && String(c).trim() !=
  * summary beside it. "Continue" converts the rows into the StockOut template the server reads; nothing is
  * uploaded here, and the server still checks every row after upload.
  */
-export function MatchStep({ file, sheets, onBack, onReady }: { file: File; sheets: Sheet[]; onBack: () => void; onReady: (result: ConvertedSheet) => void }) {
-  const firstSheet = Math.max(0, sheets.findIndex((s) => s.rows.length > 1));
+export function MatchStep({
+  file,
+  sheets,
+  onBack,
+  onReady,
+  preferSheet,
+}: {
+  file: File;
+  sheets: Sheet[];
+  onBack: () => void;
+  onReady: (result: ConvertedSheet) => void;
+  /** Open on this sheet when present (the StockOut template's "Products"), instead of the first sheet with data. */
+  preferSheet?: string;
+}) {
+  const preferred = preferSheet ? sheets.findIndex((s) => s.name.trim().toLowerCase() === preferSheet.toLowerCase()) : -1;
+  const firstSheet = preferred >= 0 ? preferred : Math.max(0, sheets.findIndex((s) => s.rows.length > 1));
   const [sheetIndex, setSheetIndex] = React.useState(firstSheet);
   const [headerRow, setHeaderRow] = React.useState(() => detectHeaderRow(sheets[firstSheet].rows));
   const [mapping, setMapping] = React.useState<Mapping>({});
