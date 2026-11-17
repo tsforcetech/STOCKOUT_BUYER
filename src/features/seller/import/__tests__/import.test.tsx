@@ -426,6 +426,60 @@ describe("E2 bulk import", () => {
     });
   });
 
+  describe("change a file without starting over", () => {
+    const jobRoutes = (log: string[], status = "VALIDATED_WITH_ERRORS"): MockRoute[] => [
+      { method: "GET", path: BASE, respond: () => ({ body: { items: [], totalCount: 0, page: 1, pageSize: 20 } }) },
+      { method: "GET", path: `${BASE}/${JOB}/results`, respond: () => ({ body: results(status) }) },
+      { method: "GET", path: `${BASE}/${JOB}/preview`, respond: () => ({ body: preview(status, [row(1, "INVALID")]) }) },
+      { method: "POST", path: BASE, respond: () => (log.push("create"), { status: 201, body: jobDto("CREATED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/upload-excel`, respond: ({ body }) => (log.push(`excel:${((body as FormData).get("file") as File).name}`), { body: jobDto("EXCEL_UPLOADED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/upload-images-zip`, respond: ({ body }) => (log.push(`zip:${((body as FormData).get("file") as File).name}`), { body: jobDto("ZIP_UPLOADED") }) },
+      { method: "POST", path: `${BASE}/${JOB}/validate`, respond: () => (log.push("validate"), { body: jobDto("VALIDATED") }) },
+    ];
+
+    it("replaces the photos ZIP on the same import and checks the rows again", async () => {
+      const log: string[] = [];
+      setup(jobRoutes(log));
+      const user = userEvent.setup({ applyAccept: false });
+      renderWithApp(routes, `/seller/listings/import/${JOB}`);
+      expect(await screen.findByRole("heading", { name: "Change a file" })).toBeInTheDocument();
+      await user.upload(screen.getByLabelText("New photos ZIP"), new File(["zip"], "photos-v2.zip"));
+      await waitFor(() => expect(log).toEqual(["zip:photos-v2.zip", "validate"])); // no new import
+    });
+
+    it("replace spreadsheet: the wizard sends the new list to the same import and keeps its photos", async () => {
+      const log: string[] = [];
+      setup(jobRoutes(log));
+      const user = userEvent.setup({ applyAccept: false });
+      const { router } = renderWithApp(routes, `/seller/listings/import/${JOB}`);
+      await user.click(await screen.findByRole("link", { name: /Replace spreadsheet/ }));
+      expect(await screen.findByRole("heading", { name: "Replace spreadsheet" })).toBeInTheDocument();
+      await user.upload(screen.getByLabelText(/Upload your product list/), await templateFile("stock-fixed.xlsx"));
+      expect(await screen.findByText(/Leave this empty to keep the photos already uploaded/)).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: /Upload and check/ }));
+      await waitFor(() => expect(router.state.location.pathname).toBe(`/seller/listings/import/${JOB}`));
+      expect(log).toEqual(["excel:stock-fixed.xlsx", "validate"]); // same job, no create, photos untouched
+    });
+
+    it("is not offered once drafts were created", async () => {
+      setup(jobRoutes([], "COMPLETED"));
+      renderWithApp(routes, `/seller/listings/import/${JOB}`);
+      expect(await screen.findByText(/listing drafts were created/)).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Change a file" })).not.toBeInTheDocument();
+    });
+
+    it("Change file before upload keeps the chosen photos ZIP", async () => {
+      setup(jobRoutes([]));
+      const user = userEvent.setup({ applyAccept: false });
+      renderWithApp(routes, "/seller/listings/import");
+      await user.upload(await screen.findByLabelText(/Upload your product list/), await templateFile());
+      await user.upload(await screen.findByLabelText(/Product photos/), new File(["zip"], "photos.zip"));
+      await user.click(screen.getByRole("button", { name: /Change file/ }));
+      await user.upload(await screen.findByLabelText(/Upload your product list/), await templateFile("other.xlsx"));
+      expect(await screen.findByText("photos.zip")).toBeInTheDocument();
+    });
+  });
+
   it("is locked for members who aren't the seller owner", async () => {
     sessionStorage.setItem("stockout.market.rt", "rt-1");
     const { calls } = mockFetch([...sessionRoutes([{ ...sellerCtx, isOwner: false }])]);

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useQuery, useQueryClient, type UseQueryResult } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
@@ -65,6 +65,9 @@ export default function SellerImportPage() {
   const enabled = canManageListings(seller);
   const navigate = useNavigate();
   const qc = useQueryClient();
+  // ?replace=<jobId>: send a new spreadsheet (and optionally new photos) to an existing import instead of a new one.
+  const [params] = useSearchParams();
+  const replaceJob = /^[0-9a-f-]{36}$/i.test(params.get("replace") ?? "") ? params.get("replace")! : null;
   const [step, setStep] = React.useState<1 | 2 | "categories" | 3>(1);
   const [review, setReview] = React.useState<CategoryReview | null>(null);
   const [writing, setWriting] = React.useState(false);
@@ -213,9 +216,15 @@ export default function SellerImportPage() {
       setStage(next);
     };
     try {
-      setStage("create");
-      jobId = (await bulkImportService.create(sellerId)).jobId;
-      go("excel");
+      if (replaceJob) {
+        jobId = replaceJob;
+        at.step = "excel";
+        setStage("excel");
+      } else {
+        setStage("create");
+        jobId = (await bulkImportService.create(sellerId)).jobId;
+        go("excel");
+      }
       await bulkImportService.uploadExcel(sellerId, jobId, ready.file);
       if (zip) {
         go("zip");
@@ -240,7 +249,7 @@ export default function SellerImportPage() {
 
   const busy = stage !== null;
   const progress: Array<[Stage, string]> = [
-    ["create", "Starting the import"],
+    ...(replaceJob ? [] : [["create", "Starting the import"] as [Stage, string]]),
     ["excel", "Uploading your list"],
     ...(zip ? [["zip", "Uploading photos"] as [Stage, string]] : []),
     ["validate", "Checking every row"],
@@ -249,7 +258,18 @@ export default function SellerImportPage() {
   return (
     <div className="space-y-4">
       <BackLink to="/seller/listings">Listings</BackLink>
-      <PageHeader title="Bulk import" description="Add many products at once from the stock list you already have." />
+      <PageHeader
+        title={replaceJob ? "Replace spreadsheet" : "Bulk import"}
+        description={replaceJob ? "Choose the corrected list. It replaces the list in your import; the photos you uploaded stay unless you choose a new ZIP." : "Add many products at once from the stock list you already have."}
+      />
+      {replaceJob && (
+        <Notice tone="info">
+          Replacing the list of an existing import.{" "}
+          <Link to={`/seller/listings/import/${replaceJob}`} className="underline underline-offset-4">
+            Back to that import
+          </Link>
+        </Notice>
+      )}
       {!enabled ? (
         <ListingAccessNotice seller={seller} />
       ) : (
@@ -317,7 +337,7 @@ export default function SellerImportPage() {
                 </div>
               </SectionCard>
 
-              <RecentImports jobs={jobs} />
+              {!replaceJob && <RecentImports jobs={jobs} />}
             </>
           )}
 
@@ -353,7 +373,13 @@ export default function SellerImportPage() {
               <SectionCard>
                 <h2 className="font-heading text-lg font-bold text-foreground">Product photos</h2>
                 <p className="mb-4 mt-1 text-sm text-muted-foreground">
-                  Optional. Put all photos in one ZIP and use their file names in your list's image column (for example <code className="rounded bg-surface-muted px-1">valve-01.jpg</code>). You can also add photos to each draft later.
+                  {replaceJob ? (
+                    "Optional. Leave this empty to keep the photos already uploaded to this import, or choose a new ZIP to replace them."
+                  ) : (
+                    <>
+                      Optional. Put all photos in one ZIP and use their file names in your list's image column (for example <code className="rounded bg-surface-muted px-1">valve-01.jpg</code>). You can also add photos to each draft later.
+                    </>
+                  )}
                 </p>
                 {zip ? (
                   <div className="flex items-center gap-3 rounded-xl border border-border px-4 py-3 text-sm">
@@ -401,6 +427,10 @@ export default function SellerImportPage() {
                   <div className="mt-2 -ml-2 flex flex-wrap gap-x-1">
                     <Button variant="ghost" size="sm" onClick={() => setStep(2)} disabled={busy}>
                       <SlidersHorizontalIcon /> Edit column matching
+                    </Button>
+                    {/* Pick another list without losing the chosen photos ZIP. */}
+                    <Button variant="ghost" size="sm" onClick={restart} disabled={busy}>
+                      <FileXlsIcon /> Change file
                     </Button>
                     {review && (
                       <Button variant="ghost" size="sm" onClick={() => setStep("categories")} disabled={busy}>

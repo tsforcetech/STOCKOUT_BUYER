@@ -2,7 +2,7 @@ import * as React from "react";
 import { Link, useParams } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ArrowClockwiseIcon, CheckCircleIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import { ArrowClockwiseIcon, CheckCircleIcon, DownloadSimpleIcon, FileXlsIcon, FileZipIcon } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/common/page-header";
 import { SectionCard } from "@/components/common/section-card";
 import { Button } from "@/components/ui/button";
@@ -11,7 +11,8 @@ import { Badge, Checkbox, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/utils/cn";
 import { formatDateTime, formatNumber } from "@/lib/utils/format";
 import { bulkImportService } from "@/services/bulk-import.service";
-import { BULK_UPLOADABLE_STATUSES, BULK_WORKING_STATUSES, type BulkImportResultResponse, type BulkImportRowPreviewDto } from "@/api/types/bulk-import";
+import { BULK_MAX_ZIP_BYTES, BULK_UPLOADABLE_STATUSES, BULK_WORKING_STATUSES, type BulkImportResultResponse, type BulkImportRowPreviewDto } from "@/api/types/bulk-import";
+import { formatBytes } from "@/lib/utils/format";
 import { ListingAccessNotice, canManageListings } from "../components/listing-access-notice";
 import { Notice } from "../components/notice";
 import { BackLink } from "../components/back-link";
@@ -121,6 +122,7 @@ function JobView({ sellerId, jobId }: { sellerId: string; jobId: string }) {
         </SectionCard>
       )}
       <Actions sellerId={sellerId} r={r} onChanged={refreshAll} />
+      <ReplaceFiles sellerId={sellerId} r={r} onChanged={refreshAll} />
       <Rows sellerId={sellerId} jobId={jobId} status={r.status} />
     </>
   );
@@ -258,7 +260,7 @@ function Actions({ sellerId, r, onChanged }: { sellerId: string; r: BulkImportRe
           </Button>
         </div>
       )}
-      {r.status === "VALIDATED_WITH_ERRORS" && importable === 0 && <Notice tone="warning">No row is ready to import. Download the error report, fix the file and start a new import.</Notice>}
+      {r.status === "VALIDATED_WITH_ERRORS" && importable === 0 && <Notice tone="warning">No row is ready to import. Download the error report, fix the file, then replace it below and check again.</Notice>}
 
       {done && (
         <Notice tone={r.status === "COMPLETED" ? "info" : "warning"} title={r.status === "COMPLETED" ? "Import finished" : "Import finished with some failed rows"}>
@@ -271,9 +273,9 @@ function Actions({ sellerId, r, onChanged }: { sellerId: string; r: BulkImportRe
       )}
       {["FAILED", "CANCELLED", "EXPIRED"].includes(r.status) && (
         <Notice tone="danger" title={`This import ${r.status === "FAILED" ? "failed" : r.status === "EXPIRED" ? "expired" : "was cancelled"}`}>
-          No further action is possible on it.{" "}
+          {r.status === "FAILED" ? "Replace a file below and check again, or " : "No further action is possible on it. "}
           <Link to="/seller/listings/import" className="underline underline-offset-4">
-            Start a new import
+            {r.status === "FAILED" ? "start a new import" : "Start a new import"}
           </Link>
           .
         </Notice>
@@ -464,5 +466,66 @@ function RecheckButton({ sellerId, jobId, onChanged }: { sellerId: string; jobId
     <Button size="sm" variant="secondary" loading={busy} onClick={() => void run()}>
       <ArrowClockwiseIcon /> Check again
     </Button>
+  );
+}
+
+/** Statuses in which the server accepts a new spreadsheet or photo ZIP for the same import (BulkImportService.IsUploadAllowedStatus). */
+export const REPLACEABLE_STATUSES = ["EXCEL_UPLOADED", "ZIP_UPLOADED", "VALIDATED", "VALIDATED_WITH_ERRORS", "FAILED"];
+
+/**
+ * Change a file without starting over: a new photo ZIP is uploaded to this import and the rows are checked again;
+ * a new spreadsheet goes through the import wizard (column matching) and replaces this import's list, keeping the
+ * photos. Nothing is imported until the seller confirms.
+ */
+function ReplaceFiles({ sellerId, r, onChanged }: { sellerId: string; r: BulkImportResultResponse; onChanged: () => void }) {
+  const input = React.useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = React.useState<null | "upload" | "check">(null);
+  const [error, setError] = React.useState<string | null>(null);
+  const [uncertain, setUncertain] = React.useState(false);
+  if (!REPLACEABLE_STATUSES.includes(r.status)) return null;
+
+  const replaceZip = async (f: File | undefined) => {
+    if (input.current) input.current.value = "";
+    if (!f) return;
+    setError(null);
+    setUncertain(false);
+    if (!/\.zip$/i.test(f.name)) return setError("Product photos must be in a single .zip file.");
+    if (f.size === 0) return setError("That ZIP file is empty.");
+    if (f.size > BULK_MAX_ZIP_BYTES) return setError(`That ZIP is ${formatBytes(f.size)}. The limit is 100 MB.`);
+    try {
+      setBusy("upload");
+      await bulkImportService.uploadZip(sellerId, r.jobId, f);
+      setBusy("check");
+      await bulkImportService.validate(sellerId, r.jobId);
+      toast.success("Photos replaced and rows checked again.");
+    } catch (e) {
+      if (isUncertain(e)) setUncertain(true);
+      else setError(importErrorMessage(e));
+    } finally {
+      setBusy(null);
+      onChanged();
+    }
+  };
+
+  return (
+    <SectionCard className="space-y-3">
+      <div>
+        <h2 className="font-heading text-lg font-bold text-foreground">Change a file</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Picked the wrong file, or fixed your list? Replace it here and we&apos;ll check the rows again. Your other file stays as it is.</p>
+      </div>
+      {uncertain && <Notice tone="warning">We lost the connection before the server answered. Refresh this page in a moment to see the latest status.</Notice>}
+      {error && <Notice tone="danger">{error}</Notice>}
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" asChild disabled={busy !== null}>
+          <Link to={`/seller/listings/import?replace=${encodeURIComponent(r.jobId)}`}>
+            <FileXlsIcon /> Replace spreadsheet
+          </Link>
+        </Button>
+        <Button variant="secondary" onClick={() => input.current?.click()} loading={busy !== null}>
+          <FileZipIcon /> {busy === "upload" ? "Uploading photos…" : busy === "check" ? "Checking rows…" : "Replace photos (ZIP)"}
+        </Button>
+        <input ref={input} type="file" accept=".zip" className="sr-only" aria-label="New photos ZIP" onChange={(e) => void replaceZip(e.target.files?.[0])} tabIndex={-1} />
+      </div>
+    </SectionCard>
   );
 }
