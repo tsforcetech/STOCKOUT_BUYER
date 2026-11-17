@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BuildingsIcon, CheckCircleIcon, MapPinIcon, MapTrifoldIcon, XIcon } from "@phosphor-icons/react";
+import { BuildingsIcon, CheckCircleIcon, MapPinIcon, MapTrifoldIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, NativeSelect, Textarea } from "@/components/ui/input";
@@ -19,8 +19,26 @@ import { addressFromProfile, contactFromProfile } from "./profile-prefill";
 const MapPicker = React.lazy(() => import("./map-picker"));
 
 /** Form state: every text field is a string (blank = not given); toBody() turns blanks into null. */
-type Form = { [K in Exclude<keyof SaveBuyerDeliveryAddressRequest, "isDefault">]: string } & { isDefault: boolean };
-type Errors = Partial<Record<keyof Form | "line", string>>;
+type MapField = "latitude" | "longitude" | "mapPlaceId" | "mapFormattedAddress";
+type Form = { [K in Exclude<keyof SaveBuyerDeliveryAddressRequest, "isDefault" | MapField>]: string } & { isDefault: boolean };
+
+/** BE-13 map pin as held by the form; sent as latitude/longitude (≤ 6 decimals) with the optional map fields. */
+export interface FormPin extends LatLng {
+  formatted: string | null;
+  placeId: string | null;
+  /** Read from a "Map pin:" line in the notes (saved before coordinates existed); moved into the fields on save. */
+  fromNotes?: boolean;
+}
+
+/** The address's pin: its coordinates, or (legacy, pre BE-13) a map link we used to keep in the delivery notes. */
+export function pinOf(a: Pick<BuyerDeliveryAddressDto, "latitude" | "longitude" | "mapPlaceId" | "mapFormattedAddress" | "deliveryNotes">): FormPin | null {
+  if (a.latitude != null && a.longitude != null) return { lat: a.latitude, lng: a.longitude, formatted: a.mapFormattedAddress ?? null, placeId: a.mapPlaceId ?? null };
+  const legacy = pinFromNotes(a.deliveryNotes);
+  return legacy ? { ...legacy, formatted: null, placeId: null, fromNotes: true } : null;
+}
+
+const round6 = (v: number) => Math.round(v * 1e6) / 1e6;
+type Errors = Partial<Record<keyof Form | "line" | "pin", string>>;
 
 const blank: Form = {
   label: "", contactName: "", contactPhone: "", siteName: "", siteContactName: "", siteContactPhone: "", countryCode: "ARE", stateOrEmirate: "",
@@ -68,13 +86,15 @@ export function validateAddress(f: Form): Errors {
   return e;
 }
 
-const toBody = (f: Form): SaveBuyerDeliveryAddressRequest => {
+const toBody = (f: Form, pin: FormPin | null): SaveBuyerDeliveryAddressRequest => {
   const t = (v: string) => v.trim();
   const n = (v: string) => (v.trim() ? v.trim() : null);
   return {
     label: t(f.label), contactName: t(f.contactName), contactPhone: t(f.contactPhone), siteName: n(f.siteName), siteContactName: n(f.siteContactName),
     siteContactPhone: n(f.siteContactPhone), countryCode: f.countryCode, stateOrEmirate: t(f.stateOrEmirate), city: t(f.city), area: t(f.area),
-    street: n(f.street), building: n(f.building), unit: n(f.unit), postalCode: n(f.postalCode), deliveryNotes: n(f.deliveryNotes), isDefault: f.isDefault,
+    street: n(f.street), building: n(f.building), unit: n(f.unit), postalCode: n(f.postalCode), deliveryNotes: n(pin?.fromNotes ? withMapPin(f.deliveryNotes, null) : f.deliveryNotes),
+    latitude: pin ? round6(pin.lat) : null, longitude: pin ? round6(pin.lng) : null, mapPlaceId: pin?.placeId?.slice(0, 200) ?? null,
+    mapFormattedAddress: pin?.formatted?.slice(0, 500) ?? null, isDefault: f.isDefault,
   };
 };
 
@@ -83,6 +103,10 @@ const FIELD_FOR_CODE: Record<string, keyof Errors> = {
   BUYER_ADDRESS_COUNTRY_INVALID: "countryCode",
   BUYER_ADDRESS_EMIRATE_INVALID: "stateOrEmirate",
   BUYER_ADDRESS_LINE_REQUIRED: "line",
+  BUYER_ADDRESS_COORDINATES_INCOMPLETE: "pin",
+  BUYER_ADDRESS_COORDINATES_PRECISION_INVALID: "pin",
+  BUYER_ADDRESS_LATITUDE_INVALID: "pin",
+  BUYER_ADDRESS_LONGITUDE_INVALID: "pin",
 };
 
 /**
@@ -114,6 +138,7 @@ export function AddressFormDialog({
   const [busy, setBusy] = React.useState(false);
   const idem = React.useRef<{ key: string; body: string } | null>(null);
   const [mapOpen, setMapOpen] = React.useState(false);
+  const [pin, setPin] = React.useState<FormPin | null>(null);
   const [filledFrom, setFilledFrom] = React.useState<"company" | "map" | null>(null);
   const contactFilled = React.useRef(false);
 
@@ -134,6 +159,7 @@ export function AddressFormDialog({
   React.useEffect(() => {
     if (!open) return;
     setForm(editing ? fromAddress(editing) : { ...blank, isDefault: firstAddress });
+    setPin(editing ? pinOf(editing) : null);
     setCurrent(editing);
     setErrors({});
     setServerError(null);
@@ -151,7 +177,6 @@ export function AddressFormDialog({
   }, [open, contact]);
 
   const set = <K extends keyof Form>(k: K, v: Form[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const pin = pinFromNotes(form.deliveryNotes);
 
   const fillFromCompany = () => {
     if (!companyAddress) return;
@@ -172,7 +197,7 @@ export function AddressFormDialog({
   };
 
   const fillFromPlace = (p: Place) => {
-    const at: LatLng = { lat: p.lat, lng: p.lng };
+    setPin({ lat: round6(p.lat), lng: round6(p.lng), formatted: p.label || null, placeId: null });
     setForm((f) => ({
       ...f,
       countryCode: p.parts.countryCode ?? f.countryCode,
@@ -181,7 +206,6 @@ export function AddressFormDialog({
       area: p.parts.area ?? f.area,
       street: p.parts.street ?? f.street,
       building: p.parts.building ?? f.building,
-      deliveryNotes: withMapPin(f.deliveryNotes, at),
     }));
     setErrors({});
     setMapOpen(false);
@@ -190,9 +214,14 @@ export function AddressFormDialog({
 
   const save = async () => {
     const errs = validateAddress(form);
+    // BE-13: a new address needs its map pin (latitude/longitude are required on create).
+    if (!current && !pin) errs.pin = "Drop a pin on the map where the delivery should arrive.";
     setErrors(errs);
-    if (Object.keys(errs).length) return;
-    const body = toBody(form);
+    if (Object.keys(errs).length) {
+      if (errs.pin) setMapOpen(true);
+      return;
+    }
+    const body = toBody(form, pin);
     setBusy(true);
     setServerError(null);
     try {
@@ -216,6 +245,7 @@ export function AddressFormDialog({
           const latest = await addressesService.get(owner, current.addressId);
           setCurrent(latest);
           setForm(fromAddress(latest));
+          setPin(pinOf(latest));
         } catch {
           /* keep what the buyer typed */
         }
@@ -282,8 +312,11 @@ export function AddressFormDialog({
               >
                 <MapTrifoldIcon className="mt-0.5 size-5 shrink-0" aria-hidden />
                 <span className="min-w-0">
-                  <span className="block font-medium text-foreground">{pin ? "Move the pin on the map" : "Pick on map"}</span>
-                  <span className="text-xs text-muted-foreground">Drop a pin on the exact gate. We fill the address and send the pin to the driver.</span>
+                  <span className="block font-medium text-foreground">
+                    {pin ? "Move the pin on the map" : "Pick on map"}
+                    {!pin && <span className="ml-1 text-xs font-normal text-danger">(required)</span>}
+                  </span>
+                  <span className="text-xs text-muted-foreground">Drop a pin on the exact gate. We fill the address and give the driver the exact location.</span>
                 </span>
               </button>
             </div>
@@ -298,18 +331,23 @@ export function AddressFormDialog({
                 {filledFrom === "company" ? "Filled from your verified details. Check the area and building, then save." : "Filled from the map. Check the details, then save."}
               </p>
             )}
+            {errors.pin && (
+              <p role="alert" className="text-sm text-danger">
+                {errors.pin}
+              </p>
+            )}
+            {!pin && editing && !mapOpen && (
+              <p className="rounded-lg bg-warning-soft p-3 text-xs text-warning-soft-foreground">Map pin missing. Add one so the driver finds the exact spot.</p>
+            )}
             {pin && !mapOpen && (
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <MapPinIcon className="size-4 text-foreground" aria-hidden />
                 <span>
-                  Map pin saved ({pin.lat.toFixed(5)}, {pin.lng.toFixed(5)})
+                  Map pin {pin.fromNotes ? "(from your notes, saved with the address on save)" : "set"} ({pin.lat.toFixed(5)}, {pin.lng.toFixed(5)})
                 </span>
                 <a href={mapLink(pin)} target="_blank" rel="noreferrer" className="underline underline-offset-4">
                   View
                 </a>
-                <button type="button" className="inline-flex items-center gap-1 underline underline-offset-4" onClick={() => set("deliveryNotes", withMapPin(form.deliveryNotes, null))}>
-                  <XIcon className="size-3" aria-hidden /> Remove pin
-                </button>
               </p>
             )}
           </section>
@@ -394,7 +432,7 @@ export function AddressFormDialog({
 
           <fieldset>
             <legend className="mb-1 text-sm font-semibold text-foreground">Delivery instructions</legend>
-            <FormField label="Notes for the driver (optional)" htmlFor="ad-notes" error={errors.deliveryNotes} hint={pin ? "The map pin is kept as the last line here so the driver gets it." : undefined}>
+            <FormField label="Notes for the driver (optional)" htmlFor="ad-notes" error={errors.deliveryNotes}>
               <Textarea {...field("deliveryNotes")} maxLength={500} placeholder="For example: call before unloading; gate 3." />
             </FormField>
           </fieldset>

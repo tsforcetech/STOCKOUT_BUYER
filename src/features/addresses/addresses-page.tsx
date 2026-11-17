@@ -11,6 +11,7 @@ import { countryLabel } from "@/features/verification/countries";
 import { ADDRESS_PAGE_SIZE, addressKeys, addressesService, type AddressOwner } from "@/services/addresses.service";
 import type { BuyerDeliveryAddressDto } from "@/api/types/addresses";
 import { AddressFormDialog } from "./address-form";
+import { mapLink } from "./geocode";
 import { addressCode, addressMessage } from "./address-messages";
 import { useAddressOwner } from "./use-address-owner";
 
@@ -167,6 +168,13 @@ function AddressBook({ owner, ownerLabel }: { owner: AddressOwner; ownerLabel: s
                   <p className="font-heading font-bold text-foreground">{a.label}</p>
                   {a.isDefault && !inactive && <Badge tone="primary">Default</Badge>}
                   {inactive && <Badge tone="neutral">Removed</Badge>}
+                  {!inactive && (a.latitude != null && a.longitude != null ? (
+                    <a href={mapLink({ lat: a.latitude, lng: a.longitude })} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs text-muted-foreground underline-offset-4 hover:underline">
+                      <MapPinIcon className="size-3.5" weight="fill" aria-hidden /> Map pin
+                    </a>
+                  ) : (
+                    <Badge tone="warning">Map pin missing</Badge>
+                  ))}
                 </div>
                 <p className="mt-1 text-sm text-body">{addressLine(a)}</p>
                 <p className="mt-1 text-sm text-muted-foreground">

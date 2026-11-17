@@ -9,6 +9,15 @@ import { CheckoutAddressPicker } from "../checkout-address-picker";
 import { validateAddress } from "../address-form";
 import { isAuthorizedAndHeld, shouldKeepPolling } from "@/lib/orders/payment-preauth";
 
+// Leaflet doesn't run in jsdom: one button drops a pin without filling any field.
+vi.mock("../map-picker", () => ({
+  default: ({ onPick }: { onPick: (p: unknown) => void }) => (
+    <button type="button" onClick={() => onPick({ lat: 25.2048123456, lng: 55.2708, label: "Al Quoz, Dubai", parts: {} })}>
+      Drop test pin
+    </button>
+  ),
+}));
+
 afterEach(() => {
   vi.unstubAllGlobals();
   localStorage.clear();
@@ -62,6 +71,11 @@ describe("COM-ADDR-01 address book", () => {
     expect(calls.some((c) => c.method === "POST" && c.url.pathname.endsWith("/addresses"))).toBe(false);
     await fillForm();
     await userEvent.click(within(dlg).getByRole("button", { name: "Save address" }));
+    // BE-13: a new address needs its map pin; the map opens for it and nothing is sent.
+    expect(await within(dlg).findByText("Drop a pin on the map where the delivery should arrive.")).toBeInTheDocument();
+    expect(calls.some((c) => c.method === "POST" && c.url.pathname.endsWith("/addresses"))).toBe(false);
+    await userEvent.click(await within(dlg).findByRole("button", { name: "Drop test pin" }));
+    await userEvent.click(within(dlg).getByRole("button", { name: "Save address" }));
     expect(await within(dlg).findByText(/still saving your last change/)).toBeInTheDocument();
     expect(within(dlg).getByLabelText(/Address name/)).toHaveValue("Dubai warehouse"); // nothing lost
     await userEvent.click(within(dlg).getByRole("button", { name: "Save address" }));
@@ -70,7 +84,7 @@ describe("COM-ADDR-01 address book", () => {
     expect(posts).toHaveLength(2);
     expect(posts[0].headers.get("Idempotency-Key")).toBeTruthy();
     expect(posts[1].headers.get("Idempotency-Key")).toBe(posts[0].headers.get("Idempotency-Key")); // same body → same key
-    expect(posts[0].body).toMatchObject({ label: "Dubai warehouse", contactPhone: "+971 50 123 4567", countryCode: "ARE", stateOrEmirate: "Dubai", street: "Street 12", building: null, isDefault: true });
+    expect(posts[0].body).toMatchObject({ label: "Dubai warehouse", contactPhone: "+971 50 123 4567", countryCode: "ARE", stateOrEmirate: "Dubai", street: "Street 12", building: null, isDefault: true, latitude: 25.204812, longitude: 55.2708, mapFormattedAddress: "Al Quoz, Dubai", mapPlaceId: null });
   });
 
   it("business buyer: uses the company's book, default first, make default and remove (with If-Match)", async () => {

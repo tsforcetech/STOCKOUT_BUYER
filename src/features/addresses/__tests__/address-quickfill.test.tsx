@@ -69,12 +69,18 @@ describe("address form quick fill", () => {
     expect(within(dlg).getByRole("combobox", { name: /Emirate/ })).toHaveTextContent("Dubai");
     expect(within(dlg).getByText(/Filled from your verified details/)).toBeInTheDocument();
 
+    await userEvent.click(within(dlg).getByRole("button", { name: /Pick on map/ }));
+    await userEvent.click(await within(dlg).findByRole("button", { name: "Drop test pin" }));
+    await userEvent.clear(within(dlg).getByLabelText(/^Street/));
+    await userEvent.type(within(dlg).getByLabelText(/^Street/), "Office 12, Al Garhoud Road");
+    await userEvent.clear(within(dlg).getByLabelText(/^Area/));
+    await userEvent.type(within(dlg).getByLabelText(/^Area/), "Al Garhoud");
     await userEvent.click(within(dlg).getByRole("button", { name: "Save address" }));
     await waitFor(() => expect(posted()).not.toBeNull());
     expect(posted()).toMatchObject({ label: "Sharaco office", contactName: "Hakeem Ali", contactPhone: "+971 4 333 4444", countryCode: "ARE", stateOrEmirate: "Dubai", city: "Dubai", area: "Al Garhoud", street: "Office 12, Al Garhoud Road" });
   });
 
-  it("fills the address from a map pin and sends the pin to the driver in the notes", async () => {
+  it("fills the address from a map pin and sends it as coordinates", async () => {
     const { posted } = setup();
     await userEvent.click(await screen.findByRole("button", { name: /Add your first address/ }));
     const dlg = await screen.findByRole("dialog");
@@ -85,13 +91,40 @@ describe("address form quick fill", () => {
     expect(within(dlg).getByLabelText(/^Area/)).toHaveValue("Al Quoz Industrial Area 1");
     expect(within(dlg).getByLabelText(/^Street/)).toHaveValue("23 Street");
     expect(within(dlg).getByLabelText(/^Building/)).toHaveValue("Adonis Decor");
-    expect(within(dlg).getByText(/Map pin saved \(25.13733, 55.22802\)/)).toBeInTheDocument();
+    expect(within(dlg).getByText(/Map pin set \(25.13733, 55.22802\)/)).toBeInTheDocument();
     expect(within(dlg).getByRole("link", { name: "View" })).toHaveAttribute("href", "https://maps.google.com/?q=25.137333,55.228016");
 
     await userEvent.type(within(dlg).getByLabelText(/Address name/), "Al Quoz site");
     await userEvent.click(within(dlg).getByRole("button", { name: "Save address" }));
     await waitFor(() => expect(posted()).not.toBeNull());
-    expect(posted()!.deliveryNotes).toBe("Call before unloading\nMap pin: https://maps.google.com/?q=25.137333,55.228016");
+    // BE-13: the pin is sent as coordinates (6 decimals), no longer written into the driver notes.
+    expect(posted()).toMatchObject({ deliveryNotes: "Call before unloading", latitude: 25.137333, longitude: 55.228016, mapFormattedAddress: "Adonis Decor, 23 Street, Al Quoz" });
+  });
+});
+
+describe("legacy addresses without coordinates", () => {
+  it("shows Map pin missing, and moves a pin kept in the notes into the coordinates on edit (If-Match)", async () => {
+    sessionStorage.setItem("stockout.market.rt", "rt-1");
+    localStorage.setItem("stockout.market.rt", "rt-1");
+    const legacy = saved({ label: "Old site", contactName: "Desk", contactPhone: "+971501234567", siteName: null, siteContactName: null, siteContactPhone: null, countryCode: "ARE", stateOrEmirate: "Dubai", city: "Dubai", area: "Al Quoz", street: "Street 1", building: null, unit: null, postalCode: null, deliveryNotes: "Gate 3\nMap pin: https://maps.google.com/?q=25.100000,55.200000", latitude: null, longitude: null, mapPlaceId: null, mapFormattedAddress: null });
+    let put: { body: unknown; ifMatch: string | null } | null = null;
+    mockFetch([
+      ...sessionRoutes([]),
+      { method: "GET", path: "/api/v1/marketplace/buyer/eligibility", respond: () => env({ buyerId: "b-1", eligible: true, verificationStatus: "VERIFIED", canPurchase: true, reason: null, organizationType: "BUSINESS", organizationId: ORG, authorizedOrganizationIds: null }) },
+      { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: { cartId: "c", buyerId: "u-1", itemCount: 0, totalQuantity: 0, totalSubtotal: 0, estimatedVatRatePercent: 5, estimatedVatAmount: 0, estimatedTotal: 0, currency: "AED", rowVersion: "AAAAAAAAB9Q=", updatedAt: "", sellerGroups: [], checkoutReadiness: { canProceed: false, blockers: [] }, buyerOrganizationId: null } }) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(PROFILE) },
+      { method: "GET", path: `/api/v1/marketplace/buyer/organizations/${ORG}/addresses`, respond: () => env({ items: [legacy], page: 1, pageSize: 20, totalCount: 1 }) },
+      { method: "PUT", path: /\/addresses\/[^/]+$/, respond: (req) => ((put = { body: req.body, ifMatch: new Headers(req.init.headers).get("If-Match") }), env({ ...legacy, latitude: 25.1, longitude: 55.2 })) },
+    ]);
+    renderWithApp([{ element: <RequireAuth />, children: [{ path: "/account/addresses", element: <AddressesPage /> }] }, { path: "/login", element: <div>login</div> }], "/account/addresses");
+    expect(await screen.findByText("Map pin missing")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Edit/ }));
+    const dlg = await screen.findByRole("dialog");
+    expect(within(dlg).getByText(/from your notes/)).toBeInTheDocument();
+    await userEvent.click(within(dlg).getByRole("button", { name: "Save changes" }));
+    await waitFor(() => expect(put).not.toBeNull());
+    expect(put!.ifMatch).toBe('"AAAAAAAAAQE="');
+    expect(put!.body).toMatchObject({ latitude: 25.1, longitude: 55.2, deliveryNotes: "Gate 3" });
   });
 });
 

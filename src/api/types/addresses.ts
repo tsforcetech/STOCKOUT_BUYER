@@ -27,6 +27,12 @@ export interface BuyerDeliveryAddressDto {
   unit: string | null;
   postalCode: string | null;
   deliveryNotes: string | null;
+  /** BE-13 map pin (WGS84, ≤ 6 decimals). Required together on create; null on legacy pinless addresses. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Optional provider place reference (≤ 200 chars) and the address text the map showed (≤ 500 chars). */
+  mapPlaceId: string | null;
+  mapFormattedAddress: string | null;
   isDefault: boolean;
   status: AddressStatus | string;
   version: number;
@@ -54,6 +60,12 @@ export interface SaveBuyerDeliveryAddressRequest {
   unit: string | null;
   postalCode: string | null;
   deliveryNotes: string | null;
+  /** BE-13 map pin (WGS84, ≤ 6 decimals). Required together on create; null on legacy pinless addresses. */
+  latitude: number | null;
+  longitude: number | null;
+  /** Optional provider place reference (≤ 200 chars) and the address text the map showed (≤ 500 chars). */
+  mapPlaceId: string | null;
+  mapFormattedAddress: string | null;
   isDefault: boolean;
 }
 

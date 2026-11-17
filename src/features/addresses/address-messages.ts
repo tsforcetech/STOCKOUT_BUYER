@@ -23,6 +23,11 @@ const MESSAGES: Record<string, string> = {
   BUYER_ADDRESS_LIMIT_REACHED: "You've reached the maximum number of saved addresses. Remove one to add another.",
   BUYER_ADDRESS_IDEMPOTENCY_KEY_REUSED: "That save didn't go through. Try again.",
   BUYER_ADDRESS_BUSY: "We're still saving your last change. Try again in a moment.",
+  // BE-13 map pin
+  BUYER_ADDRESS_COORDINATES_INCOMPLETE: "Drop the map pin again: the location was incomplete.",
+  BUYER_ADDRESS_COORDINATES_PRECISION_INVALID: "Drop the map pin again: the location was too precise to save.",
+  BUYER_ADDRESS_LATITUDE_INVALID: "That map location isn't valid. Drop the pin again.",
+  BUYER_ADDRESS_LONGITUDE_INVALID: "That map location isn't valid. Drop the pin again.",
   BUYER_ADDRESS_UNEXPECTED_RESULT: "We couldn't save the address. Your details are still here; try again.",
 };
 

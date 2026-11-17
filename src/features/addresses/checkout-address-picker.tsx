@@ -8,7 +8,6 @@ import { addressKeys, addressesService, type AddressOwner } from "@/services/add
 import { addressLine } from "./addresses-page";
 import { addressMessage } from "./address-messages";
 import { AddressFormDialog } from "./address-form";
-import { pinFromNotes } from "./geocode";
 
 /**
  * Checkout "Deliver to" (COM-ADDR-01, UI only). Shows the active addresses of the buying context, preselects the
@@ -81,7 +80,7 @@ export function CheckoutAddressPicker({ owner, onChange }: { owner: AddressOwner
       <div className="grid gap-3 sm:grid-cols-2">
         {active.map((a) => {
           const on = selected === a.addressId;
-          const pin = pinFromNotes(a.deliveryNotes);
+          const pin = a.latitude != null && a.longitude != null;
           return (
             <label
               key={a.addressId}
@@ -100,6 +99,7 @@ export function CheckoutAddressPicker({ owner, onChange }: { owner: AddressOwner
                       <MapPinIcon className="size-3.5" weight="fill" aria-hidden /> Pin
                     </span>
                   )}
+                  {!pin && <Badge tone="warning">Map pin missing</Badge>}
                 </span>
                 <span className="mt-1 block text-body">{addressLine(a)}</span>
                 <span className="mt-1 block truncate text-xs text-muted-foreground">
