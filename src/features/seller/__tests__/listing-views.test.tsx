@@ -60,4 +60,26 @@ describe("seller listing status views", () => {
     expect(screen.queryByText("Listing 1")).not.toBeInTheDocument();
     expect(screen.getByText(/1 listing match your filters/)).toBeInTheDocument();
   });
+
+  it("grid view has page numbers and a listings-per-page choice", async () => {
+    localStorage.setItem("stockout.market.rt", "rt-1");
+    localStorage.setItem("stockout.market.sellerListingsView", "grid");
+    const many = Array.from({ length: 45 }, (_, i) => ({ ...row((i % 9) + 1, "DRAFT", "DRAFT"), listingId: `0000${String(i).padStart(4, "0")}-0000-0000-0000-000000000000`, title: `Item ${i + 1}` }));
+    mockFetch([
+      ...sessionRoutes([{ sellerId: SELLER, sellerType: "BUSINESS", displayName: "Acme Surplus", status: "ACTIVE", verificationStatus: "VERIFIED", onboardingStatus: "COMPLETED", isOwner: true }]),
+      { method: "GET", path: /\/api\/v1\/catalog\/categories$/, respond: () => ({ body: { success: true, data: [] } }) },
+      { method: "GET", path: `/api/v1/marketplace/sellers/${SELLER}/listings`, respond: () => ({ body: { items: many, totalCount: many.length } }) },
+    ]);
+    renderWithApp(routes, "/seller/listings");
+    expect(await screen.findByText("Item 1")).toBeInTheDocument();
+    expect(screen.getByText("Showing 1–20 of 45")).toBeInTheDocument();
+    const nav = screen.getByRole("navigation", { name: "Pagination" });
+    expect(within(nav).getByRole("button", { name: "Page 3" })).toBeInTheDocument();
+    await userEvent.click(within(nav).getByRole("button", { name: "Page 3" }));
+    expect(await screen.findByText("Item 41")).toBeInTheDocument();
+    expect(screen.getByText("Showing 41–45 of 45")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("combobox", { name: "Listings per page" }));
+    await userEvent.click(await screen.findByRole("option", { name: "50" }));
+    expect(await screen.findByText("Showing 1–45 of 45")).toBeInTheDocument(); // back to page 1 with the new size
+  });
 });

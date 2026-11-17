@@ -15,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { NativeSelect } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/page-header";
+import { PaginationBar } from "@/components/tables/pagination-bar";
 import {
   RefreshButton,
   RowAction,
@@ -405,6 +406,7 @@ export default function SellerListingsPage() {
             pageSize={state.pageSize}
             totalCount={data?.totalCount ?? 0}
             onPageChange={(page) => setState({ page })}
+            onPageSizeChange={(pageSize) => setState({ pageSize }, { resetPage: true })}
             empty={
               <EmptyState
                 className="rounded-xl border border-dashed border-border-strong"
@@ -523,6 +525,7 @@ function ListingsGrid({
   pageSize,
   totalCount,
   onPageChange,
+  onPageSizeChange,
   empty,
 }: {
   sellerId: string;
@@ -538,13 +541,13 @@ function ListingsGrid({
   pageSize: number;
   totalCount: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange: (size: number) => void;
   empty: React.ReactNode;
 }) {
   if (error) return <ErrorState error={error} onRetry={onRetry} />;
   const list = items ?? [];
   if (!isLoading && list.length === 0)
     return <div className="mt-4">{empty}</div>;
-  const pages = Math.max(1, Math.ceil(totalCount / pageSize));
   return (
     <div className="mt-4">
       <ul
@@ -570,31 +573,10 @@ function ListingsGrid({
               </li>
             ))}
       </ul>
-      {totalCount > pageSize && (
-        <nav
-          className="mt-6 flex items-center justify-center gap-3"
-          aria-label="Pagination"
-        >
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={page <= 1}
-            onClick={() => onPageChange(page - 1)}
-          >
-            Previous
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Page {page} of {pages} · {totalCount} listings
-          </span>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={page >= pages}
-            onClick={() => onPageChange(page + 1)}
-          >
-            Next
-          </Button>
-        </nav>
+      {!isLoading && totalCount > 0 && (
+        <div className="@container mt-6 border-t border-border pt-4">
+          <PaginationBar page={page} pageSize={pageSize} total={totalCount} onPageChange={onPageChange} onPageSizeChange={onPageSizeChange} sizeLabel="Listings per page" />
+        </div>
       )}
     </div>
   );

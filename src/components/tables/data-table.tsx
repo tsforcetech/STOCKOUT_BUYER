@@ -9,13 +9,11 @@ import {
   type RowSelectionState,
   type SortingState,
 } from "@tanstack/react-table";
-import { ArrowDownIcon, ArrowUpIcon, CaretUpDownIcon, CaretLeftIcon, CaretRightIcon } from "@phosphor-icons/react";
+import { ArrowDownIcon, ArrowUpIcon, CaretUpDownIcon } from "@phosphor-icons/react";
 import { Checkbox } from "@/components/ui/misc";
-import { Button } from "@/components/ui/button";
-import { NativeSelect } from "@/components/ui/input";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/feedback/states";
 import { cn } from "@/lib/utils/cn";
-import { formatNumber } from "@/lib/utils/format";
+import { PaginationBar } from "./pagination-bar";
 
 export interface ServerPagination {
   page: number;
@@ -125,8 +123,6 @@ export function DataTable<T>({
   const page = pagination ? pagination.page : clientPagination.pageIndex + 1;
   const pageSize = pagination ? pagination.pageSize : clientPagination.pageSize;
   const pageCount = Math.max(1, Math.ceil(total / Math.max(1, pageSize)));
-  const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
-  const to = Math.min(total, page * pageSize);
 
   const goTo = (next: number) => {
     if (pagination) pagination.onPageChange(next);
@@ -215,68 +211,16 @@ export function DataTable<T>({
       )}
 
       {!error && !isLoading && total > 0 && (
-        <div className="flex flex-col gap-3 border-t border-border px-4 py-3 text-sm text-foreground @xl:flex-row @xl:items-center @xl:justify-between">
-          <div className="whitespace-nowrap text-muted-foreground">
-            Showing {formatNumber(from)}–{formatNumber(to)} of {formatNumber(total)}
-          </div>
-          {total > Math.min(...pageSizeOptions) && (
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <label className="flex items-center gap-2 whitespace-nowrap">
-              <span>Rows per page</span>
-              <NativeSelect className="h-8 w-[76px] px-2.5 text-sm" value={pageSize} onChange={(e) => setSize(Number(e.target.value))} aria-label="Rows per page">
-                {pageSizeOptions.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </NativeSelect>
-            </label>
-            <nav className="flex items-center gap-1" aria-label="Pagination">
-              <Button variant="ghost" size="icon-sm" onClick={() => goTo(page - 1)} disabled={page <= 1} aria-label="Previous page">
-                <CaretLeftIcon />
-              </Button>
-              {pageWindow(page, pageCount).map((p, i) =>
-                p === "…" ? (
-                  <span key={`gap-${i}`} className="px-1 text-muted-foreground" aria-hidden>
-                    …
-                  </span>
-                ) : (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => goTo(p)}
-                    aria-current={p === page ? "page" : undefined}
-                    aria-label={`Page ${p}`}
-                    className={cn(
-                      "flex size-8 cursor-pointer items-center justify-center rounded-sm text-sm transition-colors",
-                      p === page ? "bg-action font-semibold text-action-foreground" : "text-foreground hover:bg-surface-muted",
-                    )}
-                  >
-                    {p}
-                  </button>
-                ),
-              )}
-              <Button variant="ghost" size="sm" onClick={() => goTo(page + 1)} disabled={page >= pageCount} aria-label="Next page">
-                Next <CaretRightIcon />
-              </Button>
-            </nav>
-          </div>
-          )}
-        </div>
+        <PaginationBar
+          className="border-t border-border px-4 py-3"
+          page={page}
+          pageSize={pageSize}
+          total={total}
+          onPageChange={goTo}
+          onPageSizeChange={setSize}
+          pageSizeOptions={pageSizeOptions}
+        />
       )}
     </div>
   );
-}
-
-/** Page numbers with ellipses: 1 … 4 5 6 … 20 */
-function pageWindow(page: number, count: number): Array<number | "…"> {
-  if (count <= 7) return Array.from({ length: count }, (_, i) => i + 1);
-  const pages = new Set([1, count, page - 1, page, page + 1]);
-  const sorted = [...pages].filter((p) => p >= 1 && p <= count).sort((a, b) => a - b);
-  const result: Array<number | "…"> = [];
-  sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1] > 1) result.push("…");
-    result.push(p);
-  });
-  return result;
 }
