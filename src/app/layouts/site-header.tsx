@@ -1,3 +1,4 @@
+import { NotificationBell } from "@/features/notifications/notification-bell";
 import * as React from "react";
 import { useBump } from "@/hooks/use-bump";
 import { Link, NavLink, useLocation, useNavigate } from "react-router";
@@ -569,6 +570,7 @@ export function SiteHeader() {
             <span className="hidden sm:inline-flex">
               <SavedButton />
             </span>
+            <NotificationBell />
             <CartButton />
             {status === "authenticated" ? (
               <AccountMenu />

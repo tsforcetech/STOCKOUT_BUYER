@@ -73,10 +73,11 @@ function useBuyerProfile() {
 const TRN = /^\d{15}$/;
 
 /** Account-level readiness blockers: checkout readiness is authoritative over the eligibility banner. */
-const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "BUYER_ORGANIZATION_UNAUTHORIZED", "MULTIPLE_ORGANIZATIONS", "COMMERCE_SELF_PURCHASE_DENIED"];
+const BUYER_BLOCKERS = ["BUYER_IDENTITY_VERIFICATION_REQUIRED", "BUYER_ORGANIZATION_REQUIRED", "BUYER_ORGANIZATION_UNAUTHORIZED", "MULTIPLE_ORGANIZATIONS", "BUYER_ELIGIBILITY_UNAVAILABLE", "COMMERCE_SELF_PURCHASE_DENIED"];
 
-function BuyerSection({ readiness, cart, onCartChanged }: { readiness: CheckoutValidationResult | undefined; cart: BuyerCartResponse; onCartChanged: (cart: BuyerCartResponse) => void }) {
-  const elig = useBuyerEligibility();
+function BuyerSection({ readiness, cart, onCartChanged, onRetry }: { readiness: CheckoutValidationResult | undefined; cart: BuyerCartResponse; onCartChanged: (cart: BuyerCartResponse) => void; onRetry: () => void }) {
+  // BE-12: ask for the cart's company so this matches what checkout readiness decides.
+  const elig = useBuyerEligibility(cart.buyerOrganizationId);
   const profile = useBuyerProfile();
   const e = elig.data;
   const buyerBlocker = readiness?.blockers.find((b) => !b.listingId && BUYER_BLOCKERS.includes(b.code));
@@ -112,6 +113,11 @@ function BuyerSection({ readiness, cart, onCartChanged }: { readiness: CheckoutV
                 : // Known statuses get shopper wording; backend reasons can be internal (e.g. service configuration).
                   (DENIED[(e?.verificationStatus ?? "").toUpperCase()] ?? "Your account can't buy right now. Contact StockOut support.")}
           </span>
+          {buyerBlocker?.code === "BUYER_ELIGIBILITY_UNAVAILABLE" && (
+            <button type="button" className="ml-auto shrink-0 font-medium underline underline-offset-4" onClick={onRetry}>
+              Try again
+            </button>
+          )}
         </p>
       ) : null}
 
@@ -534,7 +540,7 @@ export default function CheckoutPage() {
       {changed && <ChangedNotice onReload={reload} />}
       <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <div className="min-w-0 space-y-4">
-          <BuyerSection readiness={readiness.data} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
+          <BuyerSection readiness={readiness.data} onRetry={() => void readiness.refetch()} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
           <ItemsSection cart={cart} readiness={readiness.data} />
           <DeliverySection addressOwner={addressOwnerFor(reviewed.cart, readiness.data)} />
           <PaymentSection />

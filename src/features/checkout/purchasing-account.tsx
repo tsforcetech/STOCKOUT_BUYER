@@ -8,6 +8,7 @@ import { cartWrite } from "@/lib/cart/server-cart";
 import { commerceCode, commerceErrorMessage } from "@/lib/cart/commerce-errors";
 import { buyerCommerceService } from "@/services/buyer-commerce.service";
 import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
+import { ORGANIZATION_STATUSES } from "@/features/cart/components/buyer-eligibility";
 import type { BuyerEligibilityResponse, BuyerProfileDto } from "@/api/types/user-organization";
 
 const ORG_ERRORS: Record<string, string> = {
@@ -42,7 +43,9 @@ export function PurchasingAccount({
   const [error, setError] = React.useState<string | null>(null);
   const [editing, setEditing] = React.useState(false);
 
-  if (!eligibility || !eligibility.canPurchase || !eligibility.organizationType) return null;
+  // BE-12: eligibility can say "can't buy" only because no (valid) company is chosen yet; the picker must still show.
+  const orgStatus = ORGANIZATION_STATUSES.has((eligibility?.verificationStatus ?? "").toUpperCase());
+  if (!eligibility || !eligibility.organizationType || !(eligibility.canPurchase || orgStatus)) return null;
   const individual = eligibility.organizationType.toUpperCase() === "INDIVIDUAL";
   const orgIds = Array.from(new Set([eligibility.organizationId, ...(eligibility.authorizedOrganizationIds ?? [])].filter((x): x is string => !!x).map((x) => x.toLowerCase())));
   // A business buyer with no authorised company: nothing to choose; the readiness blocker explains it.

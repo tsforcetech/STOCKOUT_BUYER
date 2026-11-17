@@ -373,6 +373,40 @@ describe("BE-01 purchasing company on the cart", () => {
     expect(screen.getByRole("button", { name: /Continue to payment/ })).toBeDisabled();
   });
 
+  it("BE-12: still offers the company choice when eligibility says MULTIPLE_ORGANIZATIONS, and asks eligibility for the cart's company", async () => {
+    signIn();
+    const { calls } = mockFetch([
+      ...sessionRoutes([]),
+      { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart({ buyerOrganizationId: null }) }) },
+      readinessRoute(() => readiness({ canProceed: false, blockers: [{ code: "MULTIPLE_ORGANIZATIONS", message: "x", listingId: null }] })),
+      elig({ canPurchase: false, eligible: false, verificationStatus: "MULTIPLE_ORGANIZATIONS", authorizedOrganizationIds: [ORGB, ORGC] }), prof, wishIds,
+    ]);
+    page(<CheckoutPage />, "/checkout");
+    const group = await screen.findByRole("group", { name: "Who is buying?" });
+    expect(within(group).getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByRole("link", { name: /Verify my identity/ })).not.toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname === "/api/v1/marketplace/buyer/eligibility")?.url.search).toBe(""); // no company chosen yet
+  });
+
+  it("BE-12: a company-check outage shows a retry, never a verify-identity prompt", async () => {
+    signIn();
+    let checks = 0;
+    const { calls } = mockFetch([
+      ...sessionRoutes([]),
+      { method: "GET", path: "/api/v1/buyer/cart", respond: () => ({ body: cart({ buyerOrganizationId: ORGB }) }) },
+      readinessRoute(() => ((checks += 1), readiness({ buyerOrganizationId: ORGB, canProceed: false, blockers: [{ code: "BUYER_ELIGIBILITY_UNAVAILABLE", message: "x", listingId: null }] }))),
+      elig(), prof, wishIds,
+    ]);
+    page(<CheckoutPage />, "/checkout");
+    const buyer = await screen.findByRole("region", { name: "Buyer" });
+    expect(await within(buyer).findByText(/couldn't confirm your company's buying access/)).toBeInTheDocument();
+    expect(within(buyer).queryByText(/Verify your account|Verify my identity/)).not.toBeInTheDocument();
+    expect(calls.find((c) => c.url.pathname === "/api/v1/marketplace/buyer/eligibility")?.url.searchParams.get("organizationId")).toBe(ORGB);
+    const before = checks;
+    await userEvent.click(within(buyer).getByRole("button", { name: "Try again" }));
+    await waitFor(() => expect(checks).toBeGreaterThan(before));
+  });
+
   it("a multi-company buyer gets no preselection and sees the server's refusal", async () => {
     signIn();
     const { calls } = mockFetch([

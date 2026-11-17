@@ -17,6 +17,7 @@ export function AccountTabs() {
         { to: "/account/orders", label: "My orders", end: false },
         { to: "/account/security", label: "Security", end: false },
         { to: "/account/saved-searches", label: "Saved searches", end: false },
+        { to: "/account/notifications", label: "Notifications", end: false },
         { to: "/account/privacy", label: "Privacy", end: false },
       ];
   return (

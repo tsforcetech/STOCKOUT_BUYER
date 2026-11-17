@@ -14,6 +14,8 @@ export const BLOCKER_TEXT: Record<string, string> = {
   BUYER_ORGANIZATION_UNAUTHORIZED: "Your account isn't authorised to buy for this company. Ask your company's owner to check your role.",
   COMMERCE_SELF_PURCHASE_DENIED: "You can't buy your own business's listings. Remove them from your cart.",
   CART_EMPTY: "Your cart is empty.",
+  // BE-12: a temporary outage of the company check. Never a reason to re-verify identity.
+  BUYER_ELIGIBILITY_UNAVAILABLE: "We couldn't confirm your company's buying access right now. Please try again in a moment.",
 };
 
 /** Quantity rules carry the exact constraint in the backend message, so that text is shown as-is. */

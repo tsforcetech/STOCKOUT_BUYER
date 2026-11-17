@@ -59,6 +59,7 @@ export const routes: RouteObject[] = [
                   { path: "orders", lazy: page(() => import("@/features/orders/my-orders-page")) },
                   { path: "orders/:orderId", lazy: page(() => import("@/features/orders/order-detail-page")) },
                   { path: "saved-searches", lazy: page(() => import("@/features/account/saved-searches-page")) },
+                  { path: "notifications", lazy: page(() => import("@/features/notifications/notifications-page")) },
                   { path: "privacy", lazy: page(() => import("@/features/account/privacy-page")) },
                 ],
               },

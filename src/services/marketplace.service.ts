@@ -41,7 +41,9 @@ export const marketplaceService = {
     unwrapData<MarketplaceSellerDto>(await http.put<Envelope<MarketplaceSellerDto>>(`/api/v1/marketplace/sellers/${seg(sellerId)}/profile`, body)),
   eligibility: (sellerId: string, signal?: AbortSignal) => get<SellerEligibilityResponse>(`/api/v1/marketplace/sellers/${seg(sellerId)}/eligibility`, signal),
   /** BK-1: buying needs no buyer KYC; this only says whether this account may buy. Not a checkout API. */
-  buyerEligibility: (signal?: AbortSignal) => get<BuyerEligibilityResponse>("/api/v1/marketplace/buyer/eligibility", signal),
+  /** BE-12: pass the purchasing company (cart.buyerOrganizationId) so the answer matches checkout readiness. */
+  buyerEligibility: (signal?: AbortSignal, organizationId?: string | null) =>
+    get<BuyerEligibilityResponse>(`/api/v1/marketplace/buyer/eligibility${organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : ""}`, signal),
   /** Buyer profile incl. identity verification state; 404 MARKETPLACE_BUYER_NOT_FOUND when none exists. Identity comes from the token. */
   buyerProfile: (signal?: AbortSignal) => get<BuyerProfileDto>("/api/v1/marketplace/buyer/profile", signal),
   /** Create/update the buyer's identity details (account holder only). Use the latest rowVersion, or null when creating. */
