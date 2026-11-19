@@ -171,6 +171,15 @@ export function PaymentStep({
     if (!e) return;
     setError(preauthMessage(e));
     const code = isApiError(e) ? e.code : undefined;
+    // BE-05: for the same buyer and checkout the 409 names the attempt already running; resume it instead of a new one.
+    const active = code === "PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT" ? activeAttemptOf(e) : null;
+    if (active) {
+      setError(null);
+      setClientSecret(null);
+      // Card entry resumes for REQUIRES_PAYMENT_METHOD / REQUIRES_ACTION; other states start polling by themselves.
+      remember({ cartId: cart.cartId, cartVersion, idempotencyKey: newId(), checkoutCorrelationId: active.correlationId ?? newId(), expectedTotalAmount: total, attemptId: active.attemptId });
+      return;
+    }
     const uncertain = !isApiError(e) || e.kind === "network" || e.kind === "timeout" || e.status >= 500;
     // Keep the key only when the server may have created the attempt; a definite refusal gets a fresh key next time.
     if (!uncertain) remember(null);
@@ -344,6 +353,17 @@ export function PaymentStep({
       )}
     </div>
   );
+}
+
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** ProblemDetails extensions on PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT (only sent for the same buyer and checkout). */
+function activeAttemptOf(e: unknown): { attemptId: string; correlationId: string | null } | null {
+  const body = isApiError(e) && e.body && typeof e.body === "object" ? (e.body as Record<string, unknown>) : null;
+  const id = body?.activeAttemptId;
+  if (typeof id !== "string" || !GUID.test(id)) return null;
+  const corr = body?.activeCheckoutCorrelationId;
+  return { attemptId: id, correlationId: typeof corr === "string" ? corr : null };
 }
 
 function EndedNotice({ s }: { s: PaymentAuthorizationStatusResponse }) {

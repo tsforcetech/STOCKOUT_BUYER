@@ -77,6 +77,19 @@ describe("Seller payout account (Stripe Connect, 8B.4)", () => {
     expect(screen.getByText(/Payouts to bank enabled/)).toBeInTheDocument();
   });
 
+  it("SELLER_CONTACT_EMAIL_MISSING asks for a business contact email and links to the business profile", async () => {
+    signIn();
+    mockFetch([
+      ...sessionRoutes(seller),
+      statusRoute(status()),
+      { method: "POST", path: "/api/v1/seller/stripe/onboarding-link", respond: () => ({ status: 400, body: { status: 400, title: "Validation", code: "SELLER_CONTACT_EMAIL_MISSING" } }) },
+    ]);
+    page("/seller/payout-settings", <PayoutSettingsPage />);
+    await userEvent.click(await screen.findByRole("button", { name: /Set up payouts/ }));
+    expect(await screen.findByText(/Add a business contact email to your business profile first/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Update business details" })).toHaveAttribute("href", "/seller/business");
+  });
+
   it("COMPLETED without both capabilities is not shown as active", async () => {
     signIn();
     mockFetch([...sessionRoutes(seller), statusRoute(status({ isConnected: true, stripeAccountId: "acct_1", onboardingStatus: "COMPLETED", detailsSubmitted: true, chargesEnabled: true, payoutsEnabled: false }))]);

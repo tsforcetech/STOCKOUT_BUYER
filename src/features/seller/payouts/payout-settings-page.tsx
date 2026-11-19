@@ -86,7 +86,17 @@ export default function PayoutSettingsPage() {
                 )}
               </div>
               {onboarding.error && (
-                <Notice tone="danger" className="mt-4">
+                <Notice
+                  tone="danger"
+                  className="mt-4"
+                  action={
+                    onboarding.errorCode === "SELLER_CONTACT_EMAIL_MISSING" ? (
+                      <Button asChild size="sm" variant="secondary">
+                        <Link to="/seller/business">Update business details</Link>
+                      </Button>
+                    ) : undefined
+                  }
+                >
                   {onboarding.error}
                 </Notice>
               )}

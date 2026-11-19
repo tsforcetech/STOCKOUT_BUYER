@@ -51,6 +51,8 @@ const MESSAGES: Record<string, string> = {
   INVALID_SELLER_ID: "Choose a seller account first.",
   STRIPE_API_ERROR: "Stripe couldn't be reached just now. Nothing was changed; try again in a moment.",
   STRIPE_INTEGRATION_DISABLED: "Payout setup isn't open yet. Please try again later.",
+  // Accounts v2 (handoff 19 Nov §3): Stripe needs the organisation's business contact email; StockOut never invents one.
+  SELLER_CONTACT_EMAIL_MISSING: "Add a business contact email to your business profile first. Stripe needs it to create your payout account.",
 };
 export const stripeMessage = (e: unknown) => (isApiError(e) && e.code && MESSAGES[e.code]) || getErrorMessage(e);
 
@@ -76,10 +78,12 @@ export function requirementLabel(key: string): string {
 export function useStartOnboarding(sellerId: string | undefined, mode: "start" | "refresh" = "start") {
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  const [errorCode, setErrorCode] = React.useState<string | null>(null);
   const start = React.useCallback(async () => {
     if (!sellerId) return;
     setBusy(true);
     setError(null);
+    setErrorCode(null);
     try {
       const body = stripeRedirectUrls();
       let link;
@@ -94,10 +98,11 @@ export function useStartOnboarding(sellerId: string | undefined, mode: "start" |
       window.location.assign(link.url);
     } catch (e) {
       setError(stripeMessage(e));
+      setErrorCode(isApiError(e) ? (e.code ?? null) : null);
       setBusy(false);
     }
   }, [sellerId, mode]);
-  return { start, busy, error };
+  return { start, busy, error, errorCode };
 }
 
 /** Sync from Stripe and store the authoritative status. */

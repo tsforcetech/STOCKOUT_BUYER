@@ -137,6 +137,36 @@ describe("checkout payment authorisation (Stripe sandbox, handoff 18 Nov §7)", 
     expect(keys[0]).not.toBe(keys[1]);
   });
 
+  it("BE-05: an active-attempt conflict for the same buyer resumes that attempt instead of starting another", async () => {
+    let posts = 0;
+    const { calls } = mockFetch([
+      {
+        method: "POST",
+        path: BASE,
+        respond: () => (
+          posts++,
+          { status: 409, body: { status: 409, title: "Conflict", code: "PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT", activeAttemptId: ATTEMPT, activeAttemptStatus: "REQUIRES_PAYMENT_METHOD", activeCheckoutCorrelationId: "corr-1" } }
+        ),
+      },
+      { method: "GET", path: `${BASE}/${ATTEMPT}`, respond: ({ url }) => ({ body: attempt({ clientSecret: url.searchParams.get("includeClientSecret") === "true" ? "pi_1_secret_resumed" : null }) }) },
+    ]);
+    render();
+    await userEvent.click(screen.getByRole("button", { name: /Continue to card payment/ }));
+    // The running attempt is read back (with its client secret, since this page never held it) and its card form shown.
+    expect(await screen.findByRole("button", { name: /Authorise AED\s1,050\.00/ })).toBeInTheDocument();
+    expect(stripe.elements).toHaveBeenCalledWith(expect.objectContaining({ clientSecret: "pi_1_secret_resumed" }));
+    expect(posts).toBe(1);
+    expect(calls.some((c) => c.method === "GET" && c.url.pathname.endsWith(ATTEMPT))).toBe(true);
+    expect(screen.queryByText(/already in progress/)).not.toBeInTheDocument();
+  });
+
+  it("an active-attempt conflict without details (other buyer or changed checkout) only shows the message", async () => {
+    mockFetch([{ method: "POST", path: BASE, respond: () => ({ status: 409, body: { status: 409, title: "Conflict", code: "PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT" } }) }]);
+    render();
+    await userEvent.click(screen.getByRole("button", { name: /Continue to card payment/ }));
+    expect(await screen.findByText(/A payment for this cart is already in progress/)).toBeInTheDocument();
+  });
+
   it("a declined authorisation shows the failure and starts a NEW attempt on Try again", async () => {
     store();
     const { calls } = mockFetch([

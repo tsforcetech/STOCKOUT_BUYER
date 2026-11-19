@@ -33,7 +33,9 @@ No envelope; errors are ProblemDetails with `code`.
 | RESTRICTED | Payouts restricted (+ `disabledReason`, due items, support contact) | Resolve restrictions |
 | COMPLETED + both capabilities | Payout account active | Update account details / Refresh status |
 
-Error wording: `src/features/seller/payouts/payout-shared.tsx` (`MESSAGES`). `UNAUTHORIZED_SELLER_ACCESS` and
+Error wording: `src/features/seller/payouts/payout-shared.tsx` (`MESSAGES`). Handoff 19 Nov 2026 (Accounts v2, backend `8fa2909`):
+`400 SELLER_CONTACT_EMAIL_MISSING` (`StripeConnectService.cs:126`) asks the seller to add a business contact email and links to
+`/seller/business`; the frontend never sends an email itself. `UNAUTHORIZED_SELLER_ACCESS` and
 `SELLER_NOT_VERIFIED` are named by the handoff but not found in the current backend source; they are mapped anyway.
 
 ## 2. Buyer payment authorisation (Stage 8C.10, manual capture)
@@ -71,8 +73,9 @@ Frontend behaviour (`src/features/checkout/payment-step.tsx`, `src/lib/orders/pa
   re-checks the cart first; `RECONCILIATION_REQUIRED` → Verification delayed.
 - `PAYMENT_PREAUTH_AMOUNT_MISMATCH` / `INSUFFICIENT_STOCK` re-check readiness; `CART_CONCURRENCY_CONFLICT`,
   `COMMERCE_IF_MATCH_REQUIRED`, `COMMERCE_INVALID_IF_MATCH`, `PAYMENT_PREAUTH_CART_MISMATCH` show the "cart was updated"
-  reload notice. `PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT` (`:264`) does not return the existing attempt id, so only the
-  attempt remembered in this tab can be resumed.
+  reload notice. `PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT` (BE-05, `PaymentPreAuthService.cs:261-288`): for the same buyer and
+  checkout the ProblemDetails carries `activeAttemptId`, `activeAttemptStatus`, `activeCheckoutCorrelationId`; the step resumes
+  that attempt (status read with `includeClientSecret=true` when card entry is still needed). Without them it shows the message only.
 - Cancel is offered for card-entry states and AUTHORIZED; `409 PAYMENT_PREAUTH_ALREADY_AUTHORIZED_PROTECTED` (`:523`) is
   explained, not forced.
 - **Place order** stays disabled (`ORDER_API.placeOrder = false`; backend `OrderPlacement:Enabled=false` → 503).
@@ -88,6 +91,7 @@ Frontend behaviour (`src/features/checkout/payment-step.tsx`, `src/lib/orders/pa
 
 1. Sandbox E2E evidence (Stripe account, PaymentIntent, webhook inbox) is still 0/22 per RUNTIME-06; frontend testing
    needs the approved Tier A / Tier B identities and a `pk_test_` key from the same Stripe account as the backend.
-2. `PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT` could return the active `attemptId` so another tab or device can resume it.
-3. The polling window counts from attempt creation (120 s), so a buyer who takes longer to enter card details is shown
-   "Verification delayed" for processing states after confirming; a manual check still works.
+2. Fixed in backend `8fa2909` (BE-05): the conflict returns the active attempt for the same buyer (handled above).
+3. Fixed in backend `8fa2909` (BE-06): the 120 s window now starts at card confirmation; no frontend change needed.
+4. Accounts v2 seller creation is still refused by Stripe for the platform test account (POST-DEPLOY-UAT-02, 19 Nov):
+   platform Connect settings must be fixed before onboarding can be tested.
