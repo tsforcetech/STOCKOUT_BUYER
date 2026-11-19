@@ -12,6 +12,7 @@ import {
   CheckIcon,
   SealCheckIcon,
   IdentificationCardIcon,
+  LeafIcon,
   LockKeyIcon,
   ListIcon,
   ListNumbersIcon,
@@ -29,6 +30,7 @@ import { humanize, initials } from "@/lib/utils/format";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { cn } from "@/lib/utils/cn";
+import { ORDER_API } from "@/lib/orders/order-api";
 import { ThemeSwitch } from "./site-header";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { correctionKeys } from "@/features/seller/lib/corrections";
@@ -73,6 +75,7 @@ const NAV_GROUPS: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { label: "Orders", to: "/seller/orders", icon: ReceiptIcon },
       { label: "Payouts", to: "/seller/payout-settings", icon: BankIcon, also: ["/seller/stripe"], badge: "payouts" },
+      ...(ORDER_API.sustainabilityReports ? [{ label: "Impact reports", to: "/seller/impact-reports", icon: LeafIcon }] : []),
     ],
   },
   {

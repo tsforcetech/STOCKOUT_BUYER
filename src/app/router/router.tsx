@@ -5,6 +5,7 @@ import { SellerLayout } from "@/app/layouts/seller-layout";
 import { RootLayout } from "@/app/layouts/root-layout";
 import { RedirectIfAuthenticated, RequireAuth } from "@/lib/auth/guards";
 import { RouteError } from "./route-error";
+import { ORDER_API } from "@/lib/orders/order-api";
 
 const page = (loader: () => Promise<{ default: React.ComponentType }>) => async () => ({ Component: (await loader()).default });
 
@@ -57,6 +58,7 @@ export const routes: RouteObject[] = [
                   { path: "verification", lazy: page(() => import("@/features/verification/buyer-verification-page")) },
                   { path: "addresses", lazy: page(() => import("@/features/addresses/addresses-page")) },
                   { path: "orders", lazy: page(() => import("@/features/orders/my-orders-page")) },
+                  ...(ORDER_API.sustainabilityReports ? [{ path: "impact-reports", lazy: page(() => import("@/features/sustainability/impact-reports-page")) }] : []),
                   { path: "orders/:orderId", lazy: page(() => import("@/features/orders/order-detail-page")) },
                   { path: "saved-searches", lazy: page(() => import("@/features/account/saved-searches-page")) },
                   { path: "notifications", lazy: page(() => import("@/features/notifications/notifications-page")) },
@@ -84,6 +86,9 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, lazy: page(() => import("@/features/seller/dashboard-page")) },
                   { path: "orders", lazy: page(() => import("@/features/orders/seller-orders-page")) },
+                  ...(ORDER_API.sustainabilityReports
+                    ? [{ path: "impact-reports", lazy: async () => ({ Component: (await import("@/features/sustainability/impact-reports-page")).SellerImpactReportsPage }) }]
+                    : []),
                   { path: "orders/:subOrderId", lazy: page(() => import("@/features/orders/seller-order-detail-page")) },
                   { path: "business", lazy: page(() => import("@/features/seller/business-page")) },
                   { path: "payout-settings", lazy: page(() => import("@/features/seller/payouts/payout-settings-page")) },

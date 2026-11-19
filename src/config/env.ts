@@ -21,5 +21,9 @@ export const env = {
   stripePublishableKey: stripeKey(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY),
   /** Payment authorisation (Stage 8C.10) is off unless explicitly switched on AND a test key is set. */
   paymentPreAuthEnabled: import.meta.env.VITE_PAYMENT_PREAUTH === "on" && !!stripeKey(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY),
+  /** Seller fulfilment + buyer acceptance/claims (BD-ORDER-LIFECYCLE-01). Off unless "on". */
+  orderLifecycleEnabled: import.meta.env.VITE_ORDER_LIFECYCLE === "on",
+  /** SUS-03 buyer/seller impact reports. Off unless "on" (Wave A public activation is policy-gated). */
+  sustainabilityReportsEnabled: import.meta.env.VITE_SUSTAINABILITY_REPORTS === "on",
   isDev: import.meta.env.DEV,
 } as const;

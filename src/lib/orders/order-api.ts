@@ -20,6 +20,16 @@ export const ORDER_API = {
   placeOrder: false,
   /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */
   sellerConfirmReject: true,
-  /** Dispatch / delivered / claims: no approved contract. */
-  sellerFulfilmentActions: false,
+  /**
+   * BD-ORDER-LIFECYCLE-01 seller fulfilment (prepare, ready for pickup, confirm collection, claims and evidence views).
+   * Off: migration 015 is not on the operational database (POST-DEPLOY-UAT-02, 19 Nov 2026) and no orders exist.
+   */
+  sellerFulfilmentActions: env.orderLifecycleEnabled,
+  /** Buyer acceptance and claims on delivered sub-orders (same backend dependency; VITE_ORDER_LIFECYCLE). */
+  buyerAcceptance: env.orderLifecycleEnabled,
+  /**
+   * SUS-03 buyer/seller sustainability impact reports. Off: Wave A public activation is policy-blocked, migration 014 is
+   * missing and the list/download gateway routes are not published. VITE_SUSTAINABILITY_REPORTS=on switches it on.
+   */
+  sustainabilityReports: env.sustainabilityReportsEnabled,
 } as const;

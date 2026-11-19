@@ -11,6 +11,10 @@ interface ImportMetaEnv {
   readonly VITE_PAYMENT_PREAUTH?: string;
   /** Stripe publishable TEST key (pk_test_...). Never a secret or webhook key. */
   readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
+  /** "on" shows seller fulfilment and buyer acceptance/claims on orders (default: off). */
+  readonly VITE_ORDER_LIFECYCLE?: string;
+  /** "on" shows SUS-03 sustainability impact reports (default: off). */
+  readonly VITE_SUSTAINABILITY_REPORTS?: string;
 }
 
 interface ImportMeta {

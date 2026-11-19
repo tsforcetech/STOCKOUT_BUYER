@@ -1,5 +1,6 @@
 import { NavLink, useLocation } from "react-router";
 import { cn } from "@/lib/utils/cn";
+import { ORDER_API } from "@/lib/orders/order-api";
 
 /** Inside the seller portal the same pages show at /seller/profile and /seller/security, with only the account tabs. */
 export function AccountTabs() {
@@ -15,6 +16,7 @@ export function AccountTabs() {
         { to: "/account/verification", label: "Verification", end: false },
         { to: "/account/addresses", label: "Addresses", end: false },
         { to: "/account/orders", label: "My orders", end: false },
+        ...(ORDER_API.sustainabilityReports ? [{ to: "/account/impact-reports", label: "Impact reports", end: false }] : []),
         { to: "/account/security", label: "Security", end: false },
         { to: "/account/saved-searches", label: "Saved searches", end: false },
         { to: "/account/notifications", label: "Notifications", end: false },

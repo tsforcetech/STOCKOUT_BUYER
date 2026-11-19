@@ -8,6 +8,9 @@ import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/uti
 import type { MarketplaceOrderDto, OrderLineSnapshotDto, OrderStatusHistoryDto, SellerSubOrderDto } from "@/api/types/orders";
 import { SellerSlaBadge, isPendingConfirmation } from "./seller-sla";
 import { anyStatusLabel, claimStatus, fulfilmentStatus, orderStatus, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
+import { ORDER_API } from "@/lib/orders/order-api";
+import { BuyerAcceptance } from "../buyer-acceptance";
+import { BuyerOrderImpact } from "@/features/sustainability/impact-report";
 
 /**
  * Read-only order views for the Stage 8C DTOs. Everything shown (amounts, statuses, dates) comes from the API response;
@@ -132,8 +135,10 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
             <div className="border-t border-border px-4 py-3">
               <Amounts currency={order.currency} rows={[["Materials", s.materialSubtotal], ["VAT", s.applicableMaterialVat], ["Seller total", s.subOrderTotal, true]]} />
             </div>
+            {ORDER_API.buyerAcceptance && <BuyerAcceptance orderId={order.orderId} sub={s} />}
           </section>
         ))}
+        {ORDER_API.sustainabilityReports && <BuyerOrderImpact orderId={order.orderId} />}
         <History history={order.statusHistory} />
       </div>
       <aside className="h-fit space-y-4 rounded-2xl border border-border p-5 lg:sticky lg:top-[176px]" aria-label="Order total">
@@ -212,7 +217,7 @@ export function SellerOrderList({ subOrders }: { subOrders: SellerSubOrderDto[] 
   );
 }
 
-export function SellerSubOrderDetail({ sub, actions }: { sub: SellerSubOrderDto; actions?: React.ReactNode }) {
+export function SellerSubOrderDetail({ sub, actions, children }: { sub: SellerSubOrderDto; actions?: React.ReactNode; children?: React.ReactNode }) {
   const currency = sub.items[0]?.currency ?? "AED";
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
@@ -266,6 +271,7 @@ export function SellerSubOrderDetail({ sub, actions }: { sub: SellerSubOrderDto;
             </div>
           </dl>
         </section>
+        {children}
         <History history={sub.statusHistory} />
       </div>
       <aside className="h-fit space-y-3 rounded-2xl border border-border bg-surface p-5" aria-label="Order actions">
@@ -280,7 +286,9 @@ export function SellerSubOrderDetail({ sub, actions }: { sub: SellerSubOrderDto;
             </Button>
           </>
         )}
-        <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Dispatch and delivery updates aren&apos;t available yet. They open once the fulfilment rules are approved.</p>
+        {!ORDER_API.sellerFulfilmentActions && (
+          <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Dispatch and delivery updates aren&apos;t available yet. They open once the fulfilment rules are approved.</p>
+        )}
       </aside>
     </div>
   );

@@ -9,6 +9,9 @@ import { DetailSkeleton } from "./order-detail-page";
 import { OrderNotFound } from "./order-unavailable";
 import { SellerOrderError } from "./seller-order-error";
 import { SellerDecision } from "./seller-decision";
+import { SellerEvidenceAndClaims, SellerFulfilment } from "./seller-fulfilment";
+import { ORDER_API } from "@/lib/orders/order-api";
+import { SellerSubOrderImpact } from "@/features/sustainability/impact-report";
 
 /** /seller/orders/:subOrderId: GET /api/v1/seller/orders/{subOrderId} for the active seller. Read only. */
 export default function SellerOrderDetailPage() {
@@ -32,7 +35,18 @@ export default function SellerOrderDetailPage() {
         ) : q.error || !q.data ? (
           <SellerOrderError error={q.error} onRetry={() => void q.refetch()} />
         ) : (
-          <SellerSubOrderDetail sub={q.data} actions={<SellerDecision sellerId={seller.sellerId} sub={q.data} />} />
+          <SellerSubOrderDetail
+            sub={q.data}
+            actions={
+              <>
+                <SellerDecision sellerId={seller.sellerId} sub={q.data} />
+                {ORDER_API.sellerFulfilmentActions && <SellerFulfilment sellerId={seller.sellerId} sub={q.data} />}
+              </>
+            }
+          >
+            {ORDER_API.sellerFulfilmentActions && <SellerEvidenceAndClaims sellerId={seller.sellerId} subOrderId={q.data.subOrderId} />}
+            {ORDER_API.sustainabilityReports && <SellerSubOrderImpact sellerId={seller.sellerId} subOrderId={q.data.subOrderId} />}
+          </SellerSubOrderDetail>
         )}
       </div>
     </div>

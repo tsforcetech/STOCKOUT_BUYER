@@ -58,6 +58,8 @@ export interface SellerSubOrderDto {
   subOrderTotal: number;
   status: SellerSubOrderStatus | string;
   fulfillmentStatus: FulfillmentLifecycleStatus | string;
+  /** STOCKOUT_DELIVERY | BUYER_PICKUP (BD-ORDER-LIFECYCLE-01); absent on older responses. */
+  fulfillmentMethod?: string | null;
   claimStatus: ClaimDisputeLifecycleStatus | string;
   payoutEligibility: SellerPayoutEligibilityStatus | string;
   purchasedAtUtc: IsoDateTime | null;

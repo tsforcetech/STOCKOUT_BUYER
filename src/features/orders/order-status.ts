@@ -86,3 +86,6 @@ export const anyStatusLabel = (value: string | null | undefined): string => {
   }
   return humanizeStatus(value);
 };
+
+/** True when an API status string ("READY_FOR_COLLECTION", "ReadyForCollection", …) is the given enum name. */
+export const statusIs = (value: string | null | undefined, name: string) => !!value && norm(value) === norm(name);
