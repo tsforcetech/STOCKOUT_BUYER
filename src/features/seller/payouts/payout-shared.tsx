@@ -15,26 +15,42 @@ export function useStripeStatus(sellerId: string | undefined) {
   });
 }
 
-/** Handoff 8B.4 §2.4 badge / text / call to action per onboarding status. */
+/** Badge / text / call to action per onboarding status (handoff 8B.4 §2.4; CTAs per consolidated handoff 18 Nov §4.3). */
 export const STATUS_UI: Record<string, { tone: "neutral" | "info" | "warning" | "danger" | "success"; label: string; cta: string }> = {
-  NOT_STARTED: { tone: "neutral", label: "No payout account connected", cta: "Set up payout account" },
-  IN_PROGRESS: { tone: "info", label: "Onboarding incomplete", cta: "Resume onboarding" },
-  PENDING_VERIFICATION: { tone: "warning", label: "Verification pending", cta: "Check verification status" },
-  RESTRICTED: { tone: "danger", label: "Payouts restricted", cta: "Update account details" },
+  NOT_STARTED: { tone: "neutral", label: "No payout account connected", cta: "Set up payouts" },
+  IN_PROGRESS: { tone: "info", label: "Onboarding incomplete", cta: "Continue setup" },
+  PENDING_VERIFICATION: { tone: "warning", label: "Verification pending", cta: "Review requirements" },
+  RESTRICTED: { tone: "danger", label: "Payouts restricted", cta: "Resolve restrictions" },
   COMPLETED: { tone: "success", label: "Payout account active", cta: "Update account details" },
 };
-export const statusUi = (s: string | null | undefined) => STATUS_UI[s ?? ""] ?? { tone: "neutral" as const, label: s ?? "Unknown", cta: "Resume onboarding" };
+export const statusUi = (s: string | null | undefined) => STATUS_UI[s ?? ""] ?? { tone: "neutral" as const, label: s ?? "Unknown", cta: "Continue setup" };
+
+/** Connected and verified only when Stripe reports COMPLETED and both capabilities are on (handoff §4.3). */
+export const isPayoutReady = (s: Pick<SellerStripeStatusResponse, "onboardingStatus" | "chargesEnabled" | "payoutsEnabled"> | null | undefined) =>
+  !!s && s.onboardingStatus === "COMPLETED" && s.chargesEnabled && s.payoutsEnabled;
+
+/** COMPLETED without both capabilities is not shown as active: Stripe still has something to switch on. */
+export const payoutUi = (s: SellerStripeStatusResponse) =>
+  s.onboardingStatus === "COMPLETED" && !isPayoutReady(s) ? { tone: "warning" as const, label: "Payouts not enabled yet", cta: "Review requirements" } : statusUi(s.onboardingStatus);
+
+/** Errors that mean this user can't manage the seller's payouts (not a glitch to retry). */
+export const STRIPE_DENIED = new Set(["MARKETPLACE_SELLER_ACCESS_DENIED", "UNAUTHORIZED_SELLER_ACCESS"]);
 
 const MESSAGES: Record<string, string> = {
   INVALID_REDIRECT_ORIGIN: "Payout setup can't start from this website yet: StockOut's payment service doesn't accept this site's address as a return page. Please contact StockOut support.",
   INVALID_REDIRECT_URL: "Payout setup can't start because the return address was refused. Please contact StockOut support.",
+  INVALID_REDIRECT_PATH: "Payout setup can't start because the return address was refused. Please contact StockOut support.",
   MISSING_DEFAULT_REDIRECT_URL: "Payout setup isn't configured yet. Please contact StockOut support.",
   INVALID_SERVER_REDIRECT_CONFIG: "Payout setup isn't configured yet. Please contact StockOut support.",
   SELLER_NOT_ELIGIBLE_FOR_ONBOARDING: "Your seller account must be verified and active before you can set up payouts.",
+  SELLER_NOT_VERIFIED: "Your seller account must be verified and active before you can set up payouts.",
   MARKETPLACE_SELLER_ACCESS_DENIED: "Only the owner or an admin of this seller account can manage its payout account.",
+  UNAUTHORIZED_SELLER_ACCESS: "Only the owner or an admin of this seller account can manage its payout account.",
   SELLER_STRIPE_ACCOUNT_NOT_FOUND: "There's no payout account yet. Start the setup first.",
   MISSING_SELLER_ID: "Choose a seller account first.",
   INVALID_SELLER_ID: "Choose a seller account first.",
+  STRIPE_API_ERROR: "Stripe couldn't be reached just now. Nothing was changed; try again in a moment.",
+  STRIPE_INTEGRATION_DISABLED: "Payout setup isn't open yet. Please try again later.",
 };
 export const stripeMessage = (e: unknown) => (isApiError(e) && e.code && MESSAGES[e.code]) || getErrorMessage(e);
 
@@ -66,7 +82,14 @@ export function useStartOnboarding(sellerId: string | undefined, mode: "start" |
     setError(null);
     try {
       const body = stripeRedirectUrls();
-      const link = mode === "refresh" ? await sellerStripeService.refreshLink(sellerId, body) : await sellerStripeService.onboardingLink(sellerId, body);
+      let link;
+      try {
+        link = mode === "refresh" ? await sellerStripeService.refreshLink(sellerId, body) : await sellerStripeService.onboardingLink(sellerId, body);
+      } catch (e) {
+        // No account to refresh (handoff §4.4): start onboarding instead.
+        if (mode !== "refresh" || !isApiError(e) || e.code !== "SELLER_STRIPE_ACCOUNT_NOT_FOUND") throw e;
+        link = await sellerStripeService.onboardingLink(sellerId, body);
+      }
       if (!link.url) throw new Error("No onboarding link was returned.");
       window.location.assign(link.url);
     } catch (e) {

@@ -35,6 +35,8 @@ import { PurchasingAccount } from "./purchasing-account";
 import { CheckoutAddressPicker } from "@/features/addresses/checkout-address-picker";
 import type { AddressOwner } from "@/services/addresses.service";
 import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/orders";
+import { env } from "@/config/env";
+import { PaymentStep } from "./payment-step";
 
 /**
  * Checkout review (Stage 8C). Totals, the seller breakdown, line issues and blockers come from
@@ -44,6 +46,8 @@ import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/
  */
 
 export const PLACE_ORDER_NOTE = "Payment and placing orders aren't open yet; they open at launch. Nothing is charged and no order is created.";
+/** With payment authorisation on (sandbox): authorising holds the amount; placing the order is still closed (503 ORDER_PLACEMENT_DISABLED). */
+export const PLACE_ORDER_NOTE_PREAUTH = "Placing orders isn't open yet. An authorised payment is only a hold on your card: nothing is charged and no order is created.";
 
 const sectionCls = "rounded-2xl border border-border bg-surface p-5 sm:p-6";
 
@@ -341,7 +345,14 @@ function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }
   );
 }
 
-function PaymentSection() {
+function PaymentSection({ payment }: { payment?: React.ComponentProps<typeof PaymentStep> }) {
+  if (ORDER_API.paymentPreAuth && payment)
+    return (
+      <section className={sectionCls} aria-labelledby="co-payment">
+        <SectionTitle id="co-payment" n={4} title="Payment" />
+        <PaymentStep {...payment} />
+      </section>
+    );
   return (
     <section className={sectionCls} aria-labelledby="co-payment">
       <SectionTitle id="co-payment" n={4} title="Payment" tag={<Badge tone="neutral">Preview</Badge>} />
@@ -454,10 +465,10 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
       )}
 
       <Button size="lg" className="mt-4 w-full rounded-full" disabled={!ORDER_API.placeOrder} aria-describedby="place-order-note">
-        <LockSimpleIcon /> Continue to payment
+        <LockSimpleIcon /> {ORDER_API.paymentPreAuth ? "Place order" : "Continue to payment"}
       </Button>
       <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        {PLACE_ORDER_NOTE}
+        {ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
       </p>
     </aside>
   );
@@ -481,6 +492,8 @@ export default function CheckoutPage() {
   const queryClient = useQueryClient();
   // The rowVersion the buyer is reviewing. If a refetch brings a different one, the cart changed elsewhere.
   const [reviewed, setReviewed] = React.useState<{ rowVersion: string; cart: BuyerCartResponse } | null>(null);
+  // The payment step found the cart stale (If-Match / concurrency refusal).
+  const [paymentStale, setPaymentStale] = React.useState(false);
   React.useEffect(() => {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
@@ -513,9 +526,10 @@ export default function CheckoutPage() {
       </div>
     );
 
-  const changed = q.data.rowVersion !== reviewed.rowVersion || (isApiError(readiness.error) && readiness.error.code === "CART_CONCURRENCY_CONFLICT");
+  const changed = paymentStale || q.data.rowVersion !== reviewed.rowVersion || (isApiError(readiness.error) && readiness.error.code === "CART_CONCURRENCY_CONFLICT");
   const cart = reviewed.cart;
   const reload = () => {
+    setPaymentStale(false);
     void q.refetch().then((r) => r.data && setReviewed({ rowVersion: r.data.rowVersion, cart: r.data }));
   };
 
@@ -543,7 +557,16 @@ export default function CheckoutPage() {
           <BuyerSection readiness={readiness.data} onRetry={() => void readiness.refetch()} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
           <ItemsSection cart={cart} readiness={readiness.data} />
           <DeliverySection addressOwner={addressOwnerFor(reviewed.cart, readiness.data)} />
-          <PaymentSection />
+          <PaymentSection
+            payment={{
+              cart,
+              cartVersion: reviewed.rowVersion,
+              readiness: readiness.data,
+              publishableKey: env.stripePublishableKey,
+              onCartStale: () => setPaymentStale(true),
+              onReadinessStale: () => void readiness.refetch(),
+            }}
+          />
         </div>
         <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} />
       </div>

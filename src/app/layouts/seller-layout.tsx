@@ -33,7 +33,7 @@ import { ThemeSwitch } from "./site-header";
 import { sellerListingsService } from "@/services/seller-listings.service";
 import { correctionKeys } from "@/features/seller/lib/corrections";
 import { canManageListings } from "@/features/seller/components/listing-access-notice";
-import { useStripeStatus } from "@/features/seller/payouts/payout-shared";
+import { isPayoutReady, useStripeStatus } from "@/features/seller/payouts/payout-shared";
 
 type NavItem = {
   label: string;
@@ -107,7 +107,7 @@ function useSellerBadges() {
   const stripe = useStripeStatus(activeSeller?.isOwner ? sellerId : undefined);
   return {
     corrections: corrections.data?.totalCount ?? corrections.data?.items?.length ?? 0,
-    payoutsNeedAttention: !!stripe.data && stripe.data.onboardingStatus !== "COMPLETED",
+    payoutsNeedAttention: !!stripe.data && !isPayoutReady(stripe.data),
   };
 }
 

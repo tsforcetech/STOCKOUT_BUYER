@@ -28,6 +28,8 @@ const MESSAGES: Record<string, string> = {
   BUYER_ADDRESS_COORDINATES_PRECISION_INVALID: "Drop the map pin again: the location was too precise to save.",
   BUYER_ADDRESS_LATITUDE_INVALID: "That map location isn't valid. Drop the pin again.",
   BUYER_ADDRESS_LONGITUDE_INVALID: "That map location isn't valid. Drop the pin again.",
+  // Only when the coordinate-enforcement policy is on (RequireDeliveryAddressCoordinates); legacy addresses may have no pin.
+  BUYER_ADDRESS_LOCATION_REQUIRED: "This address has no map pin. Add a delivery pin to use it for this order.",
   BUYER_ADDRESS_UNEXPECTED_RESULT: "We couldn't save the address. Your details are still here; try again.",
 };
 

@@ -7,7 +7,7 @@ import { SectionCard } from "@/components/common/section-card";
 import { Notice } from "@/features/seller/components/notice";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import type { SellerStripeStatusResponse } from "@/api/types/stripe";
-import { statusUi, useStartOnboarding, useStripeSync } from "./payout-shared";
+import { isPayoutReady, payoutUi, useStartOnboarding, useStripeSync } from "./payout-shared";
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -37,7 +37,8 @@ export function StripeReturnPage() {
     ran.current = true;
     void sync().then(setStatus);
   }, [sellerId, sync]);
-  const ui = statusUi(status?.onboardingStatus);
+  const ui = status ? payoutUi(status) : null;
+  const check = () => void sync().then(setStatus);
   return (
     <Shell>
       <h1 className="mt-4 font-heading text-xl font-bold text-foreground">Back from Stripe</h1>
@@ -46,17 +47,28 @@ export function StripeReturnPage() {
           <ArrowsClockwiseIcon className="size-4 animate-spin" aria-hidden /> Checking your payout account with Stripe…
         </p>
       ) : error ? (
-        <Notice tone="danger" className="mt-3">
+        <Notice
+          tone="danger"
+          title="Unable to verify Stripe status"
+          className="mt-3"
+          action={
+            <Button size="sm" variant="secondary" onClick={check} loading={busy}>
+              <ArrowsClockwiseIcon /> Try again
+            </Button>
+          }
+        >
           {error}
         </Notice>
-      ) : status ? (
+      ) : status && ui ? (
         <div className="mt-2 space-y-2 text-sm text-body" role="status">
           <Badge tone={ui.tone} dot>
             {ui.label}
           </Badge>
           <p>
-            {status.onboardingStatus === "COMPLETED"
+            {isPayoutReady(status)
               ? "Your payout account is connected and verified."
+              : status.onboardingStatus === "COMPLETED"
+                ? "Stripe hasn't switched on payments and payouts for this account yet. Check your payout page for what's still needed."
               : status.onboardingStatus === "PENDING_VERIFICATION"
                 ? "Thanks. Stripe is reviewing your details; we'll show the result on your payout page."
                 : "Your setup isn't finished yet. You can continue any time from your payout page."}

@@ -29,7 +29,7 @@ const routes = (path: string) =>
 const api = (stripe = "NOT_STARTED") => [
   ...sessionRoutes(seller),
   { method: "GET", path: `/api/v1/marketplace/sellers/${SELLER}/listings/corrections`, respond: () => ({ body: { items: [{}, {}], totalCount: 2, page: 1, pageSize: 100 } }) },
-  { method: "GET", path: `/api/v1/seller/stripe/${SELLER}/status`, respond: () => ({ body: { sellerOrganizationId: SELLER, onboardingStatus: stripe, isConnected: false, chargesEnabled: false, payoutsEnabled: false, detailsSubmitted: false, requirementsCurrentlyDue: [], requirementsEventuallyDue: [], requirementsPastDue: [], stripeAccountId: null, disabledReason: null, lastSyncedAtUtc: null } }) },
+  { method: "GET", path: `/api/v1/seller/stripe/status`, respond: () => ({ body: { sellerOrganizationId: SELLER, onboardingStatus: stripe, isConnected: false, chargesEnabled: false, payoutsEnabled: false, detailsSubmitted: false, requirementsCurrentlyDue: [], requirementsEventuallyDue: [], requirementsPastDue: [], stripeAccountId: null, disabledReason: null, lastSyncedAtUtc: null } }) },
 ];
 
 describe("Seller menu (grouped, 6 items)", () => {

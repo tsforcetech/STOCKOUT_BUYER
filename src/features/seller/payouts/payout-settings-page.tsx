@@ -10,7 +10,7 @@ import { useSellerMode } from "@/lib/seller/seller-context";
 import { formatDateTime } from "@/lib/utils/format";
 import { isApiError } from "@/lib/api/errors";
 import type { SellerStripeStatusResponse } from "@/api/types/stripe";
-import { requirementLabel, statusUi, stripeMessage, useStartOnboarding, useStripeStatus, useStripeSync } from "./payout-shared";
+import { STRIPE_DENIED, isPayoutReady, payoutUi, requirementLabel, stripeMessage, useStartOnboarding, useStripeStatus, useStripeSync } from "./payout-shared";
 
 /**
  * Seller payout account (Stage 8B.4, Stripe Connect Express). Status always comes from the backend; returning from Stripe
@@ -23,8 +23,10 @@ export default function PayoutSettingsPage() {
   const onboarding = useStartOnboarding(sellerId);
   const sync = useStripeSync(sellerId);
   const s = q.data;
-  const ui = statusUi(s?.onboardingStatus);
-  const denied = isApiError(q.error) && q.error.code === "MARKETPLACE_SELLER_ACCESS_DENIED";
+  const ui = s ? payoutUi(s) : null;
+  const denied = isApiError(q.error) && STRIPE_DENIED.has(q.error.code ?? "");
+  // Pending verification with nothing due: ask Stripe again; anything due is shown on Stripe's hosted pages.
+  const syncOnly = s?.onboardingStatus === "PENDING_VERIFICATION" && s.requirementsCurrentlyDue.length + s.requirementsPastDue.length === 0;
 
   return (
     <>
@@ -44,7 +46,7 @@ export default function PayoutSettingsPage() {
           <Notice tone="warning" title="You can't manage payouts for this account">
             {stripeMessage(q.error)}
           </Notice>
-        ) : q.error || !s ? (
+        ) : q.error || !s || !ui ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : (
           <>
@@ -68,25 +70,35 @@ export default function PayoutSettingsPage() {
                 </div>
               </div>
               <div className="mt-5 flex flex-wrap gap-2">
-                {s.onboardingStatus === "PENDING_VERIFICATION" ? (
+                {syncOnly ? (
                   <Button onClick={() => void sync.sync()} loading={sync.busy}>
-                    <ArrowsClockwiseIcon /> {ui.cta}
+                    <ArrowsClockwiseIcon /> Check verification status
                   </Button>
                 ) : (
                   <Button onClick={() => void onboarding.start()} loading={onboarding.busy}>
                     <ArrowSquareOutIcon /> {ui.cta}
                   </Button>
                 )}
-                {s.isConnected && s.onboardingStatus !== "PENDING_VERIFICATION" && (
+                {s.isConnected && !syncOnly && (
                   <Button variant="secondary" onClick={() => void sync.sync()} loading={sync.busy}>
                     <ArrowsClockwiseIcon /> Refresh status
                   </Button>
                 )}
               </div>
-              {(onboarding.error || sync.error) && (
+              {onboarding.error && (
                 <Notice tone="danger" className="mt-4">
-                  {onboarding.error ?? sync.error}
+                  {onboarding.error}
                 </Notice>
+              )}
+              {sync.error && !onboarding.error && (
+                <Notice tone="danger" title="Unable to verify Stripe status" className="mt-4">
+                  {sync.error}
+                </Notice>
+              )}
+              {s.onboardingStatus === "RESTRICTED" && (
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Can't resolve it on Stripe? Contact StockOut support at info@stockoutme.com.
+                </p>
               )}
               {sync.message && !sync.error && <p className="mt-3 text-xs text-muted-foreground">{sync.message}</p>}
             </SectionCard>
@@ -130,7 +142,7 @@ function summary(s: SellerStripeStatusResponse): string {
     case "RESTRICTED":
       return "Stripe has restricted payouts on this account. Update the details Stripe asks for below, or contact StockOut support.";
     case "COMPLETED":
-      return "Your payout account is connected and verified.";
+      return isPayoutReady(s) ? "Your payout account is connected and verified." : "Stripe hasn't switched on payments and payouts for this account yet. Review what Stripe still needs.";
     default:
       return "Check your payout account status with Stripe.";
   }

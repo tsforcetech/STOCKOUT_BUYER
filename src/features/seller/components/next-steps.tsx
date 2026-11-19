@@ -8,7 +8,7 @@ import { sellerListingsService } from "@/services/seller-listings.service";
 import type { SellerContextResponse } from "@/api/types/user-organization";
 import { correctionKeys } from "../lib/corrections";
 import { canManageListings } from "./listing-access-notice";
-import { useStripeStatus } from "../payouts/payout-shared";
+import { isPayoutReady, useStripeStatus } from "../payouts/payout-shared";
 
 interface Step {
   key: string;
@@ -49,8 +49,8 @@ export function NextSteps({ seller, listingCount, listingCountLoading }: { selle
           {
             key: "payouts",
             title: "Connect your payout account",
-            hint: stripe.data?.onboardingStatus === "COMPLETED" ? "Connected — ready for payouts at launch." : "Add the bank account your sales are paid into (via Stripe).",
-            done: stripe.data?.onboardingStatus === "COMPLETED",
+            hint: isPayoutReady(stripe.data) ? "Connected — ready for payouts at launch." : "Add the bank account your sales are paid into (via Stripe).",
+            done: isPayoutReady(stripe.data),
             to: "/seller/payout-settings",
             cta: stripe.data?.onboardingStatus === "NOT_STARTED" || !stripe.data ? "Set up payouts" : "Finish setup",
           },

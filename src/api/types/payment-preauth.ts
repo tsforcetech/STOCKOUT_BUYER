@@ -16,6 +16,8 @@ export interface CreatePaymentAuthorizationRequest {
   /** A conflict check only; the server prices the order. */
   expectedTotalAmount?: number | null;
   currency: "AED";
+  /** Same value as the Idempotency-Key header (consolidated handoff 18 Nov §7.2). */
+  idempotencyKey?: string | null;
 }
 
 export interface PaymentAuthorizationReservationDto {
@@ -86,4 +88,6 @@ export interface PaymentAuthorizationStatusResponse extends PaymentAuthorization
   isDelayedProcessing: boolean;
   canManualRefresh: boolean;
   browserCallbackIsAuthoritative: boolean;
+  /** Server-resolved checkout stage; the browser never invents one. */
+  checkoutStage: string;
 }

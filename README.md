@@ -26,7 +26,9 @@ npm run dev          # http://localhost:5173 — /api is proxied to https://stoc
 | `npm run test:e2e` | Playwright smoke tests |
 
 Configuration (`.env.example`): `VITE_API_BASE_URL` (gateway origin for the built app),
-`VITE_DEV_PROXY_TARGET`, `VITE_BASE_PATH` (`/<repo>/` on GitHub Pages), `VITE_REFRESH_TOKEN_STORAGE`.
+`VITE_DEV_PROXY_TARGET`, `VITE_BASE_PATH` (`/<repo>/` on GitHub Pages), `VITE_REFRESH_TOKEN_STORAGE`,
+`VITE_PAYMENT_PREAUTH` + `VITE_STRIPE_PUBLISHABLE_KEY` (checkout card authorisation, Stripe sandbox; off by default,
+`pk_test_` keys only, see `docs/contracts/stripe-payments.md`).
 
 ## Routes
 

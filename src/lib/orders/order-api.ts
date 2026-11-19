@@ -1,3 +1,5 @@
+import { env } from "@/config/env";
+
 /**
  * Order API availability. Stage 8C published the read-only routes (live-checked 9 Nov 2026); every mutation is still
  * unavailable. Do NOT add calls for a `false` flag before the backend publishes an approved contract.
@@ -9,8 +11,11 @@ export const ORDER_API = {
   buyerOrders: true,
   /** GET /api/v1/seller/orders and /seller/orders/{subOrderId} */
   sellerOrders: true,
-  /** Stage 8C.10 payment pre-authorisation: client prepared (src/lib/orders/payment-preauth.ts); Stripe not activated. */
-  paymentPreAuth: false,
+  /**
+   * Stage 8C.10 payment pre-authorisation (Stripe sandbox, manual capture). Off unless VITE_PAYMENT_PREAUTH=on and a
+   * pk_test_ key are set (handoff 18 Nov 2026: only for approved Tier B sandbox testing). Never an order or a charge.
+   */
+  paymentPreAuth: env.paymentPreAuthEnabled,
   /** Order placement POST: not implemented / approved. */
   placeOrder: false,
   /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */

@@ -153,6 +153,21 @@ describe("COM-ADDR-01 address book", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add a new address" }));
     expect(await screen.findByRole("dialog", { name: "Add a delivery address" })).toBeInTheDocument(); // added right at checkout
   });
+
+  it("checkout picker offers Add delivery pin on an address without coordinates", async () => {
+    signIn();
+    mockFetch([
+      ...sessionRoutes([]),
+      { method: "GET", path: "/api/v1/marketplace/buyer/addresses", respond: () => env({ items: [addr({ isDefault: true, latitude: null, longitude: null }), addr({ addressId: "x2", label: "Site B", latitude: 25.1, longitude: 55.2 })], page: 1, pageSize: 20, totalCount: 2 }) },
+    ]);
+    renderWithApp([{ path: "/checkout", element: <CheckoutAddressPicker owner={{ kind: "individual" }} /> }], "/checkout");
+    expect(await screen.findByText("Map pin missing")).toBeInTheDocument();
+    const fix = screen.getAllByRole("button", { name: /Add delivery pin/ });
+    expect(fix).toHaveLength(1);
+    await userEvent.click(fix[0]);
+    expect(await screen.findByRole("dialog", { name: "Edit address" })).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: /Dubai warehouse/, hidden: true })).toBeChecked(); // the button doesn't change the selection
+  });
 });
 
 describe("address validation and 8C.10 helpers", () => {

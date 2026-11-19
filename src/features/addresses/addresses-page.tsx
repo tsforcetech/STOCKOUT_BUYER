@@ -173,7 +173,12 @@ function AddressBook({ owner, ownerLabel }: { owner: AddressOwner; ownerLabel: s
                       <MapPinIcon className="size-3.5" weight="fill" aria-hidden /> Map pin
                     </a>
                   ) : (
-                    <Badge tone="warning">Map pin missing</Badge>
+                    <>
+                      <Badge tone="warning">Map pin missing</Badge>
+                      <button type="button" onClick={() => (setEditing(a), setFormOpen(true))} className="inline-flex min-h-8 items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4">
+                        <MapPinIcon className="size-3.5" aria-hidden /> Add delivery pin
+                      </button>
+                    </>
                   ))}
                 </div>
                 <p className="mt-1 text-sm text-body">{addressLine(a)}</p>

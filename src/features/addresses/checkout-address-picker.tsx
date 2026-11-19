@@ -5,6 +5,7 @@ import { MapPinIcon, PlusIcon } from "@phosphor-icons/react";
 import { Badge, Skeleton } from "@/components/ui/misc";
 import { cn } from "@/lib/utils/cn";
 import { addressKeys, addressesService, type AddressOwner } from "@/services/addresses.service";
+import type { BuyerDeliveryAddressDto } from "@/api/types/addresses";
 import { addressLine } from "./addresses-page";
 import { addressMessage } from "./address-messages";
 import { AddressFormDialog } from "./address-form";
@@ -25,6 +26,8 @@ export function CheckoutAddressPicker({ owner, onChange }: { owner: AddressOwner
   const active = (q.data?.items ?? []).filter((a) => a.status === "ACTIVE");
   const [chosen, setChosen] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
+  // BE-13 remediation: a legacy address without coordinates is edited in place to add its pin.
+  const [pinFor, setPinFor] = React.useState<BuyerDeliveryAddressDto | null>(null);
   const fallback = active.find((a) => a.isDefault)?.addressId ?? null;
   const selected = active.some((a) => a.addressId === chosen) ? chosen : fallback;
   React.useEffect(() => onChange?.(selected), [selected, onChange]);
@@ -105,6 +108,11 @@ export function CheckoutAddressPicker({ owner, onChange }: { owner: AddressOwner
                 <span className="mt-1 block truncate text-xs text-muted-foreground">
                   {a.contactName} · {a.contactPhone}
                 </span>
+                {!pin && (
+                  <button type="button" onClick={() => setPinFor(a)} className="mt-2 inline-flex min-h-8 items-center gap-1 text-xs font-medium text-foreground underline underline-offset-4">
+                    <MapPinIcon className="size-3.5" aria-hidden /> Add delivery pin
+                  </button>
+                )}
               </span>
             </label>
           );
@@ -122,6 +130,14 @@ export function CheckoutAddressPicker({ owner, onChange }: { owner: AddressOwner
           setChosen(a.addressId);
           void qc.invalidateQueries({ queryKey: addressKeys.all });
         }}
+      />
+      <AddressFormDialog
+        open={!!pinFor}
+        onOpenChange={(o) => !o && setPinFor(null)}
+        owner={owner}
+        editing={pinFor}
+        firstAddress={false}
+        onSaved={() => void qc.invalidateQueries({ queryKey: addressKeys.all })}
       />
     </div>
   );

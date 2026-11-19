@@ -118,8 +118,9 @@ describe("legacy addresses without coordinates", () => {
     ]);
     renderWithApp([{ element: <RequireAuth />, children: [{ path: "/account/addresses", element: <AddressesPage /> }] }, { path: "/login", element: <div>login</div> }], "/account/addresses");
     expect(await screen.findByText("Map pin missing")).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /Edit/ }));
-    const dlg = await screen.findByRole("dialog");
+    // Handoff §6.2: legacy addresses get an "Add delivery pin" remediation that opens the address for editing.
+    await userEvent.click(screen.getByRole("button", { name: /Add delivery pin/ }));
+    const dlg = await screen.findByRole("dialog", { name: "Edit address" });
     expect(within(dlg).getByText(/from your notes/)).toBeInTheDocument();
     await userEvent.click(within(dlg).getByRole("button", { name: "Save changes" }));
     await waitFor(() => expect(put).not.toBeNull());

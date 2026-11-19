@@ -7,6 +7,10 @@ interface ImportMetaEnv {
   readonly VITE_BASE_PATH?: string;
   /** "off" hides the launch-soon cover on the home page (default: shown). */
   readonly VITE_LAUNCH_COVER?: string;
+  /** "on" shows the Stripe payment authorisation step at checkout (default: off). Needs VITE_STRIPE_PUBLISHABLE_KEY. */
+  readonly VITE_PAYMENT_PREAUTH?: string;
+  /** Stripe publishable TEST key (pk_test_...). Never a secret or webhook key. */
+  readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
 }
 
 interface ImportMeta {
