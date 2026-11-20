@@ -91,7 +91,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
             <span className="truncate">{sellerLabel(item.seller.sellerId)}</span>
             {item.seller.isVerified && <SellerTick />}
           </p>
-          <div className="mt-auto flex flex-col gap-0.5 border-t border-border pr-12 pt-2.5">
+          <div className="mt-auto flex flex-col gap-0.5 border-t border-border pr-28 pt-2.5">
             <p className="font-heading text-lg font-bold leading-6 text-foreground">
               {formatMoney(item.basePrice, item.currency)}
               {item.quantityUnitSymbol && (

@@ -26,7 +26,15 @@ describe("listing card: add to cart", () => {
     at(<ListingCard item={item()} />);
     await userEvent.click(screen.getByRole("button", { name: "Add UPVC Tee 6in to cart" }));
     expect(screen.queryByText("listing page")).not.toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /1 in your cart, view cart/ }, { timeout: 3000 })).toBeInTheDocument();
+    const group = await screen.findByRole("group", { name: "UPVC Tee 6in quantity in cart" });
+    expect(group).toHaveTextContent("1");
+    // Quantity changes right on the card (max 2 in stock), and "−" at 1 removes it.
+    await userEvent.click(screen.getByRole("button", { name: "Increase quantity" }));
+    expect(group).toHaveTextContent("2");
+    expect(screen.getByRole("button", { name: "Increase quantity" })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: "Decrease quantity" }));
+    await userEvent.click(screen.getByRole("button", { name: "Remove UPVC Tee 6in from cart" }));
+    expect(await screen.findByRole("button", { name: "Add UPVC Tee 6in to cart" })).toBeInTheDocument();
   });
 
   it("no button when it can't be bought", () => {

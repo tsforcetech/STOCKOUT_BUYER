@@ -1,12 +1,12 @@
 import * as React from "react";
-import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon } from "@phosphor-icons/react";
+import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon, TrashIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
 import { useSellerMode } from "@/lib/seller/seller-context";
 import { toast } from "sonner";
 import { useCart, clampQuantity } from "@/lib/cart/cart-context";
-import { useServerCart } from "@/lib/cart/server-cart";
+import { useCartActions, useServerCart } from "@/lib/cart/server-cart";
 import { commerceErrorMessage } from "@/lib/cart/commerce-errors";
 import { CART_LINE_LIMIT } from "@/api/types/buyer-commerce";
 import { formatMoney, formatNumber } from "@/lib/utils/format";
@@ -34,7 +34,7 @@ export function useOwnListing(sellerId: string): boolean {
  * Adds a listing to the active cart (device cart when signed out, server cart when signed in), opens the mini cart,
  * and explains server refusals (minimum order, whole lot, own listing, 50-line limit, unavailable).
  */
-export function useAddToCart(listing: AddToCartListing) {
+export function useAddToCart(listing: AddToCartListing, { openCart = true }: { openCart?: boolean } = {}) {
   const cart = useCart();
   const [busy, setBusy] = React.useState(false);
   const limitReached = cart.mode === "server" && cart.count >= CART_LINE_LIMIT && !cart.has(listing.listingId);
@@ -57,7 +57,7 @@ export function useAddToCart(listing: AddToCartListing) {
         quantity,
         maxQuantity: listing.sellableQuantity,
       });
-      cart.setOpen(true);
+      if (openCart) cart.setOpen(true);
       return true;
     } catch (e) {
       toast.error(commerceErrorMessage(e));
@@ -177,47 +177,60 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
 }
 
 /**
- * One-tap "Add to cart" for listing cards and rows: a small round cart button. Adds 1 (the server explains a minimum
- * order or whole lot) and opens the mini cart like the listing page does. Hidden on the seller's own listings and when
- * the listing can't be bought; once in the cart it turns into a check with the quantity and opens the cart instead.
+ * Add to cart on listing cards and rows. First a small round cart button (adds 1; the server explains a minimum order
+ * or whole lot); once the listing is in the cart it becomes a small "− qty +" stepper so the quantity changes right on
+ * the card (at 1, "−" removes it). No drawer pops open: a short toast offers "View cart". Hidden on the seller's own
+ * listings and when the listing can't be bought.
  */
 export function QuickAddToCart({ listing, className }: { listing: AddToCartListing; className?: string }) {
   const cart = useCart();
   const own = useOwnListing(listing.sellerId);
   const inCartQty = useInCartQuantity(listing.listingId);
-  const { add, busy, limitReached } = useAddToCart(listing);
+  const { add, busy, limitReached } = useAddToCart(listing, { openCart: false });
+  const actions = useCartActions();
   const canBuy = listing.isAvailable && listing.sellableQuantity > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
   if (own || !canBuy) return null;
-  const inCart = inCartQty !== null;
-  const base = "relative flex size-10 cursor-pointer items-center justify-center rounded-full shadow-raised transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
-  if (inCart)
+  if (inCartQty === null)
     return (
       <button
         type="button"
-        title="In your cart"
-        aria-label={`${listing.title}: ${formatNumber(inCartQty)} in your cart, view cart`}
-        onClick={() => cart.setOpen(true)}
-        className={cn(base, "bg-success text-white hover:bg-success/90", className)}
+        title="Add to cart"
+        aria-label={`Add ${listing.title} to cart`}
+        disabled={busy || limitReached}
+        onClick={async () => {
+          if (await add(1)) toast.success("Added to cart", { description: listing.title, action: { label: "View cart", onClick: () => cart.setOpen(true) } });
+        }}
+        className={cn(
+          "flex size-10 cursor-pointer items-center justify-center rounded-full bg-ink text-action shadow-raised transition-colors hover:bg-ink-hover disabled:cursor-not-allowed disabled:opacity-50",
+          className,
+        )}
       >
-        <CheckIcon className="size-5" weight="bold" aria-hidden />
-        <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-surface px-1 text-[11px] font-bold leading-5 text-foreground ring-1 ring-border">
-          {inCartQty > 99 ? "99+" : formatNumber(inCartQty)}
-        </span>
+        {busy ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : <ShoppingCartSimpleIcon className="size-5" weight="bold" aria-hidden />}
       </button>
     );
 
+  const max = listing.sellableQuantity;
+  const pending = actions.isPending;
+  const set = (q: number) => {
+    if (cart.mode === "server") {
+      actions.mutate(q <= 0 ? { kind: "remove", listingId: listing.listingId } : { kind: "quantity", listingId: listing.listingId, quantity: q });
+    } else if (q <= 0) cart.remove(listing.listingId);
+    else cart.setQuantity(listing.listingId, clampQuantity(q, max));
+  };
+  const btn = "flex size-8 cursor-pointer items-center justify-center rounded-full transition-colors hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-40";
   return (
-    <button
-      type="button"
-      title="Add to cart"
-      aria-label={`Add ${listing.title} to cart`}
-      disabled={busy || limitReached}
-      onClick={() => void add(1)}
-      className={cn(base, "bg-ink text-action hover:bg-ink-hover", className)}
-    >
-      {busy ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : <ShoppingCartSimpleIcon className="size-5" weight="bold" aria-hidden />}
-    </button>
+    <div role="group" aria-label={`${listing.title} quantity in cart`} className={cn("flex h-10 items-center rounded-full bg-ink px-1 text-action shadow-raised", className)}>
+      <button type="button" className={btn} disabled={pending} onClick={() => set(inCartQty - 1)} aria-label={inCartQty <= 1 ? `Remove ${listing.title} from cart` : "Decrease quantity"}>
+        {inCartQty <= 1 ? <TrashIcon className="size-4" aria-hidden /> : <MinusIcon className="size-4" weight="bold" aria-hidden />}
+      </button>
+      <span className="min-w-7 text-center text-sm font-bold tabular-nums" aria-live="polite" aria-label={`${formatNumber(inCartQty)} in cart`}>
+        {pending ? <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-current border-t-transparent align-middle" aria-hidden /> : formatNumber(inCartQty)}
+      </span>
+      <button type="button" className={btn} disabled={pending || inCartQty >= max} onClick={() => set(inCartQty + 1)} aria-label="Increase quantity">
+        <PlusIcon className="size-4" weight="bold" aria-hidden />
+      </button>
+    </div>
   );
 }
 
