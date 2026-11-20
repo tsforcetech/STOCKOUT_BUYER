@@ -118,8 +118,8 @@ export default function PayoutSettingsPage() {
                 <h2 className="font-heading text-base font-bold text-foreground">Capabilities</h2>
                 <ul className="mt-3 grid gap-2 text-sm sm:grid-cols-3">
                   <Capability ok={s.detailsSubmitted} label="Details submitted" />
-                  <Capability ok={s.chargesEnabled} label="Can receive payments" />
-                  <Capability ok={s.payoutsEnabled} label="Payouts to bank enabled" />
+                  <Capability ok={s.recipientTransferReady === true} label="Ready for StockOut payouts" />
+                  <Capability ok={s.externalPayoutReady === true} label={s.externalPayoutReady ? "Bank payouts active" : "Bank payouts: verification pending"} />
                 </ul>
                 {s.disabledReason && <p className="mt-3 text-sm text-danger-soft-foreground">Stripe reason: {s.disabledReason.replace(/[._]/g, " ")}</p>}
               </SectionCard>
@@ -152,7 +152,11 @@ function summary(s: SellerStripeStatusResponse): string {
     case "RESTRICTED":
       return "Stripe has restricted payouts on this account. Update the details Stripe asks for below, or contact StockOut support.";
     case "COMPLETED":
-      return isPayoutReady(s) ? "Your payout account is connected and verified." : "Stripe hasn't switched on payments and payouts for this account yet. Review what Stripe still needs.";
+      return isPayoutReady(s)
+        ? s.externalPayoutReady
+          ? "Your payout account is connected and verified. Payouts go to your bank."
+          : "Your payout account is connected and can receive StockOut payouts. Stripe is still verifying your bank payouts."
+        : "Stripe hasn't switched on transfers for this account yet. Review what Stripe still needs.";
     default:
       return "Check your payout account status with Stripe.";
   }

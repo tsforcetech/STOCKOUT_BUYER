@@ -74,7 +74,7 @@ describe("Seller payout account (Stripe Connect, 8B.4)", () => {
     expect(screen.getByText("Identity document")).toBeInTheDocument();
     expect(screen.getByText("Bank account (IBAN) for payouts")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Resume onboarding|Update account details/ }).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Payouts to bank enabled/)).toBeInTheDocument();
+    expect(screen.getByText(/Ready for StockOut payouts/)).toBeInTheDocument();
   });
 
   it("SELLER_CONTACT_EMAIL_MISSING asks for a business contact email and links to the business profile", async () => {
@@ -90,21 +90,35 @@ describe("Seller payout account (Stripe Connect, 8B.4)", () => {
     expect(screen.getByRole("link", { name: "Update business details" })).toHaveAttribute("href", "/seller/business");
   });
 
-  it("COMPLETED without both capabilities is not shown as active", async () => {
+  it("handoff 03: COMPLETED with chargesEnabled=false but recipientTransferReady is ready; bank payouts shown separately, no charge warning", async () => {
     signIn();
-    mockFetch([...sessionRoutes(seller), statusRoute(status({ isConnected: true, stripeAccountId: "acct_1", onboardingStatus: "COMPLETED", detailsSubmitted: true, chargesEnabled: true, payoutsEnabled: false }))]);
+    mockFetch([...sessionRoutes(seller), statusRoute(status({ isConnected: true, stripeAccountId: "acct_1", onboardingStatus: "COMPLETED", detailsSubmitted: true, chargesEnabled: false, payoutsEnabled: true, recipientTransferReady: true, externalPayoutReady: false, lastSyncedAtUtc: "2026-11-20T13:30:00Z" }))]);
     page("/seller/payout-settings", <PayoutSettingsPage />);
-    expect(await screen.findByText("Payouts not enabled yet")).toBeInTheDocument();
-    expect(screen.queryByText("Payout account active")).not.toBeInTheDocument();
+    expect(await screen.findByText("Ready to receive payouts")).toBeInTheDocument();
+    expect(screen.getByText(/Stripe is still verifying your bank payouts/)).toBeInTheDocument();
+    expect(screen.getByText(/Bank payouts: verification pending/)).toBeInTheDocument();
+    expect(screen.queryByText(/receive payments|charges|card/i)).not.toBeInTheDocument();
+  });
+
+  it("COMPLETED without recipientTransferReady is not shown as ready", async () => {
+    signIn();
+    mockFetch([...sessionRoutes(seller), statusRoute(status({ isConnected: true, stripeAccountId: "acct_1", onboardingStatus: "COMPLETED", detailsSubmitted: true, chargesEnabled: true, payoutsEnabled: true, recipientTransferReady: false, externalPayoutReady: false }))]);
+    page("/seller/payout-settings", <PayoutSettingsPage />);
+    expect(await screen.findByText("Transfers not enabled yet")).toBeInTheDocument();
+    expect(screen.queryByText("Ready to receive payouts")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Review requirements/ })).toBeInTheDocument();
   });
 
-  it("COMPLETED with charges and payouts enabled is connected and verified", async () => {
+  it("gate STRIPE_PROVIDER_CONFIGURATION_UNAPPROVED is explained, not shown as a Stripe outage", async () => {
     signIn();
-    mockFetch([...sessionRoutes(seller), statusRoute(status({ isConnected: true, stripeAccountId: "acct_1", onboardingStatus: "COMPLETED", detailsSubmitted: true, chargesEnabled: true, payoutsEnabled: true, lastSyncedAtUtc: "2026-11-18T10:00:00Z" }))]);
+    mockFetch([
+      ...sessionRoutes(seller),
+      statusRoute(status()),
+      { method: "POST", path: "/api/v1/seller/stripe/onboarding-link", respond: () => ({ status: 500, body: { status: 500, title: "Failure", code: "STRIPE_PROVIDER_CONFIGURATION_UNAPPROVED" } }) },
+    ]);
     page("/seller/payout-settings", <PayoutSettingsPage />);
-    expect(await screen.findByText("Payout account active")).toBeInTheDocument();
-    expect(screen.getByText("Your payout account is connected and verified.")).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole("button", { name: /Set up payouts/ }));
+    expect(await screen.findByText(/StockOut is finishing its payment set-up with Stripe/)).toBeInTheDocument();
   });
 
   it("a member without payout permission sees why (403 MARKETPLACE_SELLER_ACCESS_DENIED)", async () => {

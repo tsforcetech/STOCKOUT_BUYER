@@ -21,17 +21,20 @@ export const STATUS_UI: Record<string, { tone: "neutral" | "info" | "warning" | 
   IN_PROGRESS: { tone: "info", label: "Onboarding incomplete", cta: "Continue setup" },
   PENDING_VERIFICATION: { tone: "warning", label: "Verification pending", cta: "Review requirements" },
   RESTRICTED: { tone: "danger", label: "Payouts restricted", cta: "Resolve restrictions" },
-  COMPLETED: { tone: "success", label: "Payout account active", cta: "Update account details" },
+  COMPLETED: { tone: "success", label: "Ready to receive payouts", cta: "Update account details" },
 };
 export const statusUi = (s: string | null | undefined) => STATUS_UI[s ?? ""] ?? { tone: "neutral" as const, label: s ?? "Unknown", cta: "Continue setup" };
 
-/** Connected and verified only when Stripe reports COMPLETED and both capabilities are on (handoff §4.3). */
-export const isPayoutReady = (s: Pick<SellerStripeStatusResponse, "onboardingStatus" | "chargesEnabled" | "payoutsEnabled"> | null | undefined) =>
-  !!s && s.onboardingStatus === "COMPLETED" && s.chargesEnabled && s.payoutsEnabled;
+/**
+ * Stripe handoff 03 (20 Nov 2026, decisions A1/B1/F1): sellers are transfer recipients, so readiness is
+ * onboardingStatus COMPLETED + recipientTransferReady. chargesEnabled stays false and is never a warning.
+ */
+export const isPayoutReady = (s: Pick<SellerStripeStatusResponse, "onboardingStatus" | "recipientTransferReady"> | null | undefined) =>
+  !!s && s.onboardingStatus === "COMPLETED" && s.recipientTransferReady === true;
 
-/** COMPLETED without both capabilities is not shown as active: Stripe still has something to switch on. */
+/** COMPLETED but not yet able to receive transfers is not shown as ready: Stripe still has something to switch on. */
 export const payoutUi = (s: SellerStripeStatusResponse) =>
-  s.onboardingStatus === "COMPLETED" && !isPayoutReady(s) ? { tone: "warning" as const, label: "Payouts not enabled yet", cta: "Review requirements" } : statusUi(s.onboardingStatus);
+  s.onboardingStatus === "COMPLETED" && !isPayoutReady(s) ? { tone: "warning" as const, label: "Transfers not enabled yet", cta: "Review requirements" } : statusUi(s.onboardingStatus);
 
 /** Errors that mean this user can't manage the seller's payouts (not a glitch to retry). */
 export const STRIPE_DENIED = new Set(["MARKETPLACE_SELLER_ACCESS_DENIED", "UNAUTHORIZED_SELLER_ACCESS"]);
@@ -51,6 +54,10 @@ const MESSAGES: Record<string, string> = {
   INVALID_SELLER_ID: "Choose a seller account first.",
   STRIPE_API_ERROR: "Stripe couldn't be reached just now. Nothing was changed; try again in a moment.",
   STRIPE_INTEGRATION_DISABLED: "Payout setup isn't open yet. Please try again later.",
+  // Handoff 03 gate: StockOut's own Stripe profile is awaiting sign-off.
+  STRIPE_PROVIDER_CONFIGURATION_UNAPPROVED: "Payout setup isn't open yet: StockOut is finishing its payment set-up with Stripe. Please try again later.",
+  CONCURRENT_ONBOARDING_IN_PROGRESS: "Payout setup is already starting in another window. Wait a moment, then try again.",
+  SELLER_STRIPE_ACCOUNT_CLOSED: "Your Stripe payout account was closed. Contact StockOut support at info@stockoutme.com to restore payouts.",
   // Accounts v2 (handoff 19 Nov §3): Stripe needs the organisation's business contact email; StockOut never invents one.
   SELLER_CONTACT_EMAIL_MISSING: "Add a business contact email to your business profile first. Stripe needs it to create your payout account.",
 };

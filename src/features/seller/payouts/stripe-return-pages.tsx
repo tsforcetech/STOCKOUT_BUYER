@@ -66,9 +66,11 @@ export function StripeReturnPage() {
           </Badge>
           <p>
             {isPayoutReady(status)
-              ? "Your payout account is connected and verified."
+              ? status.externalPayoutReady
+                ? "Your payout account is connected and verified."
+                : "Your payout account is connected. Stripe is still verifying your bank payouts."
               : status.onboardingStatus === "COMPLETED"
-                ? "Stripe hasn't switched on payments and payouts for this account yet. Check your payout page for what's still needed."
+                ? "Stripe hasn't switched on transfers for this account yet. Check your payout page for what's still needed."
               : status.onboardingStatus === "PENDING_VERIFICATION"
                 ? "Thanks. Stripe is reviewing your details; we'll show the result on your payout page."
                 : "Your setup isn't finished yet. You can continue any time from your payout page."}

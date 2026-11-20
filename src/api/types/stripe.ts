@@ -13,8 +13,13 @@ export interface SellerStripeStatusResponse {
   stripeAccountId: string | null;
   isConnected: boolean;
   onboardingStatus: StripeOnboardingStatus;
+  /** Separate charges and transfers: sellers are recipients, so this is legitimately false. Never warn on it. */
   chargesEnabled: boolean;
   payoutsEnabled: boolean;
+  /** Handoff 03: ready to receive StockOut settlement transfers (the readiness signal). Absent on older builds. */
+  recipientTransferReady?: boolean;
+  /** Handoff 03: Stripe bank payouts to the seller's bank active (shown separately). Absent on older builds. */
+  externalPayoutReady?: boolean;
   detailsSubmitted: boolean;
   requirementsCurrentlyDue: string[];
   requirementsEventuallyDue: string[];
