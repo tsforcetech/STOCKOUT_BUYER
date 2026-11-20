@@ -47,10 +47,13 @@ import { Pager } from "./components/pager";
 import { useSearchView, ViewToggle } from "./components/view-toggle";
 import { useFilterOptions } from "./lib/filter-options";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
+import { ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
 
 const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
 // 6 fills whole rows in both the 2- and 3-column grids.
 const RFQ_AFTER = 6;
+// The sustainability banner takes turns with the RFQ prompt: further down on page 1, after the first rows on later pages.
+const impactAfter = (page: number) => (page === 1 ? 15 : 6);
 const LIST = "flex flex-col gap-3";
 
 /** Category × emirate landing page (/c/<category>/<emirate>): fixed filters plus SEO copy. */
@@ -92,6 +95,7 @@ export default function SearchPage({ landing }: { landing?: SearchLanding } = {}
   // Price filters/sorting require a currency (server error 50904 otherwise).
   const lastPage = maxSearchPage(DEFAULT_PAGE_SIZE);
   const page = Math.min(state.page, lastPage);
+  const impact = useImpactMessage();
   const query = {
     q: state.q.slice(0, MAX_QUERY_LENGTH) || undefined,
     categoryId: state.categoryId || undefined,
@@ -479,6 +483,7 @@ export default function SearchPage({ landing }: { landing?: SearchLanding } = {}
                             body="Share your requirement or upload a BOQ. Verified sellers send you quotes."
                           />
                         )}
+                      {i === impactAfter(page) - 1 && data.items.length > impactAfter(page) && <ImpactBanner variant="inline" className="col-span-full" message={impact} />}
                     </React.Fragment>
                   ))}
                 </div>

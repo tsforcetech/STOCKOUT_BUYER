@@ -1,3 +1,4 @@
+import { ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 import { Link } from "react-router";
@@ -113,6 +114,7 @@ export default function HomePage() {
   });
   const roots = tree.data ?? [];
   const isSeller = status === "authenticated" && (actor?.sellerContexts.length ?? 0) > 0;
+  const impact = useImpactMessage();
 
   return (
     <>
@@ -223,6 +225,10 @@ export default function HomePage() {
       </section>
 
       <ListingRail title="Recommended for you" query={{ sort: "relevance" }} viewAllHref="/search" />
+
+      <div className={SECTION}>
+        <ImpactBanner message={impact} />
+      </div>
 
       {roots.length > 0 && (
         <section className={`${SECTION} py-6`} aria-label="Shop by category">
