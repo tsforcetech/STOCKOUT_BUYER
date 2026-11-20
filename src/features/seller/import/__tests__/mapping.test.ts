@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import readExcelFile from "read-excel-file/universal";
-import { autoMap, convert, readAs, detectHeaderRow, headersOf, TARGETS, TEMPLATE_HEADERS, toIsoDate, toNumber, writeTemplate, type Cell } from "../mapping";
+import { autoMap, headerSignature, loadSavedMapping, saveMapping, convert, readAs, detectHeaderRow, headersOf, TARGETS, TEMPLATE_HEADERS, toIsoDate, toNumber, writeTemplate, type Cell } from "../mapping";
 
 // A typical stock ledger: a title row, the headings, then data with its own column names and formats.
 const LEDGER: Cell[][] = [
@@ -86,5 +86,15 @@ describe("own-sheet mapping", () => {
     // A real reference column still maps to the SKU.
     expect(autoMap(["Reference", "Description", "Photos"]).sku).toEqual({ kind: "column", col: 0 });
     expect(autoMap(["Item Code", "Item Name", "Image"]).sku).toEqual({ kind: "column", col: 0 });
+  });
+
+  it("ignores a matching remembered before the Image References fix, and forgets it", () => {
+    const H = ["Sl. No", "Item Name", "Category", "Image References"];
+    localStorage.setItem("stockout.import.mappings", JSON.stringify({ [headerSignature(H)]: { sku: { kind: "column", col: 3 } } }));
+    expect(loadSavedMapping(headerSignature(H))).toBeNull();
+    expect(localStorage.getItem("stockout.import.mappings")).toBeNull();
+    saveMapping(headerSignature(H), autoMap(H));
+    expect(loadSavedMapping(headerSignature(H))?.images).toEqual({ kind: "column", col: 3 });
+    localStorage.clear();
   });
 });

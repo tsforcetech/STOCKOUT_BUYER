@@ -195,9 +195,18 @@ export function convert(rows: Cell[][], headerRow: number, mapping: Mapping, opt
 /** Stable signature of a sheet's headings, used to remember the seller's mapping for next time. */
 export const headerSignature = (headers: string[]) => headers.map(norm).join("|");
 
-const STORE = "stockout.import.mappings";
+/**
+ * v2: matchings saved before the whole-word fix (20 Nov 2026) could put "Image References" into the SKU, and a
+ * remembered matching wins over our guess, so those are dropped once (the old key is removed).
+ */
+const STORE = "stockout.import.mappings.v2";
+const OLD_STORES = ["stockout.import.mappings"];
+const dropOld = () => {
+  for (const k of OLD_STORES) localStorage.removeItem(k);
+};
 export function loadSavedMapping(signature: string): Mapping | null {
   try {
+    dropOld();
     const all = JSON.parse(localStorage.getItem(STORE) ?? "{}") as Record<string, Mapping>;
     return all[signature] ?? null;
   } catch {

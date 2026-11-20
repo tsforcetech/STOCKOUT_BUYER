@@ -325,7 +325,7 @@ describe("E2 bulk import", () => {
     expect(sheets[0].data[1][10]).toBe(120);
     expect(sheets[0].data[1][11]).toBe("MTR");
     // The matching is remembered for the next file with the same headings.
-    expect(localStorage.getItem("stockout.import.mappings")).toContain("item code");
+    expect(localStorage.getItem("stockout.import.mappings.v2")).toContain("item code");
   });
 
   describe("Match your categories", () => {
