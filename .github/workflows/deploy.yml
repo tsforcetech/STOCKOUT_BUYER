@@ -96,6 +96,12 @@ jobs:
           VITE_SEO_INDEXING: "off"
           # "Launching soon" cover on the home page ("Explore preview" link lets testers in). Launch day: "off".
           VITE_LAUNCH_COVER: "on"
+          # Stripe TEST mode E2E (STOCKOUT-FE-E2E-UAT-2026-11-20), switched on for everyone by the owner on 20 Nov 2026.
+          # Publishable test key only (public by design); secret and webhook keys never belong in the frontend.
+          VITE_STRIPE_PUBLISHABLE_KEY: "pk_test_51UUX8E2azzjgX9VbZpenD5HVTmeZuZYehICbFhyyu0ne9tyBCE8yEC2Bw45cGzTJyzlN0c2tD2Kc67KLq6FrwUsH00ywmEwIjA"
+          VITE_PAYMENT_PREAUTH: "on"
+          VITE_ORDER_PLACEMENT: "on"
+          VITE_ORDER_LIFECYCLE: "on"
         run: |
           npm run build
 
