@@ -175,3 +175,75 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
     </div>
   );
 }
+
+/**
+ * One-tap "Add to cart" for listing cards and rows: adds 1 (the server explains a minimum order or whole lot), then
+ * opens the mini cart like the listing page does. Hidden on the seller's own listings and when the listing can't be
+ * bought; once in the cart it shows the quantity and opens the cart instead.
+ */
+export function QuickAddToCart({ listing, className }: { listing: AddToCartListing; className?: string }) {
+  const cart = useCart();
+  const own = useOwnListing(listing.sellerId);
+  const inCartQty = useInCartQuantity(listing.listingId);
+  const { add, busy, limitReached } = useAddToCart(listing);
+  const [justAdded, setJustAdded] = React.useState(false);
+  const canBuy = listing.isAvailable && listing.sellableQuantity > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
+  if (own || !canBuy) return null;
+
+  if (inCartQty !== null && !justAdded)
+    return (
+      <Button variant="secondary" size="sm" className={cn("w-full", className)} onClick={() => cart.setOpen(true)} aria-label={`${listing.title}: ${formatNumber(inCartQty)} in your cart, view cart`}>
+        <CheckIcon weight="bold" /> In cart · {formatNumber(inCartQty)} {listing.unitSymbol ?? ""}
+      </Button>
+    );
+
+  return (
+    <Button
+      size="sm"
+      className={cn("w-full transition-colors", justAdded && "bg-success text-white hover:bg-success", className)}
+      loading={busy}
+      disabled={limitReached}
+      aria-label={justAdded ? "Added to cart" : `Add ${listing.title} to cart`}
+      onClick={async () => {
+        if (await add(1)) {
+          setJustAdded(true);
+          window.setTimeout(() => setJustAdded(false), 1400);
+        }
+      }}
+    >
+      {justAdded ? (
+        <>
+          <CheckIcon weight="bold" /> Added
+        </>
+      ) : (
+        <>
+          <ShoppingCartSimpleIcon /> Add to cart
+        </>
+      )}
+    </Button>
+  );
+}
+
+/** The cart fields a search card carries. */
+export const cartListingFromCard = (item: {
+  listingId: string;
+  title: string;
+  basePrice: number;
+  currency: string;
+  quantityUnitSymbol: string | null;
+  primaryImage: { cdnUrl?: string | null } | null;
+  sellableQuantity: number;
+  isAvailable: boolean;
+  seller: { sellerId: string };
+}, sellerName: string): AddToCartListing => ({
+  listingId: item.listingId,
+  sellerId: item.seller.sellerId,
+  title: item.title,
+  sellerName,
+  basePrice: item.basePrice,
+  currency: item.currency,
+  unitSymbol: item.quantityUnitSymbol,
+  imageUrl: item.primaryImage?.cdnUrl ?? null,
+  sellableQuantity: item.sellableQuantity,
+  isAvailable: item.isAvailable,
+});

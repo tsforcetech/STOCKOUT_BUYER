@@ -1,4 +1,5 @@
 import { sellerLabel } from "@/lib/seller-code";
+import { QuickAddToCart, cartListingFromCard } from "@/features/cart/add-to-cart";
 import { Link } from "react-router";
 import { stockLabel } from "../lib/stock";
 import { cn } from "@/lib/utils/cn";
@@ -101,6 +102,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
               </p>
             )}
           </div>
+          <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="relative z-10 mt-2 sm:w-auto" />
         </div>
       </div>
 

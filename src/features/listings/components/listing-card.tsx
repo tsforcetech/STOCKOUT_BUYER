@@ -9,6 +9,7 @@ import type { ListingSearchCard } from "@/api/types/search";
 import { SellerTick, VerifiedTag } from "./verified-tag";
 import { attributeDisplayValue } from "../lib/attribute-value";
 import { listingPath, listingPlace } from "@/lib/seo/site";
+import { QuickAddToCart, cartListingFromCard } from "@/features/cart/add-to-cart";
 
 /** Up to three short spec values for the card (size, material, … from the listing's attributes). */
 function specChips(item: ListingSearchCard): string[] {
@@ -32,11 +33,8 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
   const ago = timeAgo(item.publishedAtUtc);
   const specs = specChips(item);
   return (
-    <div className="group relative h-full">
-      <Link
-        to={listingPath(item.listingId, item.title, listingPlace(item.location))}
-        className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised focus-visible:shadow-raised"
-      >
+    <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-surface transition-all hover:-translate-y-0.5 hover:shadow-raised has-[a:focus-visible]:shadow-raised">
+      <Link to={listingPath(item.listingId, item.title, listingPlace(item.location))} className="flex flex-1 flex-col focus-visible:outline-none">
         <div className="relative">
           <ListingImage
             src={item.primaryImage?.cdnUrl}
@@ -109,6 +107,8 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
           </div>
         </div>
       </Link>
+      {/* Outside the link: a button can't sit inside an <a>. Hidden for own listings and ones that can't be bought. */}
+      <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="-mt-1 mb-4 ml-4 mr-4 w-[calc(100%-2rem)]" />
       <FavoriteButton
         className="absolute right-2.5 top-2.5"
         listing={{
