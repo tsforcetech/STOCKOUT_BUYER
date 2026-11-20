@@ -46,7 +46,7 @@ const close = (id: string) => {
 };
 
 /**
- * "wide": home band, a smaller version of the home hero (brand photo, dark fade, lime action).
+ * "wide": home band: light card, brand photo on the right fading into it, dark action.
  * "inline": inside a results grid (col-span-full), same look, a little shorter.
  * "strip": one quiet line on the listing page, no artwork or close button.
  */
@@ -74,28 +74,29 @@ export function ImpactBanner({ message, variant = "wide", className }: { message
   const wide = variant === "wide";
   const photo = impactPhotoUrl(message.id) ?? homeHeroUrl;
   return (
-    <section aria-label={message.title} className={cn("relative isolate overflow-hidden rounded-[24px] bg-[#141413] text-white", className)}>
-      {photo ? (
-        <img src={photo} alt="" loading="lazy" decoding="async" className="absolute inset-0 -z-20 size-full object-cover" style={{ objectPosition: message.focus }} />
-      ) : (
-        <div aria-hidden className="absolute inset-0 -z-20 bg-[radial-gradient(90%_120%_at_85%_10%,#3d3d36_0%,#1d1d1b_45%,#111110_100%)]" />
+    <section aria-label={message.title} className={cn("relative isolate overflow-hidden rounded-[24px] border border-border", TONE, className)}>
+      {/* The photo sits on the right (top on phones) and fades into the light card, so the text stays on a light ground. */}
+      {photo && (
+        <img
+          src={photo}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          className="absolute inset-x-0 top-0 -z-10 h-40 w-full object-cover [mask-image:linear-gradient(180deg,black_45%,transparent)] sm:inset-y-0 sm:left-auto sm:right-0 sm:h-full sm:w-[52%] sm:[mask-image:linear-gradient(90deg,transparent,black_38%)]"
+          style={{ objectPosition: message.focus }}
+        />
       )}
-      {/* Dark fade behind the text (bottom on phones, left from sm up) so the photo stays visible on the right. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-[linear-gradient(0deg,rgba(17,17,16,0.95)_0%,rgba(17,17,16,0.8)_55%,rgba(17,17,16,0.25)_100%)] sm:bg-[linear-gradient(90deg,rgba(17,17,16,0.94)_0%,rgba(17,17,16,0.82)_42%,rgba(17,17,16,0.2)_78%,rgba(17,17,16,0.05)_100%)]"
-      />
-      <div className={cn("flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between sm:gap-8", wide ? "px-5 pb-6 pt-36 sm:px-10 sm:py-10" : "px-5 pb-5 pt-32 sm:px-8 sm:py-7")}>
-        <div className="min-w-0 max-w-xl">
-          <p className="flex items-center gap-2 text-eyebrow font-bold tracking-[0.18em] text-action">
+      <div className={cn("flex flex-col gap-4 sm:max-w-[54%]", wide ? "px-5 pb-6 pt-36 sm:px-10 sm:py-10" : "px-5 pb-5 pt-32 sm:px-8 sm:py-7")}>
+        <div className="min-w-0">
+          <p className="flex items-center gap-2 text-eyebrow font-bold tracking-[0.18em] text-success-soft-foreground">
             <LeafIcon className="size-4" weight="fill" aria-hidden /> Build greener
           </p>
-          <h2 className={cn("mt-2 font-heading font-bold tracking-tight text-white", wide ? "text-[26px] leading-8 sm:text-[36px] sm:leading-[42px]" : "text-[22px] leading-7 sm:text-[28px] sm:leading-9")}>{message.title}</h2>
-          <p className="mt-2 text-sm leading-6 text-white/80 sm:text-base">{message.body}</p>
+          <h2 className={cn("mt-2 font-heading font-bold tracking-tight text-foreground", wide ? "text-[26px] leading-8 sm:text-[34px] sm:leading-[40px]" : "text-[22px] leading-7 sm:text-[26px] sm:leading-8")}>{message.title}</h2>
+          <p className="mt-2 text-sm leading-6 text-body sm:text-base">{message.body}</p>
         </div>
         <Link
           to={message.to}
-          className="inline-flex h-12 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-action px-6 text-[15px] font-semibold text-action-foreground transition-colors hover:bg-action-hover sm:self-end"
+          className="inline-flex h-12 shrink-0 items-center justify-center gap-2 self-start rounded-full bg-ink px-6 text-[15px] font-semibold text-ink-foreground shadow-raised transition-colors hover:bg-ink-hover"
         >
           {message.cta} <ArrowRightIcon className="size-4" weight="bold" aria-hidden />
         </Link>
@@ -107,7 +108,7 @@ export function ImpactBanner({ message, variant = "wide", className }: { message
           close(message.id);
           setHidden(true);
         }}
-        className="absolute right-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full bg-black/30 text-white/80 backdrop-blur-sm transition-colors hover:bg-black/50 hover:text-white"
+        className="absolute right-3 top-3 flex size-8 cursor-pointer items-center justify-center rounded-full bg-surface/80 text-foreground shadow-raised backdrop-blur-sm transition-colors hover:bg-surface"
       >
         <XIcon className="size-4" />
       </button>
