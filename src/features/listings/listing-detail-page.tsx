@@ -34,7 +34,7 @@ import { useFavorites, type ListingSnapshot } from "@/lib/favorites/favorites-co
 import { FavoriteButton } from "@/features/favorites/favorite-button";
 import { AddToCart, type AddToCartListing } from "@/features/cart/add-to-cart";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
-import { IMPACT_MESSAGES, ImpactBanner } from "@/features/sustainability/impact-banner";
+import { IMPACT_BANNERS, IMPACT_MESSAGES, ImpactBanner } from "@/features/sustainability/impact-banner";
 import type { PublicListingDetailResponse } from "@/api/types/seller-listings";
 import { ListingRail } from "./components/listing-rail";
 import { isSameItem, sameItemQuery } from "./lib/same-item";
@@ -331,7 +331,7 @@ export default function ListingDetailPage() {
               </Link>
             </section>
 
-            <ImpactBanner variant="strip" className="mt-5" message={IMPACT_MESSAGES[0]} />
+            {IMPACT_BANNERS && <ImpactBanner variant="strip" className="mt-5" message={IMPACT_MESSAGES[0]} />}
 
             <ListingSafetyTips className="mt-5" />
             </div>

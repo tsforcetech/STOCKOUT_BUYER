@@ -47,7 +47,7 @@ import { Pager } from "./components/pager";
 import { useSearchView, ViewToggle } from "./components/view-toggle";
 import { useFilterOptions } from "./lib/filter-options";
 import { RfqBanner } from "@/features/rfq/rfq-banner";
-import { ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
+import { IMPACT_BANNERS, ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
 
 const GRID = "grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3";
 // 6 fills whole rows in both the 2- and 3-column grids.
@@ -483,7 +483,7 @@ export default function SearchPage({ landing }: { landing?: SearchLanding } = {}
                             body="Share your requirement or upload a BOQ. Verified sellers send you quotes."
                           />
                         )}
-                      {i === impactAfter(page) - 1 && data.items.length > impactAfter(page) && <ImpactBanner variant="inline" className="col-span-full" message={impact} />}
+                      {IMPACT_BANNERS && i === impactAfter(page) - 1 && data.items.length > impactAfter(page) && <ImpactBanner variant="inline" className="col-span-full" message={impact} />}
                     </React.Fragment>
                   ))}
                 </div>

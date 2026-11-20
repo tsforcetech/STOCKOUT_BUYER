@@ -26,6 +26,8 @@ export const env = {
    * needs the payment step too, and only for an approved isolated sandbox (the server also gates it).
    */
   orderPlacementEnabled: import.meta.env.VITE_ORDER_PLACEMENT === "on",
+  /** Sustainability banners (home, search, listing page). Off until the owner approves the photos. */
+  impactBannersEnabled: import.meta.env.VITE_IMPACT_BANNERS === "on",
   /** Seller fulfilment + buyer acceptance/claims (BD-ORDER-LIFECYCLE-01). Off unless "on". */
   orderLifecycleEnabled: import.meta.env.VITE_ORDER_LIFECYCLE === "on",
   /** SUS-03 buyer/seller impact reports. Off unless "on" (Wave A public activation is policy-gated). */

@@ -2,7 +2,12 @@ import * as React from "react";
 import { Link } from "react-router";
 import { ArrowRightIcon, CaretRightIcon, LeafIcon, XIcon } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils/cn";
+import { env } from "@/config/env";
 import { homeHeroUrl, impactPhotoUrl } from "@/assets/brand";
+
+
+/** Pages place banners only while this is on (VITE_IMPACT_BANNERS=on). */
+export const IMPACT_BANNERS = env.impactBannersEnabled;
 
 /**
  * Sustainability messages shown between content (home, search results, listing page). Wording rule: only claims

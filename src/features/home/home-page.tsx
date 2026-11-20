@@ -1,4 +1,4 @@
-import { ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
+import { IMPACT_BANNERS, ImpactBanner, useImpactMessage } from "@/features/sustainability/impact-banner";
 import * as React from "react";
 import { cn } from "@/lib/utils/cn";
 import { Link } from "react-router";
@@ -226,9 +226,11 @@ export default function HomePage() {
 
       <ListingRail title="Recommended for you" query={{ sort: "relevance" }} viewAllHref="/search" />
 
-      <div className={SECTION}>
-        <ImpactBanner message={impact} />
-      </div>
+      {IMPACT_BANNERS && (
+        <div className={SECTION}>
+          <ImpactBanner message={impact} />
+        </div>
+      )}
 
       {roots.length > 0 && (
         <section className={`${SECTION} py-6`} aria-label="Shop by category">
