@@ -224,7 +224,7 @@ describe("E2 bulk import", () => {
     renderWithApp(routes, `/seller/listings/import/${JOB}`);
     expect(await screen.findByText(/^3 pcs$/)).toBeInTheDocument();
     expect(screen.queryByText(UNIT)).not.toBeInTheDocument();
-    expect(screen.getByTitle(/2 photo\(s\) matched; 1 referenced/)).toHaveTextContent("2");
+    expect(screen.getByRole("button", { name: "View photos for row 2" })).toHaveTextContent("2 · View");
   });
 
   it("lets the seller restart a check that has been stuck for a long time", async () => {

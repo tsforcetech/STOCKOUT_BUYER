@@ -17,8 +17,9 @@ import { ListingAccessNotice, canManageListings } from "../components/listing-ac
 import { Notice } from "../components/notice";
 import { BackLink } from "../components/back-link";
 import { Stepper } from "../components/stepper";
-import { sellerKeys, useActiveSeller, useListingRequirements } from "../lib/queries";
-import { IMPORT_STEPS, confirmKey, importErrorMessage, importKeys, isUncertain, POLL_MS, rowLabel, saveBlob, statusLabel } from "./shared";
+import { sellerKeys, useActiveSeller, useCategoryIndex, useListingRequirements } from "../lib/queries";
+import { RowPhotos } from "./row-photos";
+import { IMPORT_STEPS, rememberZip, confirmKey, importErrorMessage, importKeys, isUncertain, POLL_MS, rowLabel, saveBlob, statusLabel } from "./shared";
 
 const FILTERS = [
   { key: "", label: "All rows" },
@@ -360,7 +361,7 @@ function Rows({ sellerId, jobId, status }: { sellerId: string; jobId: string; st
             </thead>
             <tbody className="divide-y divide-border">
               {data.rows.map((row) => (
-                <RowLine key={row.rowId} row={row} />
+                <RowLine key={row.rowId} jobId={jobId} row={row} />
               ))}
             </tbody>
           </table>
@@ -383,7 +384,9 @@ function Rows({ sellerId, jobId, status }: { sellerId: string; jobId: string; st
   );
 }
 
-function RowLine({ row }: { row: BulkImportRowPreviewDto }) {
+function RowLine({ jobId, row }: { jobId: string; row: BulkImportRowPreviewDto }) {
+  const { index } = useCategoryIndex();
+  const category = row.categoryId ? index.get(row.categoryId) : undefined;
   const s = rowLabel(row.status);
   const messages = [...row.errors.map((m) => ({ ...m, kind: "error" as const })), ...row.warnings.map((m) => ({ ...m, kind: "warning" as const }))];
   return (
@@ -401,7 +404,7 @@ function RowLine({ row }: { row: BulkImportRowPreviewDto }) {
         </p>
         <p className="text-xs text-muted-foreground">
           SKU {row.sellerSku || "—"}
-          {row.categoryCode ? ` · ${row.categoryCode}` : ""}
+          {category ? ` · ${category.path.join(" › ")}` : row.categoryCode ? ` · ${row.categoryCode}` : ""}
         </p>
         {messages.length > 0 && (
           <ul className="mt-1 space-y-0.5 text-xs">
@@ -426,7 +429,7 @@ function RowLine({ row }: { row: BulkImportRowPreviewDto }) {
       <td className="py-2 pr-3 tabular-nums">{row.price != null ? `${row.currency ?? ""} ${formatNumber(row.price)}` : "—"}</td>
       <td className="py-2 pr-3 tabular-nums">
         {/* The server also matches photos by the SKU's ZIP folder, so the count can exceed the references in the file. */}
-        <span title={`${row.matchedImageCount} photo(s) matched; ${row.imageReferences.length} referenced in the file`}>{formatNumber(row.matchedImageCount)}</span>
+        <RowPhotos jobId={jobId} row={row} />
       </td>
       <td className="py-2 pr-3">
         <Badge tone={s.tone}>{s.label}</Badge>
@@ -495,6 +498,7 @@ function ReplaceFiles({ sellerId, r, onChanged }: { sellerId: string; r: BulkImp
     try {
       setBusy("upload");
       await bulkImportService.uploadZip(sellerId, r.jobId, f);
+      rememberZip(r.jobId, f);
       setBusy("check");
       await bulkImportService.validate(sellerId, r.jobId);
       toast.success("Photos replaced and rows checked again.");

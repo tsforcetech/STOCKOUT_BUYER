@@ -104,3 +104,11 @@ export function confirmKey(jobId: string): string {
     return `bulk-${jobId}`;
   }
 }
+
+/**
+ * The photos ZIP the seller picked in this tab, per job, so "View photos" can show the matched photos before import
+ * without downloading anything. Kept in memory only: after a reload the seller picks the ZIP again to preview.
+ */
+const localZips = new Map<string, File>();
+export const rememberZip = (jobId: string, file: File) => void localZips.set(jobId, file);
+export const localZip = (jobId: string) => localZips.get(jobId) ?? null;

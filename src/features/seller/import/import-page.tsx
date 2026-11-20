@@ -32,7 +32,7 @@ import { Stepper } from "../components/stepper";
 import { categoryIndexFrom, categoryTreeQuery, useActiveSeller, type CategoryEntry } from "../lib/queries";
 import { DropZone } from "../bulk/drop-zone";
 import { createCategoryMatcher } from "../bulk/rows";
-import { IMPORT_STEPS, importErrorMessage, importKeys, isUncertain, saveBlob, statusLabel } from "./shared";
+import { IMPORT_STEPS, rememberZip, importErrorMessage, importKeys, isUncertain, saveBlob, statusLabel } from "./shared";
 import { MatchStep, type ConvertedSheet } from "./own-sheet-mapper";
 import { TARGETS, convert, readSellerFile, templateRowCount, writeTemplate, type ConvertedRow, type Mapping, type Sheet } from "./mapping";
 import { CATEGORY_COL, applyCategoryChoices, categoryGroups, createCategorySuggester, saveCategoryChoices, type CategoryGroup } from "./category-match";
@@ -229,6 +229,7 @@ export default function SellerImportPage() {
       if (zip) {
         go("zip");
         await bulkImportService.uploadZip(sellerId, jobId, zip);
+        rememberZip(jobId, zip);
       }
       go("validate");
       await bulkImportService.validate(sellerId, jobId);
