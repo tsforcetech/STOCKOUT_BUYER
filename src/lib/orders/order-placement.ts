@@ -100,6 +100,7 @@ export const PLACEMENT_MESSAGES: Record<string, string> = {
   ORDER_PLACEMENT_PERSISTENCE_UNAVAILABLE: "Ordering is temporarily unavailable. Try again in a moment.",
   COM_DEL_SELLER_SELECTION_MISMATCH: "Every seller in your order needs a collection or delivery choice. Reload and try again.",
   COM_DEL_MODE_UNSUPPORTED: "That delivery method isn't available. Choose collection.",
+  COM_DEL_MODE_POLICY_GATED: "That delivery method isn't available yet. Choose collection.",
   INVALID_IF_MATCH_HEADER: "Your cart needs reloading before ordering. Reload and try again.",
   CART_CONCURRENCY_CONFLICT: "Your cart changed. Reload to review it before ordering.",
 };

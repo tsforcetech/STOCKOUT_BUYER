@@ -65,6 +65,14 @@ describe("order placement (handoff 20 Nov 2026 §4.3, gated)", () => {
     expect(post.body).toEqual({ paymentAuthorizationAttemptId: ATTEMPT, cartId: CART, purchasingOrganizationId: ORG, deliveryAddressId: null, expectedPayableTotal: 1050, currency: "AED", sellerSelections: collectionSelections(status()) });
   });
 
+  it("BE-19: If-Match is the attempt's own cart version from the status, not the page's", async () => {
+    const { calls } = mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ body: placed }) }]);
+    render(status({ cartVersion: "AAAAAAAAC+8=" }));
+    await userEvent.click(screen.getByRole("button", { name: /Place order/ }));
+    await screen.findByText(/Order placed/);
+    expect(calls.find((c) => c.method === "POST")!.headers.get("If-Match")).toBe('"AAAAAAAAC+8="');
+  });
+
   it("503 ORDER_PLACEMENT_DISABLED: explains, no success, button off", async () => {
     mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ status: 503, body: { status: 503, code: "ORDER_PLACEMENT_DISABLED" } }) }]);
     render();

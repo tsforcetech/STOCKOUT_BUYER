@@ -34,7 +34,8 @@ export function PlaceOrder({ s, cartVersion, onCartStale, onRecheck }: { s: Paym
 
   const place = useApiMutation({
     toastOnError: false,
-    mutationFn: () => orderPlacementService.place(placementRequest(s), cartVersion, placementKey.get(s.attemptId)),
+    // BE-19: the attempt's own cart version from the server (survives a reload or a 3DS return); the page's as fallback.
+    mutationFn: () => orderPlacementService.place(placementRequest(s), s.cartVersion || cartVersion, placementKey.get(s.attemptId)),
     onSuccess: (res) => {
       if (res.orderPlaced && ORDER_PLACED_STAGES.has(res.checkoutStage) && res.orderId) {
         setPlaced(res);

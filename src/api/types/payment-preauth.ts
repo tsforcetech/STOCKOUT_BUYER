@@ -69,6 +69,8 @@ export interface PaymentAuthorizationInitiationResponse extends PaymentAuthoriza
 }
 
 export interface PaymentAuthorizationStatusResponse extends PaymentAuthorizationCommon {
+  /** BE-19 (backend f49570b): the cart rowVersion this attempt was authorised with; order placement's If-Match. */
+  cartVersion?: string | null;
   orderId: Guid | null;
   orderNumber: string | null;
   capturableAmount: number;

@@ -104,7 +104,7 @@ delivery policy is approved (`ORDER_PLACEMENT_DELIVERY_NOT_APPROVED`).
 
 - Offered only when the status GET says `AUTHORIZED` + `isProviderVerified` and `checkoutStage` is
   `INVENTORY_PROTECTED` or `ORDER_PLACEMENT_PENDING`, and no order exists yet.
-- `POST /api/v1/buyer/checkout/orders` with `If-Match: "<cart rowVersion>"` and `Idempotency-Key: order-<uuid>`
+- `POST /api/v1/buyer/checkout/orders` with `If-Match: "<the attempt's cartVersion from the status GET (BE-19)>"` and `Idempotency-Key: order-<uuid>`
   (kept per attempt for the tab, reused on every retry). Body: `paymentAuthorizationAttemptId`, `cartId`,
   `purchasingOrganizationId`, `deliveryAddressId: null`, `expectedPayableTotal` = authorised amount, `currency: AED`,
   `sellerSelections`: one `SELF_COLLECTION` per seller in the authorisation's reservations (no overrides).
