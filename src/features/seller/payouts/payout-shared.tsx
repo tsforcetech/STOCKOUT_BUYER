@@ -56,6 +56,7 @@ const MESSAGES: Record<string, string> = {
   STRIPE_INTEGRATION_DISABLED: "Payout setup isn't open yet. Please try again later.",
   // Handoff 03 gate: StockOut's own Stripe profile is awaiting sign-off.
   STRIPE_PROVIDER_CONFIGURATION_UNAPPROVED: "Payout setup isn't open yet: StockOut is finishing its payment set-up with Stripe. Please try again later.",
+  SANDBOX_PRODUCTION_ENVIRONMENT_PROHIBITED: "Payout setup isn't open yet: StockOut is finishing its payment set-up with Stripe. Please try again later.",
   CONCURRENT_ONBOARDING_IN_PROGRESS: "Payout setup is already starting in another window. Wait a moment, then try again.",
   SELLER_STRIPE_ACCOUNT_CLOSED: "Your Stripe payout account was closed. Contact StockOut support at info@stockoutme.com to restore payouts.",
   // Accounts v2 (handoff 19 Nov §3): Stripe needs the organisation's business contact email; StockOut never invents one.

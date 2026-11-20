@@ -71,6 +71,7 @@ export const PREAUTH_MESSAGES: Record<string, string> = {
   STRIPE_API_UNAVAILABLE: "Our payment provider is temporarily unavailable. Nothing was charged; try again in a moment.",
   STRIPE_API_ERROR: "Our payment provider is temporarily unavailable. Nothing was charged; try again in a moment.",
   STRIPE_INTEGRATION_DISABLED: "Card payment isn't open yet.",
+  SANDBOX_PRODUCTION_ENVIRONMENT_PROHIBITED: "Card payment isn't open yet. Nothing was charged; your cart is saved.",
   INSUFFICIENT_STOCK: "An item no longer has enough stock. Change the quantity in your cart.",
   COMMERCE_BUYER_ORG_UNAUTHORIZED: "Your account isn't authorised to buy for this company. Choose another company or ask its owner to check your role.",
   COMMERCE_BUYER_ORG_MISMATCH: "The buying company changed. Choose the company you're buying for again.",
