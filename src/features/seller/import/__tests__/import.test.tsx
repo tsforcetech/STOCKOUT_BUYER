@@ -371,7 +371,10 @@ describe("E2 bulk import", () => {
       expect(screen.getByRole("combobox", { name: "StockOut category for GI & MI FITTINGS" })).toHaveTextContent("Plumbing & Piping › GI & Malleable Fittings");
       expect(screen.getByRole("combobox", { name: "StockOut category for PLUMBING_PPR PIPES & FITTINGS" })).toHaveTextContent("Plumbing & Piping › PPR Pipes & Fittings");
       expect(screen.getByTestId("category-counts")).toHaveTextContent("2 of 3 matched");
-      expect(screen.getByText(/1 name is kept as written/)).toBeInTheDocument();
+      // Matching is mandatory: Continue stays locked until every name has a StockOut category.
+      expect(screen.getByText(/Choose a category for 1 more name to continue/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /Continue/ })).toBeDisabled();
+      expect(screen.queryByRole("option", { name: /Keep as written/ })).not.toBeInTheDocument();
 
       await user.click(screen.getByRole("combobox", { name: "StockOut category for MS FITTINGS" }));
       await user.click(await screen.findByRole("option", { name: "Steel & Metals › Mild Steel" }));

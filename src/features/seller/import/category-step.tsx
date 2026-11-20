@@ -8,12 +8,12 @@ import { formatNumber } from "@/lib/utils/format";
 import type { CategoryEntry } from "../lib/queries";
 import type { CategoryGroup } from "./category-match";
 
-const KEEP = "";
+const NONE = "";
 
 /**
  * "Match your categories": one row per category name in the seller's file that isn't a StockOut category, with a
- * pre-filled best guess. One choice moves every product with that name. A name left as written is still sent and
- * the server reports it, so the seller can continue without matching everything.
+ * pre-filled best guess. One choice moves every product with that name. Every name needs a category before
+ * Continue, so no row reaches the server check with a category StockOut doesn't have.
  */
 export function CategoryStep({
   groups,
@@ -35,7 +35,7 @@ export function CategoryStep({
   busy?: boolean;
   error?: string | null;
 }) {
-  const [choices, setChoices] = React.useState<Record<string, string>>(() => initial ?? Object.fromEntries(groups.map((g) => [g.key, g.suggestion?.categoryId ?? KEEP])));
+  const [choices, setChoices] = React.useState<Record<string, string>>(() => initial ?? Object.fromEntries(groups.map((g) => [g.key, g.suggestion?.categoryId ?? NONE])));
   const sorted = React.useMemo(() => [...leaves].sort((a, b) => a.path.join(" › ").localeCompare(b.path.join(" › "))), [leaves]);
 
   const matched = groups.filter((g) => choices[g.key]);
@@ -55,7 +55,7 @@ export function CategoryStep({
         </header>
         <ul className="divide-y divide-border" aria-label="Your categories">
           {groups.map((g) => {
-            const chosen = choices[g.key] ?? KEEP;
+            const chosen = choices[g.key] ?? NONE;
             const isGuess = !!chosen && g.suggestion?.from === "guess" && chosen === g.suggestion.categoryId;
             const isSaved = !!chosen && g.suggestion?.from === "saved" && chosen === g.suggestion.categoryId;
             return (
@@ -65,6 +65,7 @@ export function CategoryStep({
                     {chosen ? <CheckCircleIcon weight="fill" className="size-4 shrink-0 text-success" aria-hidden /> : <WarningCircleIcon weight="fill" className="size-4 shrink-0 text-warning" aria-hidden />}
                     <span className="break-words">{g.value}</span>
                   </p>
+                  {g.detail && <p className="mt-0.5 pl-6 text-xs font-medium text-body">{g.detail}</p>}
                   <p className="mt-0.5 pl-6 text-xs text-muted-foreground">
                     {formatNumber(g.rows)} {g.rows === 1 ? "product" : "products"}
                     {g.examples.length ? ` · e.g. ${g.examples.join(", ")}` : ""}
@@ -80,7 +81,7 @@ export function CategoryStep({
                     disabled={busy}
                     onChange={(e) => setChoices((c) => ({ ...c, [g.key]: e.target.value }))}
                   >
-                    <option value={KEEP}>Keep as written (StockOut will check it)</option>
+                    <option value={NONE}>Choose a category</option>
                     {sorted.map((c) => (
                       <option key={c.categoryId} value={c.categoryId}>
                         {c.path.join(" › ")}
@@ -93,7 +94,7 @@ export function CategoryStep({
                     ) : isGuess ? (
                       <Badge tone="warning">Suggested · please check</Badge>
                     ) : !chosen ? (
-                      <span className="text-muted-foreground">{g.suggestion ? "" : "No close match found. "}Choose a category, or these rows will likely fail the check.</span>
+                      <span className="text-warning-soft-foreground">{g.suggestion ? "" : "No close match found. "}Choose where these products go.</span>
                     ) : null}
                   </p>
                 </div>
@@ -122,7 +123,7 @@ export function CategoryStep({
           {toCheck > 0 && <p className="mt-2 text-xs text-warning-soft-foreground">{toCheck === 1 ? "1 suggestion is" : `${formatNumber(toCheck)} suggestions are`} our best guess. Check {toCheck === 1 ? "it" : "them"} before you continue.</p>}
           {left > 0 && (
             <p className={cn("mt-2 rounded-lg bg-warning-soft px-3 py-2 text-xs text-warning-soft-foreground")} role="status">
-              {left === 1 ? "1 name is" : `${formatNumber(left)} names are`} kept as written. Unless {left === 1 ? "it's a" : "they're"} StockOut category code{left === 1 ? "" : "s"}, those rows will fail the check.
+              Choose a category for {left === 1 ? "1 more name" : `${formatNumber(left)} more names`} to continue.
             </p>
           )}
           {error && (
@@ -134,7 +135,7 @@ export function CategoryStep({
             <Button variant="secondary" onClick={onBack} disabled={busy} aria-label="Back">
               <ArrowLeftIcon />
             </Button>
-            <Button className="flex-1" onClick={() => onContinue(choices)} disabled={busy} loading={busy}>
+            <Button className="flex-1" onClick={() => onContinue(choices)} disabled={busy || left > 0} loading={busy}>
               Continue <ArrowRightIcon />
             </Button>
           </div>

@@ -190,7 +190,7 @@ export default function SellerImportPage() {
     setWriting(true);
     setReviewError(null);
     try {
-      const rows = applyCategoryChoices(review.rows, choices);
+      const rows = applyCategoryChoices(review.rows, choices, review.groups);
       const file = await writeTemplate(rows);
       saveCategoryChoices(choices);
       setReview({ ...review, choices });

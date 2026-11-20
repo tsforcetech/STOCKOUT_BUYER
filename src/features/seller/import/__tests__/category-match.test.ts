@@ -8,6 +8,7 @@ afterEach(() => localStorage.clear());
 const tree: Array<[string, string[]]> = [
   ["p", ["Plumbing & Piping"]],
   ["p-ppr", ["Plumbing & Piping", "PPR Pipes & Fittings"]],
+  ["p-upvc", ["Plumbing & Piping", "UPVC Pipes & Fittings"]],
   ["p-hdpe", ["Plumbing & Piping", "HDPE Pipes & Fittings"]],
   ["p-gi", ["Plumbing & Piping", "GI & Malleable Fittings"]],
   ["p-drain", ["Plumbing & Piping", "Drainage Systems"]],
@@ -68,6 +69,19 @@ describe("categoryGroups", () => {
   it("applies one choice to every row with that name and leaves the rest as written", () => {
     const out = applyCategoryChoices(rows, { "gi mi fittings": "p-gi", plumbing: "" });
     expect(out.map((r) => r.cells[CATEGORY_COL])).toEqual(["p-gi", "PLUMBING_PPR PIPES & FITTINGS", "p-gi", "p-ppr", "PLUMBING", ""]);
+  });
+
+  it("splits a broad name ('Fitting', 'Pipe') by the item names, so a mixed sheet needs one choice per real category", () => {
+    const mixed = [row(2, "UPVC 90° Elbow 3in – GF", "Fitting"), row(3, "PPR Tee 40mm – Wavin", "Fitting"), row(4, "UPVC Socket 4in", "Fitting"), row(5, "Soundproof Socket 75mm – Wavin", "Fitting"), row(6, "UPVC Pipe 3in", "Pipe")];
+    const groups = categoryGroups(mixed, index, createCategorySuggester(leaves), {});
+    expect(groups.map((g) => [g.value, g.detail ?? null, g.rows, g.suggestion?.categoryId ?? null])).toEqual([
+      ["Fitting", "Items named like UPVC Pipes & Fittings", 2, "p-upvc"],
+      ["Fitting", "Items named like PPR Pipes & Fittings", 1, "p-ppr"],
+      ["Fitting", "Other items", 1, null],
+      ["Pipe", "Items named like UPVC Pipes & Fittings", 1, "p-upvc"],
+    ]);
+    const choices = Object.fromEntries(groups.map((g) => [g.key, g.suggestion?.categoryId ?? "p-drain"]));
+    expect(applyCategoryChoices(mixed, choices, groups).map((r) => r.cells[CATEGORY_COL])).toEqual(["p-upvc", "p-ppr", "p-upvc", "p-drain", "p-upvc"]);
   });
 
   it("remembers only real choices", () => {

@@ -21,7 +21,8 @@ const STOP = new Set(["and", "the", "of", "for", "with", "other", "others", "gen
 const stem = (w: string) => (w.length > 4 && w.endsWith("ies") ? `${w.slice(0, -3)}y` : w.length > 3 && /(ss|x|ch|sh)es$/.test(w) ? w.slice(0, -2) : w.length > 3 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w);
 const words = (s: string) => new Set(categoryKey(s).split(" ").filter((w) => w && !STOP.has(w)).map(stem));
 
-export type Suggest = (value: string) => CategoryEntry | null;
+/** knownWordsOnly: ignore words no StockOut category uses (sizes, brands, "Elbow"), for matching on item names. */
+export type Suggest = (value: string, knownWordsOnly?: boolean) => CategoryEntry | null;
 
 /**
  * Best-guess leaf category for a seller's own name, or null when nothing is a clear winner. Words that are rare
@@ -34,8 +35,8 @@ export function createCategorySuggester(leaves: CategoryEntry[]): Suggest {
   for (const d of docs) for (const w of d.all) df.set(w, (df.get(w) ?? 0) + 1);
   const idf = (w: string) => Math.log(1 + docs.length / (df.get(w) ?? 1));
   const weight = (ws: Iterable<string>) => [...ws].reduce((s, w) => s + idf(w), 0);
-  return (value) => {
-    const q = words(value);
+  return (value, knownWordsOnly = false) => {
+    const q = knownWordsOnly ? new Set([...words(value)].filter((w) => df.has(w))) : words(value);
     const qWeight = weight(q);
     if (!qWeight) return null;
     const scored = docs
@@ -67,39 +68,81 @@ export interface CategoryGroup {
   /** The value names a StockOut category that has sub-categories; listings need a specific one. */
   general?: CategoryEntry;
   suggestion: { categoryId: string; from: "saved" | "guess" } | null;
+  /** Set when a broad name ("Fitting") was split by the item names; says which part of it this group is. */
+  detail?: string;
+  /** Sheet rows (ConvertedRow.sourceRow) in this group. */
+  sourceRows: number[];
 }
 
-/** Distinct category values that aren't a StockOut leaf category, most rows first. */
+/**
+ * Distinct category values that aren't a StockOut leaf category, most rows first. A broad name with no clear
+ * match on its own ("Fitting") is split by what each item name adds ("UPVC Elbow 3in" → UPVC Pipes & Fittings),
+ * so a mixed sheet needs one choice per real category instead of the seller fixing the file.
+ */
 export function categoryGroups(rows: ConvertedRow[], index: Map<string, CategoryEntry>, suggest: Suggest, saved: Record<string, string> = loadCategoryChoices()): CategoryGroup[] {
   const groups = new Map<string, CategoryGroup>();
   const byName = new Map<string, CategoryEntry>();
   for (const c of index.values()) if (!c.isLeaf) byName.set(categoryKey(c.name), c);
+  const rememberedFor = (key: string) => (saved[key] && index.get(saved[key])?.isLeaf ? saved[key] : null);
+  const own = new Map<string, CategoryEntry | null>();
+  // An item-name suggestion must agree with the seller's own word when StockOut uses that word ("Fitting" → a
+  // fittings category, never "Switches & Sockets" because the item is a "Socket").
+  const leafWords = [...index.values()].filter((c) => c.isLeaf).map((c) => ({ id: c.categoryId, ws: words(c.path.join(" ")) }));
+  const known = new Set(leafWords.flatMap((l) => [...l.ws]));
+  const agrees = (value: string, c: CategoryEntry) => {
+    const sellerWords = [...words(value)].filter((w) => known.has(w));
+    const ws = leafWords.find((l) => l.id === c.categoryId)?.ws;
+    return !sellerWords.length || sellerWords.some((w) => ws?.has(w));
+  };
   for (const r of rows) {
     const value = String(r.cells[CATEGORY_COL] ?? "").trim();
     if (!value || index.get(value)?.isLeaf) continue;
-    const key = categoryKey(value) || value;
+    const base = categoryKey(value) || value;
+    if (!own.has(base)) own.set(base, rememberedFor(base) ? null : suggest(value));
+    const title = String(r.cells[TITLE_COL] ?? "").trim();
+    // Split only when the name alone gives nothing and the seller hasn't chosen for it before.
+    const fromTitle = !rememberedFor(base) && !own.get(base) && title ? suggest(`${value} ${title}`, true) : null;
+    const byTitle = fromTitle && agrees(value, fromTitle) ? fromTitle : null;
+    const key = byTitle ? `${base}::${byTitle.categoryId}` : base;
     let g = groups.get(key);
     if (!g) {
       // "PLUMBING" names "Plumbing & Piping": exact name, or the start of exactly one parent's name.
-      const starts = [...byName.entries()].filter(([k]) => k.startsWith(`${key} `));
-      const general = index.get(value) ?? byName.get(key) ?? (starts.length === 1 ? starts[0][1] : undefined);
-      const remembered = saved[key] && index.get(saved[key])?.isLeaf ? saved[key] : null;
-      const guess = remembered ? null : suggest(value);
-      g = { key, value, rows: 0, examples: [], general: general && !general.isLeaf ? general : undefined, suggestion: remembered ? { categoryId: remembered, from: "saved" } : guess ? { categoryId: guess.categoryId, from: "guess" } : null };
+      const starts = [...byName.entries()].filter(([k]) => k.startsWith(`${base} `));
+      const general = index.get(value) ?? byName.get(base) ?? (starts.length === 1 ? starts[0][1] : undefined);
+      const remembered = rememberedFor(key);
+      const guess = remembered ? null : (byTitle ?? own.get(base) ?? null);
+      g = {
+        key,
+        value,
+        rows: 0,
+        examples: [],
+        general: general && !general.isLeaf ? general : undefined,
+        suggestion: remembered ? { categoryId: remembered, from: "saved" } : guess ? { categoryId: guess.categoryId, from: "guess" } : null,
+        detail: byTitle ? `Items named like ${byTitle.name}` : undefined,
+        sourceRows: [],
+      };
       groups.set(key, g);
     }
     g.rows++;
-    const title = String(r.cells[TITLE_COL] ?? "").trim();
+    g.sourceRows.push(r.sourceRow);
     if (title && g.examples.length < 2) g.examples.push(title);
   }
+  // A broad name split by item names: its leftover rows say so, so the seller sees why "Fitting" appears twice.
+  for (const g of groups.values()) if (!g.detail && [...groups.keys()].some((k) => k.startsWith(`${g.key}::`))) g.detail = "Other items";
   return [...groups.values()].sort((a, b) => b.rows - a.rows || a.value.localeCompare(b.value));
 }
 
-/** Puts the chosen category id on every row of each matched name; unmatched names are left as written. */
-export function applyCategoryChoices(rows: ConvertedRow[], choices: Record<string, string>): ConvertedRow[] {
+/**
+ * Puts each group's chosen category id on its rows. Without groups, a choice applies to every row with that name.
+ * Rows with no choice are left as written.
+ */
+export function applyCategoryChoices(rows: ConvertedRow[], choices: Record<string, string>, groups?: CategoryGroup[]): ConvertedRow[] {
+  const byRow = new Map<number, string>();
+  for (const g of groups ?? []) for (const n of g.sourceRows) byRow.set(n, g.key);
   return rows.map((r) => {
     const value = String(r.cells[CATEGORY_COL] ?? "").trim();
-    const id = value ? choices[categoryKey(value) || value] : "";
+    const key = byRow.get(r.sourceRow) ?? (value ? categoryKey(value) || value : "");
+    const id = key ? choices[key] : "";
     if (!id) return r;
     const cells = [...r.cells];
     cells[CATEGORY_COL] = id;
