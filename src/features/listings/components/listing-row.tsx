@@ -102,7 +102,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
               </p>
             )}
           </div>
-          <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="relative z-10 mt-2 sm:w-auto" />
+          <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="z-10 mt-2 self-end" />
         </div>
       </div>
 

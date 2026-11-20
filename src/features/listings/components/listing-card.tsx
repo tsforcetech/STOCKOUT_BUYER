@@ -91,7 +91,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
             <span className="truncate">{sellerLabel(item.seller.sellerId)}</span>
             {item.seller.isVerified && <SellerTick />}
           </p>
-          <div className="mt-auto flex items-end justify-between gap-2 border-t border-border pt-2.5">
+          <div className="mt-auto flex flex-col gap-0.5 border-t border-border pr-12 pt-2.5">
             <p className="font-heading text-lg font-bold leading-6 text-foreground">
               {formatMoney(item.basePrice, item.currency)}
               {item.quantityUnitSymbol && (
@@ -108,7 +108,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
         </div>
       </Link>
       {/* Outside the link: a button can't sit inside an <a>. Hidden for own listings and ones that can't be bought. */}
-      <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="-mt-1 mb-4 ml-4 mr-4 w-[calc(100%-2rem)]" />
+      <QuickAddToCart listing={cartListingFromCard(item, sellerLabel(item.seller.sellerId))} className="absolute bottom-3.5 right-3.5" />
       <FavoriteButton
         className="absolute right-2.5 top-2.5"
         listing={{

@@ -177,50 +177,47 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
 }
 
 /**
- * One-tap "Add to cart" for listing cards and rows: adds 1 (the server explains a minimum order or whole lot), then
- * opens the mini cart like the listing page does. Hidden on the seller's own listings and when the listing can't be
- * bought; once in the cart it shows the quantity and opens the cart instead.
+ * One-tap "Add to cart" for listing cards and rows: a small round cart button. Adds 1 (the server explains a minimum
+ * order or whole lot) and opens the mini cart like the listing page does. Hidden on the seller's own listings and when
+ * the listing can't be bought; once in the cart it turns into a check with the quantity and opens the cart instead.
  */
 export function QuickAddToCart({ listing, className }: { listing: AddToCartListing; className?: string }) {
   const cart = useCart();
   const own = useOwnListing(listing.sellerId);
   const inCartQty = useInCartQuantity(listing.listingId);
   const { add, busy, limitReached } = useAddToCart(listing);
-  const [justAdded, setJustAdded] = React.useState(false);
   const canBuy = listing.isAvailable && listing.sellableQuantity > 0 && listing.basePrice !== null && listing.basePrice > 0 && !!listing.currency;
   if (own || !canBuy) return null;
+  const inCart = inCartQty !== null;
+  const base = "relative flex size-10 cursor-pointer items-center justify-center rounded-full shadow-raised transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 
-  if (inCartQty !== null && !justAdded)
+  if (inCart)
     return (
-      <Button variant="secondary" size="sm" className={cn("w-full", className)} onClick={() => cart.setOpen(true)} aria-label={`${listing.title}: ${formatNumber(inCartQty)} in your cart, view cart`}>
-        <CheckIcon weight="bold" /> In cart · {formatNumber(inCartQty)} {listing.unitSymbol ?? ""}
-      </Button>
+      <button
+        type="button"
+        title="In your cart"
+        aria-label={`${listing.title}: ${formatNumber(inCartQty)} in your cart, view cart`}
+        onClick={() => cart.setOpen(true)}
+        className={cn(base, "bg-success text-white hover:bg-success/90", className)}
+      >
+        <CheckIcon className="size-5" weight="bold" aria-hidden />
+        <span className="absolute -right-1 -top-1 flex min-w-5 items-center justify-center rounded-full bg-surface px-1 text-[11px] font-bold leading-5 text-foreground ring-1 ring-border">
+          {inCartQty > 99 ? "99+" : formatNumber(inCartQty)}
+        </span>
+      </button>
     );
 
   return (
-    <Button
-      size="sm"
-      className={cn("w-full transition-colors", justAdded && "bg-success text-white hover:bg-success", className)}
-      loading={busy}
-      disabled={limitReached}
-      aria-label={justAdded ? "Added to cart" : `Add ${listing.title} to cart`}
-      onClick={async () => {
-        if (await add(1)) {
-          setJustAdded(true);
-          window.setTimeout(() => setJustAdded(false), 1400);
-        }
-      }}
+    <button
+      type="button"
+      title="Add to cart"
+      aria-label={`Add ${listing.title} to cart`}
+      disabled={busy || limitReached}
+      onClick={() => void add(1)}
+      className={cn(base, "bg-ink text-action hover:bg-ink-hover", className)}
     >
-      {justAdded ? (
-        <>
-          <CheckIcon weight="bold" /> Added
-        </>
-      ) : (
-        <>
-          <ShoppingCartSimpleIcon /> Add to cart
-        </>
-      )}
-    </Button>
+      {busy ? <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden /> : <ShoppingCartSimpleIcon className="size-5" weight="bold" aria-hidden />}
+    </button>
   );
 }
 
