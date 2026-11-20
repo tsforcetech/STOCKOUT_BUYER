@@ -12,3 +12,8 @@ export const brandMarkUrl: string | undefined = files["./stockout-mark.svg"];
 export const loginHeroUrl: string | undefined = files["./login-hero.png"] ?? files["./login-hero.webp"];
 /** Home hero photo (reference: warehouse with steel channels). Drop in src/assets/brand/home-hero.jpg */
 export const homeHeroUrl: string | undefined = files["./home-hero.jpg"] ?? files["./home-hero.webp"] ?? files["./home-hero.png"];
+/**
+ * Photos for the sustainability banners: drop src/assets/brand/impact-<message id>.jpg (reuse, waste, sell) to give a
+ * message its own photo; without one the banner uses the home hero photo, framed per message.
+ */
+export const impactPhotoUrl = (id: string): string | undefined => files[`./impact-${id}.jpg`] ?? files[`./impact-${id}.webp`] ?? files[`./impact-${id}.png`];
