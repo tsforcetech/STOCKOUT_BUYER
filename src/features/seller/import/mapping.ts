@@ -80,20 +80,40 @@ export function columnLetter(i: number): string {
   return s;
 }
 
-/** Best guess for every field: exact synonym, then contains; each seller column is used once. */
+/** Where synonym `s` starts as whole words in normalised header `name`, or -1. */
+const wordAt = (name: string, s: string) => ` ${name} `.indexOf(` ${s} `);
+
+/**
+ * Best guess for every field: exact synonym first, then whole-word "contains"; each seller column is used once.
+ * In the contains pass a column that fits several fields goes to the field named first in the header, so
+ * "Image References" is images (not SKU via "reference") and "Item Code" stays the SKU.
+ */
 export function autoMap(headers: string[]): Mapping {
   const used = new Set<number>();
   const mapping: Mapping = {};
   const h = headers.map(norm);
-  for (const pass of ["exact", "contains"] as const) {
-    for (const t of TARGETS) {
-      if (mapping[t.key]?.kind === "column") continue;
-      const col = h.findIndex((name, i) => !used.has(i) && t.synonyms.some((s) => (pass === "exact" ? name === s : name.includes(s) && s.length >= 3)));
-      if (col >= 0) {
-        mapping[t.key] = { kind: "column", col };
-        used.add(col);
-      }
+  for (const t of TARGETS) {
+    const col = h.findIndex((name, i) => !used.has(i) && t.synonyms.some((s) => name === s));
+    if (col >= 0) {
+      mapping[t.key] = { kind: "column", col };
+      used.add(col);
     }
+  }
+  const candidates: Array<{ t: number; col: number; pos: number }> = [];
+  TARGETS.forEach((t, ti) => {
+    if (mapping[t.key]) return;
+    h.forEach((name, col) => {
+      if (used.has(col)) return;
+      const positions = t.synonyms.filter((s) => s.length >= 3).map((s) => wordAt(name, s)).filter((p) => p >= 0);
+      if (positions.length) candidates.push({ t: ti, col, pos: Math.min(...positions) });
+    });
+  });
+  candidates.sort((a, b) => a.pos - b.pos || a.t - b.t || a.col - b.col);
+  for (const c of candidates) {
+    const t = TARGETS[c.t];
+    if (mapping[t.key] || used.has(c.col)) continue;
+    mapping[t.key] = { kind: "column", col: c.col };
+    used.add(c.col);
   }
   for (const t of TARGETS) {
     if (mapping[t.key]) continue;

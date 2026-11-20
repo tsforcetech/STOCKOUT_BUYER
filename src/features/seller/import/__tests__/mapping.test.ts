@@ -75,4 +75,16 @@ describe("own-sheet mapping", () => {
     expect(sheets[0].data[1][10]).toBe(120);
     expect(sheets[0].data[1][11]).toBe("MTR");
   });
+
+  it("an 'Image References' column goes to images, not to the SKU via 'reference' (seller report 20 Nov)", () => {
+    const H = ["Sl. No", "Item Name", "Category", "Material", "Item Type", "Size", "Brand", "Unit", "Quantity", "Base Price (AED)", "Total Value (AED)", "Location", "Image References"];
+    const m = autoMap(H);
+    expect(m.images).toEqual({ kind: "column", col: 12 });
+    expect(m.sku).toEqual({ kind: "auto" });
+    expect(m.title).toEqual({ kind: "column", col: 1 });
+    expect(m.price).toEqual({ kind: "column", col: 9 });
+    // A real reference column still maps to the SKU.
+    expect(autoMap(["Reference", "Description", "Photos"]).sku).toEqual({ kind: "column", col: 0 });
+    expect(autoMap(["Item Code", "Item Name", "Image"]).sku).toEqual({ kind: "column", col: 0 });
+  });
 });
