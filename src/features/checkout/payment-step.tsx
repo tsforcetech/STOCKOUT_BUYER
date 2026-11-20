@@ -24,6 +24,9 @@ import {
 import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
 import type { CheckoutValidationResult } from "@/api/types/orders";
 import type { PaymentAuthorizationStatusResponse } from "@/api/types/payment-preauth";
+import { ORDER_API } from "@/lib/orders/order-api";
+import { hasPlacedOrder } from "@/lib/orders/order-placement";
+import { PlaceOrder } from "./place-order";
 
 export const preauthKeys = { status: (attemptId: string) => ["buyer", "payment-authorization", attemptId] as const };
 
@@ -291,12 +294,28 @@ export function PaymentStep({
   // is no longer polled is "delayed" and offers a manual check, never a second payment.
   const cardStep = needsCard && !polling;
   const delayed = !authorised && !polling && !needsCard && (s.internalStatus === "RECONCILIATION_REQUIRED" || pollFrom !== null || s.isDelayedProcessing);
-  const canCancel = !s.orderPlaced && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED");
+  const ordered = hasPlacedOrder(s);
+  const canCancel = !s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED");
 
   return (
     <div className="space-y-3">
       {header}
-      {authorised ? (
+      {authorised && ORDER_API.placeOrder ? (
+        <>
+          {!ordered && (
+            <div role="status" className="rounded-lg bg-success-soft p-3 text-sm text-success-soft-foreground">
+              <p className="flex items-center gap-2 font-medium">
+                <CheckCircleIcon className="size-4" weight="fill" aria-hidden /> Payment authorised
+              </p>
+              <p className="mt-1">
+                {formatMoney(s.authorizedAmount, s.currency)} is held on your card, not charged. Place your order to finish.
+                {s.authorizationExpiresAtUtc && ` The hold lasts until ${formatDateTime(s.authorizationExpiresAtUtc)}.`}
+              </p>
+            </div>
+          )}
+          <PlaceOrder s={s} cartVersion={stored?.cartVersion ?? cartVersion} onCartStale={onCartStale} onRecheck={() => void status.refetch()} />
+        </>
+      ) : authorised ? (
         <div role="status" className="rounded-lg bg-success-soft p-3 text-sm text-success-soft-foreground">
           <p className="flex items-center gap-2 font-medium">
             <CheckCircleIcon className="size-4" weight="fill" aria-hidden /> Payment authorised

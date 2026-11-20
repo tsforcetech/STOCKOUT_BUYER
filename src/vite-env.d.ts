@@ -13,6 +13,7 @@ interface ImportMetaEnv {
   readonly VITE_STRIPE_PUBLISHABLE_KEY?: string;
   /** "on" shows seller fulfilment and buyer acceptance/claims on orders (default: off). */
   readonly VITE_ORDER_LIFECYCLE?: string;
+  readonly VITE_ORDER_PLACEMENT?: string;
   /** "on" shows SUS-03 sustainability impact reports (default: off). */
   readonly VITE_SUSTAINABILITY_REPORTS?: string;
 }

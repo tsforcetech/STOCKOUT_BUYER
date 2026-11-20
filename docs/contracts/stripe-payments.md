@@ -95,3 +95,21 @@ Frontend behaviour (`src/features/checkout/payment-step.tsx`, `src/lib/orders/pa
 3. Fixed in backend `8fa2909` (BE-06): the 120 s window now starts at card confirmation; no frontend change needed.
 4. Accounts v2 seller creation is still refused by Stripe for the platform test account (POST-DEPLOY-UAT-02, 19 Nov):
    platform Connect settings must be fixed before onboarding can be tested.
+
+## Order placement (COM-ORD-01, handoff 20 Nov 2026 §4.3, §7) — switched off
+
+Built behind `VITE_ORDER_PLACEMENT=on` (also needs `VITE_PAYMENT_PREAUTH=on`). The server has its own gate
+(`OrderPlacement:Enabled`, default false → `503 ORDER_PLACEMENT_DISABLED`) and blocks every delivery mode until the
+delivery policy is approved (`ORDER_PLACEMENT_DELIVERY_NOT_APPROVED`).
+
+- Offered only when the status GET says `AUTHORIZED` + `isProviderVerified` and `checkoutStage` is
+  `INVENTORY_PROTECTED` or `ORDER_PLACEMENT_PENDING`, and no order exists yet.
+- `POST /api/v1/buyer/checkout/orders` with `If-Match: "<cart rowVersion>"` and `Idempotency-Key: order-<uuid>`
+  (kept per attempt for the tab, reused on every retry). Body: `paymentAuthorizationAttemptId`, `cartId`,
+  `purchasingOrganizationId`, `deliveryAddressId: null`, `expectedPayableTotal` = authorised amount, `currency: AED`,
+  `sellerSelections`: one `SELF_COLLECTION` per seller in the authorisation's reservations (no overrides).
+- Success only when `orderPlaced` and `checkoutStage` is `ORDER_CREATED` / `SELLER_CONFIRMATION_PENDING`: order number,
+  seller sub-orders with their confirmation deadline, link to the order. Cart and the stored attempt are cleared.
+- `ORDER_COMMIT_UNCERTAIN*`, network loss or timeout: "don't place the order again", no automatic retry, Check status /
+  My orders. `CHECKOUT_RECONCILIATION_REQUIRED`: pending, no button. Stale cart codes reload the cart.
+- Code: `src/lib/orders/order-placement.ts`, `src/features/checkout/place-order.tsx`.

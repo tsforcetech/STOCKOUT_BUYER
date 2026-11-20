@@ -47,6 +47,7 @@ import { PaymentStep } from "./payment-step";
 
 export const PLACE_ORDER_NOTE = "Payment and placing orders aren't open yet; they open at launch. Nothing is charged and no order is created.";
 /** With payment authorisation on (sandbox): authorising holds the amount; placing the order is still closed (503 ORDER_PLACEMENT_DISABLED). */
+export const PLACE_ORDER_NOTE_ORDERING = "Authorise your card in Payment, then place the order there. Collection from each seller; you're charged only after sellers confirm.";
 export const PLACE_ORDER_NOTE_PREAUTH = "Placing orders isn't open yet. An authorised payment is only a hold on your card: nothing is charged and no order is created.";
 
 const sectionCls = "rounded-2xl border border-border bg-surface p-5 sm:p-6";
@@ -464,11 +465,18 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
         </div>
       )}
 
-      <Button size="lg" className="mt-4 w-full rounded-full" disabled={!ORDER_API.placeOrder} aria-describedby="place-order-note">
+      {/* With ordering on, the order is placed in the payment step (after the card is authorised); this goes there. */}
+      <Button
+        size="lg"
+        className="mt-4 w-full rounded-full"
+        disabled={!ORDER_API.placeOrder}
+        aria-describedby="place-order-note"
+        onClick={() => document.getElementById("co-payment")?.scrollIntoView({ behavior: "smooth", block: "start" })}
+      >
         <LockSimpleIcon /> {ORDER_API.paymentPreAuth ? "Place order" : "Continue to payment"}
       </Button>
       <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        {ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
+        {ORDER_API.placeOrder ? PLACE_ORDER_NOTE_ORDERING : ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
       </p>
     </aside>
   );

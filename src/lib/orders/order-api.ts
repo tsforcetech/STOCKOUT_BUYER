@@ -16,8 +16,12 @@ export const ORDER_API = {
    * pk_test_ key are set (handoff 18 Nov 2026: only for approved Tier B sandbox testing). Never an order or a charge.
    */
   paymentPreAuth: env.paymentPreAuthEnabled,
-  /** Order placement POST: not implemented / approved. */
-  placeOrder: false,
+  /**
+   * POST /api/v1/buyer/checkout/orders after AUTHORIZED + isProviderVerified (handoff 20 Nov 2026 §4.3, §7). Off unless
+   * VITE_ORDER_PLACEMENT=on AND the payment step is on; the server answers 503 ORDER_PLACEMENT_DISABLED while its own
+   * OrderPlacement:Enabled flag is false. Collect from seller only until delivery policy is approved.
+   */
+  placeOrder: env.paymentPreAuthEnabled && env.orderPlacementEnabled,
   /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */
   sellerConfirmReject: true,
   /**

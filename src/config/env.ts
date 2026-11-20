@@ -21,6 +21,11 @@ export const env = {
   stripePublishableKey: stripeKey(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY),
   /** Payment authorisation (Stage 8C.10) is off unless explicitly switched on AND a test key is set. */
   paymentPreAuthEnabled: import.meta.env.VITE_PAYMENT_PREAUTH === "on" && !!stripeKey(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY),
+  /**
+   * COM-ORD-01 order placement after a provider-verified authorisation (handoff 20 Nov 2026 §4.3). Off unless "on";
+   * needs the payment step too, and only for an approved isolated sandbox (the server also gates it).
+   */
+  orderPlacementEnabled: import.meta.env.VITE_ORDER_PLACEMENT === "on",
   /** Seller fulfilment + buyer acceptance/claims (BD-ORDER-LIFECYCLE-01). Off unless "on". */
   orderLifecycleEnabled: import.meta.env.VITE_ORDER_LIFECYCLE === "on",
   /** SUS-03 buyer/seller impact reports. Off unless "on" (Wave A public activation is policy-gated). */
