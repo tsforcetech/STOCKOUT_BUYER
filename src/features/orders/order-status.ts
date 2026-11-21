@@ -148,3 +148,33 @@ export function historyLine(toStatus: string, fromStatus?: string | null): strin
   };
   return map[t] ?? `${fromStatus ? `${anyStatusLabel(fromStatus)} → ` : ""}${anyStatusLabel(toStatus)}`;
 }
+
+/** Buyer progress tracker (freight delivery). Index of the step reached; -1 for an ended order (rejected / cancelled). */
+export const ORDER_STEPS = ["Placed", "Confirmed", "Preparing", "Delivered", "Completed"] as const;
+export function stepIndex(key: string): number {
+  switch (key) {
+    case "waiting":
+    case "partial":
+      return 0;
+    case "confirmed":
+    case "mixed":
+      return 1;
+    case "preparing":
+    case "ready":
+    case "transit":
+      return 2;
+    case "received":
+    case "claim":
+      return 3;
+    case "done":
+      return 4;
+    default:
+      return -1;
+  }
+}
+/** Tab bucket for the order list. */
+export function orderBucket(key: string): "active" | "completed" | "cancelled" {
+  if (key === "done") return "completed";
+  if (["rejected", "expired", "cancelled"].includes(key)) return "cancelled";
+  return "active";
+}

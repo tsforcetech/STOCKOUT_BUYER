@@ -6,6 +6,46 @@ import { EmptyState, ErrorState } from "@/components/feedback/states";
 import { orderKeys, ordersService } from "@/services/orders.service";
 import { BuyerOrderList } from "./components/order-views";
 import { useOrderPages } from "./use-order-pages";
+import * as React from "react";
+import { cn } from "@/lib/utils/cn";
+import { formatNumber } from "@/lib/utils/format";
+import { buyerOrderHeadline, orderBucket } from "./order-status";
+import type { MarketplaceOrderDto } from "@/api/types/orders";
+
+const TABS = [
+  { id: "all", label: "All" },
+  { id: "active", label: "Active" },
+  { id: "completed", label: "Completed" },
+  { id: "cancelled", label: "Cancelled" },
+] as const;
+
+/** All / Active / Completed / Cancelled over the orders loaded so far (counts update as more pages load). */
+function OrderTabs({ rows, more }: { rows: MarketplaceOrderDto[]; more: React.ReactNode }) {
+  const [tab, setTab] = React.useState<(typeof TABS)[number]["id"]>("all");
+  const bucketOf = (o: MarketplaceOrderDto) => orderBucket(buyerOrderHeadline(o.subOrders, o.status).key);
+  const count = (id: string) => (id === "all" ? rows.length : rows.filter((o) => bucketOf(o) === id).length);
+  const shown = tab === "all" ? rows : rows.filter((o) => bucketOf(o) === tab);
+  return (
+    <>
+      <div role="tablist" aria-label="Filter orders" className="mb-4 flex gap-1 overflow-x-auto rounded-full border border-border bg-surface p-1 [scrollbar-width:none] sm:w-fit">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            aria-selected={tab === t.id}
+            onClick={() => setTab(t.id)}
+            className={cn("shrink-0 cursor-pointer rounded-full px-4 py-1.5 text-sm font-medium transition-colors", tab === t.id ? "bg-ink text-ink-foreground" : "text-muted-foreground hover:text-foreground")}
+          >
+            {t.label} <span className={cn("ml-1 text-xs", tab === t.id ? "text-action" : "text-muted-foreground")}>{formatNumber(count(t.id))}</span>
+          </button>
+        ))}
+      </div>
+      {shown.length ? <BuyerOrderList orders={shown} /> : <p className="rounded-2xl border border-border bg-surface p-6 text-center text-sm text-muted-foreground">No {tab} orders.</p>}
+      {more}
+    </>
+  );
+}
 
 /** /account/orders: GET /api/v1/buyer/orders (read only; buyer taken from the session). */
 export default function MyOrdersPage() {
@@ -23,7 +63,7 @@ export default function MyOrdersPage() {
           <EmptyState
             icon={<ReceiptIcon />}
             title="No orders yet"
-            description="Placing orders opens at launch. Once it does, every purchase you make will appear here with its status."
+            description="Every purchase you make will appear here with its status."
             action={
               <Button asChild variant="secondary">
                 <Link to="/search">Browse marketplace</Link>
@@ -32,10 +72,7 @@ export default function MyOrdersPage() {
             className="rounded-2xl border border-border bg-surface"
           />
         ) : (
-          <>
-            <BuyerOrderList orders={q.rows} />
-            <LoadMore q={q} />
-          </>
+          <OrderTabs rows={q.rows} more={<LoadMore q={q} />} />
         )}
       </div>
     </div>

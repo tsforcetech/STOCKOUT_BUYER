@@ -1,13 +1,14 @@
 import type * as React from "react";
 import { Link } from "react-router";
-import { CaretRightIcon, LockSimpleIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { CaretRightIcon, CheckIcon, LockSimpleIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { cn } from "@/lib/utils/cn";
 import { Badge } from "@/components/ui/misc";
 import { Button } from "@/components/ui/button";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/utils/format";
 import type { MarketplaceOrderDto, OrderLineSnapshotDto, OrderStatusHistoryDto, SellerSubOrderDto } from "@/api/types/orders";
 import { SellerSlaBadge, isPendingConfirmation } from "./seller-sla";
-import { anyStatusLabel, buyerOrderHeadline, buyerStep, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
+import { ORDER_STEPS, anyStatusLabel, buyerOrderHeadline, buyerStep, stepIndex, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { BuyerAcceptance } from "../buyer-acceptance";
 import { BuyerOrderImpact } from "@/features/sustainability/impact-report";
@@ -28,27 +29,87 @@ function StatusBadge({ entry }: { entry: { label: string; tone: "neutral" | "suc
 
 /* ---------------------------------- Buyer: order history ---------------------------------- */
 
+/** Placed → Confirmed → Preparing → Delivered → Completed, from the buyer headline. Ended orders show no tracker. */
+export function OrderProgress({ stepKey, compact = false }: { stepKey: string; compact?: boolean }) {
+  const at = stepIndex(stepKey);
+  if (at < 0) return null;
+  return (
+    <ol className="flex w-full items-start" aria-label={`Order progress: ${ORDER_STEPS[at]}`}>
+      {ORDER_STEPS.map((label, i) => {
+        const done = i <= at;
+        const current = i === at;
+        return (
+          <li key={label} className="flex min-w-0 flex-1 flex-col items-center gap-1.5 text-center" aria-current={current ? "step" : undefined}>
+            <span className="flex w-full items-center">
+              <span className={cn("h-0.5 flex-1", i === 0 ? "bg-transparent" : done ? "bg-foreground" : "bg-border")} />
+              <span
+                className={cn(
+                  "flex shrink-0 items-center justify-center rounded-full",
+                  compact ? "size-3" : "size-6",
+                  current ? "bg-action ring-2 ring-foreground" : done ? "bg-foreground" : "border-2 border-border bg-surface",
+                )}
+              >
+                {done && !current && !compact && <CheckIcon className="size-3.5 text-surface" weight="bold" aria-hidden />}
+              </span>
+              <span className={cn("h-0.5 flex-1", i === ORDER_STEPS.length - 1 ? "bg-transparent" : i < at ? "bg-foreground" : "bg-border")} />
+            </span>
+            <span className={cn("truncate text-[11px] leading-4", current ? "font-semibold text-foreground" : done ? "text-body" : "text-muted-foreground")}>{label}</span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
 export function BuyerOrderList({ orders }: { orders: MarketplaceOrderDto[] }) {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border" aria-label="Your orders">
-      {orders.map((o) => (
-        <li key={o.orderId}>
-          <Link to={`/account/orders/${o.orderId}`} className="flex items-center gap-4 p-4 transition hover:bg-surface-muted">
-            <div className="min-w-0 flex-1">
-              <p className="font-heading font-bold text-foreground">{o.orderNumber}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {formatDate(o.orderDateUtc)} · {formatNumber(o.subOrders.length)} seller{o.subOrders.length === 1 ? "" : "s"}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <StatusBadge entry={buyerOrderHeadline(o.subOrders, o.status)} />
-                <StatusBadge entry={paymentStatus(o.paymentStatus)} />
+    <ul className="space-y-3" aria-label="Your orders">
+      {orders.map((o) => {
+        const head = buyerOrderHeadline(o.subOrders, o.status);
+        const items = o.subOrders.flatMap((s) => s.items);
+        const sellers = o.subOrders.map((s) => s.sellerTradingName || s.sellerLegalName).filter(Boolean) as string[];
+        const ended = stepIndex(head.key) < 0;
+        return (
+          <li key={o.orderId}>
+            <Link to={`/account/orders/${o.orderId}`} className="group block overflow-hidden rounded-2xl border border-border bg-surface transition hover:-translate-y-0.5 hover:shadow-raised">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-border bg-surface-muted/60 px-4 py-2.5 text-xs text-muted-foreground sm:px-5">
+                <span className="font-heading text-sm font-bold text-foreground">{o.orderNumber}</span>
+                <span>Ordered {formatDate(o.orderDateUtc)}</span>
+                <span className="ml-auto font-heading text-base font-bold text-foreground">{formatMoney(o.totalPayableAmount, o.currency)}</span>
               </div>
-            </div>
-            <p className="shrink-0 font-heading text-lg font-bold text-foreground">{formatMoney(o.totalPayableAmount, o.currency)}</p>
-            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          </Link>
-        </li>
-      ))}
+              <div className="flex gap-4 p-4 sm:p-5">
+                <div className="relative isolate h-16 w-16 shrink-0 sm:h-20 sm:w-20">
+                  {items.slice(0, 3).map((it, i) => (
+                    <ListingImage
+                      key={it.orderLineId}
+                      src={assetUrl(it.thumbnailUrlSnapshot)}
+                      alt=""
+                      className={cn("absolute size-full rounded-xl border-2 border-surface object-cover", i === 1 && "left-1.5 top-1.5 -z-10 opacity-70", i === 2 && "left-3 top-3 -z-20 opacity-40")}
+                    />
+                  ))}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-1 font-semibold text-foreground group-hover:underline">{items[0]?.titleSnapshot ?? "Order"}</p>
+                  <p className="mt-0.5 text-sm text-muted-foreground">
+                    {items.length > 1 ? `+${formatNumber(items.length - 1)} more item${items.length > 2 ? "s" : ""} · ` : ""}
+                    {sellers.length === 1 ? `from ${sellers[0]}` : `from ${formatNumber(o.subOrders.length)} sellers`}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <StatusBadge entry={head} />
+                    <StatusBadge entry={paymentStatus(o.paymentStatus)} />
+                  </div>
+                </div>
+                <CaretRightIcon className="mt-1 size-5 shrink-0 self-center text-muted-foreground transition-transform group-hover:translate-x-0.5" aria-hidden />
+              </div>
+              {!ended && (
+                <div className="border-t border-border px-4 pb-3 pt-3 sm:px-5">
+                  <OrderProgress stepKey={head.key} compact />
+                </div>
+              )}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -110,6 +171,11 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
                   <StatusBadge entry={paymentStatus(order.paymentStatus)} />
                 </div>
                 {head.next && <p className="mt-2 text-sm text-body">{head.next}</p>}
+                {stepIndex(head.key) >= 0 && (
+                  <div className="mt-4 rounded-2xl border border-border bg-surface px-3 py-4">
+                    <OrderProgress stepKey={head.key} />
+                  </div>
+                )}
               </>
             );
           })()}
