@@ -210,4 +210,18 @@ describe("checkout payment authorisation (Stripe sandbox, handoff 18 Nov §7)", 
     expect(screen.getByRole("button", { name: /Continue to card payment/ })).toBeDisabled();
     expect(screen.getByText(/opens once your cart is ready/)).toBeInTheDocument();
   });
+
+  it("card authorised but the stock hold failed: explains it and offers Cancel (no 'still confirming')", async () => {
+    store();
+    let cancelled = false;
+    mockFetch([
+      { method: "GET", path: `${BASE}/${ATTEMPT}`, respond: () => ({ body: cancelled ? attempt({ internalStatus: "CANCELLED", providerStatus: "canceled" }) : attempt({ internalStatus: "RECONCILIATION_REQUIRED", providerStatus: "requires_capture", isProviderVerified: true, checkoutStage: "CHECKOUT_RECONCILIATION_REQUIRED", recoveryStatus: "POST_AUTH_HOLD_FAILED", shouldContinueActivePolling: false, isDelayedProcessing: true }) }) },
+      { method: "POST", path: `${BASE}/${ATTEMPT}/cancel`, respond: () => ((cancelled = true), { body: {} }) },
+    ]);
+    render();
+    expect(await screen.findByText("We couldn't reserve your items")).toBeInTheDocument();
+    expect(screen.queryByText(/Verification delayed/)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Cancel payment/ }));
+    await waitFor(() => expect(cancelled).toBe(true));
+  });
 });

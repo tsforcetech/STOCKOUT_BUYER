@@ -293,9 +293,12 @@ export function PaymentStep({
   // Card entry always stays available while Stripe needs it (also after a decline); otherwise an unsettled state that
   // is no longer polled is "delayed" and offers a manual check, never a second payment.
   const cardStep = needsCard && !polling;
-  const delayed = !authorised && !polling && !needsCard && (s.internalStatus === "RECONCILIATION_REQUIRED" || pollFrom !== null || s.isDelayedProcessing);
+  // The card is authorised but the stock couldn't be held (POST_AUTH_HOLD_FAILED): no order can follow, so the buyer
+  // can release the hold. Other reconciliation states (e.g. an uncertain order commit) stay "please wait".
+  const holdFailed = !s.orderPlaced && !hasPlacedOrder(s) && s.recoveryStatus === "POST_AUTH_HOLD_FAILED" && s.internalStatus === "RECONCILIATION_REQUIRED";
+  const delayed = !holdFailed && !authorised && !polling && !needsCard && (s.internalStatus === "RECONCILIATION_REQUIRED" || pollFrom !== null || s.isDelayedProcessing);
   const ordered = hasPlacedOrder(s);
-  const canCancel = !s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED");
+  const canCancel = !s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED") || holdFailed;
 
   return (
     <div className="space-y-3">
@@ -324,6 +327,11 @@ export function PaymentStep({
             {formatMoney(s.authorizedAmount, s.currency)} is held on your card, not charged. Your order isn't placed yet.
             {s.authorizationExpiresAtUtc && ` The hold lasts until ${formatDateTime(s.authorizationExpiresAtUtc)}.`}
           </p>
+        </div>
+      ) : holdFailed ? (
+        <div role="status" className="rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
+          <p className="font-medium">We couldn't reserve your items</p>
+          <p className="mt-1">Your card was authorised for {formatMoney(s.authorizedAmount, s.currency)}, but the items couldn't be held for your order, so no order can be placed. Nothing has been charged. Cancel the payment to release the hold on your card, then try again later.</p>
         </div>
       ) : delayed ? (
         <div role="status" className="rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground">
