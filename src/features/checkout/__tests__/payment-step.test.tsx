@@ -224,4 +224,16 @@ describe("checkout payment authorisation (Stripe sandbox, handoff 18 Nov §7)", 
     await userEvent.click(screen.getByRole("button", { name: /Cancel payment/ }));
     await waitFor(() => expect(cancelled).toBe(true));
   });
+
+  it("failed bank check (3DS) shows Stripe's message and keeps the card form for another try", async () => {
+    store();
+    stripe.confirmPayment.mockImplementationOnce(async () => ({ error: { type: "invalid_request_error", code: "payment_intent_authentication_failure", message: "We are unable to authenticate your payment method." } }));
+    let gets = 0;
+    mockFetch([{ method: "GET", path: `${BASE}/${ATTEMPT}`, respond: () => (gets++, { body: attempt({ clientSecret: "pi_1_secret_abc" }) }) }]);
+    render();
+    await userEvent.click(await screen.findByRole("button", { name: /Authorise AED/ }));
+    expect(await screen.findByText(/unable to authenticate your payment method/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Authorise AED/ })).toBeInTheDocument();
+    expect(gets).toBeGreaterThan(0);
+  });
 });

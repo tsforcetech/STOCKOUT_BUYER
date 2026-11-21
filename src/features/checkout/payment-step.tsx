@@ -475,9 +475,14 @@ function CardForm({
     try {
       // Stripe handles 3DS itself; redirect-based methods come back to /checkout?payment_attempt=<id>.
       const result = await s.stripe.confirmPayment({ elements: s.elements, confirmParams: { return_url: returnUrl(attemptId) }, redirect: "if_required" });
-      // Card input problems are Stripe's own buyer-facing messages; anything else is settled by the status GET.
-      if (result.error && (result.error.type === "card_error" || result.error.type === "validation_error")) onError(result.error.message ?? "Check your card details and try again.");
-      if (!result.error || result.error.type === "card_error") onConfirmed();
+      // Card input problems and a failed bank check (3DS: payment_intent_authentication_failure) come with Stripe's own
+      // buyer-facing message. Anything else is settled by the status GET.
+      const e = result.error;
+      const authFailed = e?.code === "payment_intent_authentication_failure";
+      if (e && (e.type === "card_error" || e.type === "validation_error")) onError(e.message ?? "Check your card details and try again.");
+      else if (authFailed) onError(e.message ?? "Your bank couldn't verify this payment. Try again or use a different card. Nothing was charged.");
+      // After a failed bank check Stripe returns the payment to "needs a card": keep the form and message for a retry.
+      if (!e || e.type === "card_error") onConfirmed();
     } catch {
       onConfirmed();
     } finally {
