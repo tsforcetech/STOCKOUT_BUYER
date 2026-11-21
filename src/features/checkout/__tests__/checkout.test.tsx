@@ -238,7 +238,7 @@ describe("Stage 8C buyer orders (read only)", () => {
     ]);
     page(<MyOrdersPage />, "/account/orders");
     expect(await screen.findByText("ORD-P1-0")).toBeInTheDocument();
-    expect(screen.getAllByText("Awaiting seller confirmation").length).toBeGreaterThan(0); // "PENDINGCONFIRMATION" from the API
+    expect(screen.getAllByText("Waiting for seller to confirm").length).toBeGreaterThan(0); // "PENDINGCONFIRMATION" from the API
     await userEvent.click(screen.getByRole("button", { name: "Load more" }));
     expect(await screen.findByText("ORD-P2-LAST")).toBeInTheDocument();
     expect(screen.getAllByText("ORD-P1-0")).toHaveLength(1); // de-duplicated across pages
@@ -266,8 +266,9 @@ describe("Stage 8C buyer orders (read only)", () => {
     const total = screen.getByRole("complementary", { name: "Order total" });
     expect(within(total).getByText("Total payable").nextSibling).toHaveTextContent(/2,625/);
     const history = within(screen.getByRole("region", { name: "History" })).getAllByRole("listitem");
-    expect(history[0]).toHaveTextContent("Awaiting confirmation");
-    expect(history[1]).toHaveTextContent("Awaiting confirmation → Confirmed");
+    // Buyers see plain sentences, not status codes.
+    expect(history[0]).toHaveTextContent("Order placed and sent to the seller to confirm");
+    expect(history[1]).toHaveTextContent("Seller confirmed the order");
   });
 
   it("404 ORDER_NOT_FOUND shows the same generic not-found screen", async () => {

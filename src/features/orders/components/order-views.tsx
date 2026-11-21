@@ -7,7 +7,7 @@ import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/utils/format";
 import type { MarketplaceOrderDto, OrderLineSnapshotDto, OrderStatusHistoryDto, SellerSubOrderDto } from "@/api/types/orders";
 import { SellerSlaBadge, isPendingConfirmation } from "./seller-sla";
-import { anyStatusLabel, claimStatus, fulfilmentStatus, orderStatus, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
+import { anyStatusLabel, buyerOrderHeadline, buyerStep, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { BuyerAcceptance } from "../buyer-acceptance";
 import { BuyerOrderImpact } from "@/features/sustainability/impact-report";
@@ -40,7 +40,7 @@ export function BuyerOrderList({ orders }: { orders: MarketplaceOrderDto[] }) {
                 {formatDate(o.orderDateUtc)} · {formatNumber(o.subOrders.length)} seller{o.subOrders.length === 1 ? "" : "s"}
               </p>
               <div className="mt-2 flex flex-wrap gap-2">
-                <StatusBadge entry={orderStatus(o.status)} />
+                <StatusBadge entry={buyerOrderHeadline(o.subOrders, o.status)} />
                 <StatusBadge entry={paymentStatus(o.paymentStatus)} />
               </div>
             </div>
@@ -100,10 +100,19 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
         <header>
           <p className="text-sm text-muted-foreground">Ordered {formatDateTime(order.orderDateUtc)}</p>
           <h1 className="font-heading text-2xl font-bold text-foreground">Order {order.orderNumber}</h1>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <StatusBadge entry={orderStatus(order.status)} />
-            <StatusBadge entry={paymentStatus(order.paymentStatus)} />
-          </div>
+          {(() => {
+            // One status for the buyer, worked out from the sellers' parts (the parent order status can lag behind).
+            const head = buyerOrderHeadline(order.subOrders, order.status);
+            return (
+              <>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <StatusBadge entry={head} />
+                  <StatusBadge entry={paymentStatus(order.paymentStatus)} />
+                </div>
+                {head.next && <p className="mt-2 text-sm text-body">{head.next}</p>}
+              </>
+            );
+          })()}
         </header>
         {order.subOrders.some((s) => s.isEscalated && isPendingConfirmation(s.status)) && (
           <p role="status" className="rounded-2xl bg-warning-soft p-4 text-sm leading-6 text-warning-soft-foreground">
@@ -119,8 +128,7 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
               </p>
               <span className="text-xs text-muted-foreground">{s.subOrderNumber}</span>
               <span className="ml-auto flex flex-wrap gap-2">
-                <StatusBadge entry={subOrderStatus(s.status)} />
-                <StatusBadge entry={fulfilmentStatus(s.fulfillmentStatus)} />
+                <StatusBadge entry={buyerStep(s)} />
               </span>
             </div>
             {(s.claimStatus && claimStatus(s.claimStatus).label !== "No claim") || s.deliveredAtUtc ? (
@@ -139,7 +147,7 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
           </section>
         ))}
         {ORDER_API.sustainabilityReports && <BuyerOrderImpact orderId={order.orderId} />}
-        <History history={order.statusHistory} />
+        <History history={order.statusHistory} buyer />
       </div>
       <aside className="h-fit space-y-4 rounded-2xl border border-border p-5 lg:sticky lg:top-[176px]" aria-label="Order total">
         <h2 className="font-heading text-lg font-bold text-foreground">Order total</h2>
@@ -160,8 +168,13 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
   );
 }
 
-function History({ history, title = "History" }: { history: OrderStatusHistoryDto[] | null | undefined; title?: string }) {
-  const rows = [...(history ?? [])].sort((a, b) => a.changedAtUtc.localeCompare(b.changedAtUtc));
+/** Backend reason codes ("ORDER_PLACED_ATOMIC: …") are internal: buyers see plain lines; free-text notes (e.g. a reason) stay. */
+const isCodeNote = (n: string | null | undefined) => !!n && /^[A-Z][A-Z0-9_]{3,}(:|$)/.test(n.trim());
+
+function History({ history, title = "History", buyer = false }: { history: OrderStatusHistoryDto[] | null | undefined; title?: string; buyer?: boolean }) {
+  const sorted = [...(history ?? [])].sort((a, b) => a.changedAtUtc.localeCompare(b.changedAtUtc));
+  // The parent order and each sub-order record the same step: show it once for the buyer.
+  const rows = buyer ? sorted.filter((h, i) => !sorted.slice(0, i).some((p) => p.toStatus.toUpperCase().replace(/_/g, "") === h.toStatus.toUpperCase().replace(/_/g, "") && Math.abs(Date.parse(p.changedAtUtc) - Date.parse(h.changedAtUtc)) < 120_000)) : sorted;
   return (
     <section className="rounded-2xl border border-border bg-surface p-4" aria-label={title}>
       <h2 className="font-heading text-lg font-bold text-foreground">{title}</h2>
@@ -172,12 +185,16 @@ function History({ history, title = "History" }: { history: OrderStatusHistoryDt
           {rows.map((h) => (
             <li key={h.historyId} className="text-sm">
               <p className="font-medium text-foreground">
-                {h.fromStatus ? `${anyStatusLabel(h.fromStatus)} → ` : ""}
-                {anyStatusLabel(h.toStatus)}
+                {buyer ? historyLine(h.toStatus, h.fromStatus) : (
+                  <>
+                    {h.fromStatus ? `${anyStatusLabel(h.fromStatus)} → ` : ""}
+                    {anyStatusLabel(h.toStatus)}
+                  </>
+                )}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDateTime(h.changedAtUtc)}
-                {h.reasonOrNote && ` · ${h.reasonOrNote}`}
+                {h.reasonOrNote && !(buyer && isCodeNote(h.reasonOrNote)) && ` · ${h.reasonOrNote}`}
               </p>
             </li>
           ))}
