@@ -1,3 +1,4 @@
+import { AccountTabs } from "@/features/account/account-tabs";
 import * as React from "react";
 import { Link } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -27,6 +28,7 @@ export default function AddressesPage() {
   const ctx = useAddressOwner();
   return (
     <div>
+      <AccountTabs />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-heading text-2xl font-bold text-foreground">Delivery addresses</h1>
