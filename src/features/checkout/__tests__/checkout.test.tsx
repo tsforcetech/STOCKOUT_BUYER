@@ -96,7 +96,9 @@ describe("Stage 8C checkout readiness", () => {
     const rc = calls.find((c) => c.url.pathname === "/api/v1/buyer/checkout/readiness");
     expect(rc?.headers.get("If-Match")).toBe('"AAAAAAAAB9Q="');
     expect(ORDER_API.placeOrder).toBe(false);
-    await userEvent.click(screen.getByRole("radio", { name: /Collect from seller/ }));
+    // Freight only (owner decision 21 Nov): no delivery-method choice and no collection option.
+    expect(screen.getByText("Freight delivery to your site")).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Collect from seller|Parcel delivery/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/Bank transfer|Corporate cheque/)).not.toBeInTheDocument();
     expect(calls.filter((c) => c.method !== "GET" && !c.url.pathname.startsWith("/api/v1/auth/"))).toEqual([]);
     expect(calls.some((c) => c.url.pathname.includes("/orders"))).toBe(false);

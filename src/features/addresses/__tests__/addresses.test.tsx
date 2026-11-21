@@ -150,7 +150,7 @@ describe("COM-ADDR-01 address book", () => {
     expect(screen.getByRole("radio", { name: /Dubai warehouse/ })).toBeChecked();
     expect(screen.queryByText("Old")).not.toBeInTheDocument();
     expect(screen.getAllByText("Receiving desk · +971501234567")).toHaveLength(2); // contact on each card
-    await userEvent.click(screen.getByRole("button", { name: "Add a new address" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add address" }));
     expect(await screen.findByRole("dialog", { name: "Add a delivery address" })).toBeInTheDocument(); // added right at checkout
   });
 

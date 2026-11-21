@@ -1,7 +1,7 @@
 import * as React from "react";
 import { Link } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowsClockwiseIcon, CheckCircleIcon, HourglassIcon, LockSimpleIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { ArrowsClockwiseIcon, CheckCircleIcon, HourglassIcon, LockSimpleIcon, TruckIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { isApiError } from "@/lib/api/errors";
 import { formatDateTime, formatMoney } from "@/lib/utils/format";
@@ -92,10 +92,10 @@ export function PlaceOrder({ s, cartVersion, onCartStale, onRecheck }: { s: Paym
   return (
     <section aria-label="Place your order" className="rounded-xl border border-border p-4">
       <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-        <StorefrontIcon className="size-5" aria-hidden /> Collect from seller
+        <TruckIcon className="size-5" aria-hidden /> Freight delivery to your site
       </p>
       <p className="mt-1 text-sm text-muted-foreground">
-        You collect from each seller's location. Sellers confirm within 24 hours; your card is only charged after they confirm.
+        Sellers confirm within 24 hours, then StockOut arranges delivery. Your card is only charged after they confirm.
       </p>
       {place.error != null && (
         <p role="alert" className={disabled ? "mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" : "mt-3 rounded-lg bg-danger-soft p-3 text-sm text-danger-soft-foreground"}>

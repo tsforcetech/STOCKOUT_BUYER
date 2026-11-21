@@ -4,12 +4,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
   ArrowsClockwiseIcon,
-  BuildingsIcon,
   CheckCircleIcon,
   CreditCardIcon,
   IdentificationCardIcon,
   LockSimpleIcon,
-  PackageIcon,
   StorefrontIcon,
   TruckIcon,
   WarningCircleIcon,
@@ -47,7 +45,7 @@ import { PaymentStep } from "./payment-step";
 
 export const PLACE_ORDER_NOTE = "Payment and placing orders aren't open yet; they open at launch. Nothing is charged and no order is created.";
 /** With payment authorisation on (sandbox): authorising holds the amount; placing the order is still closed (503 ORDER_PLACEMENT_DISABLED). */
-export const PLACE_ORDER_NOTE_ORDERING = "Authorise your card in Payment, then place the order there. Collection from each seller; you're charged only after sellers confirm.";
+export const PLACE_ORDER_NOTE_ORDERING = "Authorise your card in Payment, then place the order there. Freight delivery to your site; you're charged only after sellers confirm.";
 export const PLACE_ORDER_NOTE_PREAUTH = "Placing orders isn't open yet. An authorised payment is only a hold on your card: nothing is charged and no order is created.";
 
 const sectionCls = "rounded-2xl border border-border bg-surface p-5 sm:p-6";
@@ -304,12 +302,6 @@ function ItemsSection({ cart, readiness }: { cart: BuyerCartResponse; readiness:
   );
 }
 
-const DELIVERY = [
-  { id: "FREIGHT", icon: TruckIcon, title: "Freight delivery", text: "Truck delivery to your site, for pallets and bulk lots." },
-  { id: "PARCEL", icon: PackageIcon, title: "Parcel delivery", text: "Courier delivery for smaller items." },
-  { id: "COLLECTION", icon: BuildingsIcon, title: "Collect from seller", text: "Pick up from the seller's warehouse." },
-];
-
 /** The address book matching the buying context: the cart's purchasing company, or the individual buyer when none is needed. */
 function addressOwnerFor(cart: BuyerCartResponse, readiness: CheckoutValidationResult | undefined): AddressOwner | null {
   if (cart.buyerOrganizationId) return { kind: "organization", organizationId: cart.buyerOrganizationId };
@@ -317,33 +309,24 @@ function addressOwnerFor(cart: BuyerCartResponse, readiness: CheckoutValidationR
   return readiness && !needsCompany ? { kind: "individual" } : null;
 }
 
+/**
+ * Delivery: StockOut ships every order by freight to the chosen site (owner decision 21 Nov 2026), so there is no
+ * method to pick and no collection option; the buyer only chooses the address.
+ */
 function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }) {
-  const [choice, setChoice] = React.useState("FREIGHT");
   return (
     <section className={sectionCls} aria-labelledby="co-delivery-h">
-      <SectionTitle id="co-delivery-h" n={3} title="Delivery" tag={<Badge tone="neutral">Preview</Badge>} />
-      <div className="mb-6">
-        <CheckoutAddressPicker owner={addressOwner} />
-      </div>
-      <fieldset>
-        <legend id="co-delivery" className="mb-2 text-sm font-semibold text-foreground">
-          Delivery method
-        </legend>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {DELIVERY.map(({ id, icon: Icon, title, text }) => (
-            <label key={id} className={cn("flex cursor-pointer flex-col gap-1 rounded-xl border p-4 text-sm transition-colors", choice === id ? "border-foreground bg-surface-muted/50 ring-1 ring-foreground" : "border-border hover:border-border-strong")}>
-              <span className="flex items-center gap-2">
-                <input type="radio" name="delivery" value={id} checked={choice === id} onChange={() => setChoice(id)} className="size-4 shrink-0 accent-foreground" />
-                <Icon className="size-4" aria-hidden />
-                <span className="font-bold text-foreground">{title}</span>
-              </span>
-              <span className="text-muted-foreground">{text}</span>
-              <span className="mt-auto pt-1 text-xs font-medium text-foreground">Charge shown before you pay</span>
-            </label>
-          ))}
+      <SectionTitle id="co-delivery-h" n={3} title="Delivery" />
+      <div className="mb-5 flex items-start gap-3 rounded-xl bg-surface-muted p-4">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-ink text-action">
+          <TruckIcon className="size-5" weight="bold" aria-hidden />
+        </span>
+        <div className="min-w-0 text-sm">
+          <p className="font-semibold text-foreground">Freight delivery to your site</p>
+          <p className="mt-0.5 leading-5 text-muted-foreground">StockOut arranges truck delivery to the address below once the sellers confirm. Any delivery charge is confirmed with you before dispatch.</p>
         </div>
-      </fieldset>
-      <p className="mt-3 text-xs text-muted-foreground">Delivery methods open with ordering. Until then your choice here isn't saved.</p>
+      </div>
+      <CheckoutAddressPicker owner={addressOwner} />
     </section>
   );
 }
