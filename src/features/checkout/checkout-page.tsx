@@ -164,7 +164,9 @@ function BuyerDetails({ p }: { p: BuyerProfileDto }) {
   const idLabel = p.requiresReverification
     ? "Verification required again"
     : verified
-      ? "Identity verified"
+      ? p.isVerificationReused
+        ? "Identity verified (via seller account)"
+        : "Identity verified"
       : reviewing
         ? "Under review"
         : p.verificationStatus === "REJECTED"

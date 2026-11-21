@@ -241,4 +241,17 @@ describe("BE-08 retry after a failed first save", () => {
     expect(puts[1].expectedRowVersion).toBe("AAAAAAAAVlA=");
     expect(puts[1].fullName).toBe("Aisha Rahman");
   });
+
+  it("BE-16: identity reused from the seller account shows as verified and asks for no ID upload", async () => {
+    signIn();
+    mockFetch([
+      ...common,
+      { method: "GET", path: "/api/v1/marketplace/buyer/profile", respond: () => env(profile({ verificationStatus: "VERIFIED", verifiedAtUtc: "2026-11-21T08:00:00Z", isVerificationReused: true, reusedSellerId: "s-1", verificationProvenance: "SELLER_IDENTITY_VERIFICATION_REUSE" })) },
+      { method: "GET", path: "/api/v1/marketplace/buyer/documents", respond: () => env([]) },
+    ]);
+    page();
+    expect(await screen.findByText("Verified through your seller account")).toBeInTheDocument();
+    expect(screen.getByText(/don't need to verify again as a buyer/)).toBeInTheDocument();
+    expect(document.getElementById("v-file")).toBeNull();
+  });
 });

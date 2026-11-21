@@ -136,7 +136,10 @@ export default function BuyerVerificationPage() {
         <StatusCard phase={phase} p={p} canPurchase={elig.data?.canPurchase === true && elig.data.eligible} eligibilityLoaded={!!elig.data} />
         {p && phase === "verified" && <ReverifyCard />}
         <DetailsStep p={p} phase={phase} />
-        {p && <DocumentStep p={p} phase={phase} documents={documents} loading={docs.isLoading} error={docs.error} onRetry={() => void docs.refetch()} />}
+        {/* BE-16: identity reused from the same person's approved seller verification: no second ID upload. */}
+        {p && !(phase === "verified" && p.isVerificationReused) && (
+          <DocumentStep p={p} phase={phase} documents={documents} loading={docs.isLoading} error={docs.error} onRetry={() => void docs.refetch()} />
+        )}
         {p && editablePhase(phase) && <SubmitStep p={p} documents={documents} />}
         <p className="rounded-xl bg-surface p-4 text-xs leading-5 text-muted-foreground">
           Before you're verified you can still browse, save to your wishlist, add to your cart and request quotes. Only purchasing waits for verification. Your ID is stored privately and is only seen by StockOut reviewers.
@@ -196,9 +199,9 @@ function StatusCard({ phase, p, canPurchase, eligibilityLoaded }: { phase: Phase
       return card(
         expired ? "warning" : "success",
         expired ? WarningCircleIcon : CheckCircleIcon,
-        "Verified",
+        p?.isVerificationReused ? "Verified through your seller account" : "Verified",
         <>
-          Verified {formatDate(p?.verifiedAtUtc)}.{" "}
+          {p?.isVerificationReused ? "Your identity was already verified when you set up selling on StockOut, so you don't need to verify again as a buyer. " : `Verified ${formatDate(p?.verifiedAtUtc)}. `}
           {eligibilityLoaded ? (canPurchase ? "Your account can purchase." : "Purchasing is currently unavailable for your account. Contact StockOut support if this is unexpected.") : null}
           {expired && <span className="mt-1 block">Your ID expired on {formatDate(p?.documentExpiresAtUtc)}. You stay verified for now, but please keep your ID up to date; StockOut may ask you to verify again.</span>}
         </>,

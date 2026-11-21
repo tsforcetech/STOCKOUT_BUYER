@@ -13,7 +13,8 @@ export function useBuyerEligibility(organizationId?: string | null) {
     queryKey: [...buyerEligibilityKey, organizationId?.toLowerCase() ?? "any"],
     queryFn: ({ signal }) => marketplaceService.buyerEligibility(signal, organizationId),
     enabled: status === "authenticated",
-    staleTime: 5 * 60_000,
+    // Short: a seller verification approved meanwhile (BE-16 reuse) must show up on the next visit to cart/checkout.
+    staleTime: 30_000,
     retry: 1,
   });
 }

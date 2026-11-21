@@ -672,6 +672,11 @@ export interface BuyerProfileDto {
   bankIban: string | null;
   bankSwiftCode: string | null;
   bankBeneficiaryName: string | null;
+  /** BE-16 (backend 34dabaaf): identity verified through the same person's approved seller verification. */
+  isVerificationReused?: boolean;
+  reusedSellerId?: string | null;
+  /** e.g. SELLER_IDENTITY_VERIFICATION_REUSE */
+  verificationProvenance?: string | null;
   verificationStatus: string;
   orgStatus: string;
   submittedAtUtc: string | null;
