@@ -24,14 +24,14 @@ const RELOAD = new Set(["SUB_ORDER_FINALIZED_BY_ADMIN", "SUB_ORDER_CONCURRENCY_C
  * confirmation, including after escalation, until StockOut finalises it (409 SUB_ORDER_FINALIZED_BY_ADMIN).
  * Sends the suborder's rowVersion; buttons lock while a request runs so it is never sent twice.
  */
-export function SellerDecision({ sellerId, sub }: { sellerId: string; sub: SellerSubOrderDto }) {
+export function SellerDecision({ sellerId, sub, compact = false }: { sellerId: string; sub: SellerSubOrderDto; compact?: boolean }) {
   const qc = useQueryClient();
   const [dialog, setDialog] = React.useState<"confirm" | "reject" | null>(null);
   const [reason, setReason] = React.useState("");
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  if (!isPendingConfirmation(sub.status)) return <p className="text-sm text-muted-foreground">No decision needed for this order.</p>;
+  if (!isPendingConfirmation(sub.status)) return compact ? null : <p className="text-sm text-muted-foreground">No decision needed for this order.</p>;
 
   const run = async (kind: "confirm" | "reject") => {
     if (busy) return;
@@ -58,11 +58,11 @@ export function SellerDecision({ sellerId, sub }: { sellerId: string; sub: Selle
 
   return (
     <>
-      <Button className="w-full" onClick={() => (setError(null), setDialog("confirm"))} disabled={busy}>
-        <CheckCircleIcon /> Confirm order
+      <Button className={compact ? undefined : "w-full"} size={compact ? "sm" : undefined} onClick={() => (setError(null), setDialog("confirm"))} disabled={busy}>
+        <CheckCircleIcon /> {compact ? "Confirm" : "Confirm order"}
       </Button>
-      <Button variant="secondary" className="w-full" onClick={() => (setError(null), setDialog("reject"))} disabled={busy}>
-        <XCircleIcon /> Reject order
+      <Button variant="secondary" className={compact ? undefined : "w-full"} size={compact ? "sm" : undefined} onClick={() => (setError(null), setDialog("reject"))} disabled={busy}>
+        <XCircleIcon /> {compact ? "Reject" : "Reject order"}
       </Button>
       {error && !dialog && (
         <p role="alert" className="rounded-lg bg-danger-soft p-3 text-xs leading-5 text-danger-soft-foreground">

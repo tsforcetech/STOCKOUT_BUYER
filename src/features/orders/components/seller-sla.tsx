@@ -10,7 +10,7 @@ export const isPendingConfirmation = (status: string | null | undefined) => (sta
 /** The server's deadline is UTC; ISO without a zone is treated as UTC. */
 const parseUtc = (iso: string) => new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : `${iso}Z`).getTime();
 
-function useNow(intervalMs = 30_000) {
+export function useNow(intervalMs = 30_000) {
   const [now, setNow] = React.useState(() => Date.now());
   React.useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), intervalMs);
@@ -29,6 +29,14 @@ export function slaState(sub: Pick<SellerSubOrderDto, "status" | "confirmationDe
   const ms = parseUtc(sub.confirmationDeadlineUtc) - now;
   return ms > 0 ? { kind: "due", ms } : { kind: "expired" };
 }
+
+/** "4 days 6 h", "5 h 20 min", "12 min". */
+export const timeLeft = (ms: number) => {
+  const m = Math.max(0, Math.floor(ms / 60_000));
+  const h = Math.floor(m / 60);
+  const d = Math.floor(h / 24);
+  return d > 0 ? `${d} day${d === 1 ? "" : "s"} ${h % 24} h` : h > 0 ? `${h} h ${m % 60} min` : `${m} min`;
+};
 
 const dur = (ms: number) => {
   const m = Math.max(0, Math.floor(ms / 60_000));

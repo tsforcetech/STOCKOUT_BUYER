@@ -6,6 +6,7 @@ import { ErrorState } from "@/components/feedback/states";
 import { isApiError } from "@/lib/api/errors";
 import { orderKeys, ordersService } from "@/services/orders.service";
 import { BuyerOrderDetail } from "./components/order-views";
+import { BuyAgain } from "./buy-again";
 import { OrderNotFound } from "./order-unavailable";
 
 /** /account/orders/:orderId: GET /api/v1/buyer/orders/{orderId}. 404 covers both "missing" and "someone else's". */
@@ -29,7 +30,7 @@ export default function OrderDetailPage() {
         ) : q.error || !q.data ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : (
-          <BuyerOrderDetail order={q.data} />
+          <BuyerOrderDetail order={q.data} actions={<BuyAgain order={q.data} />} />
         )}
       </div>
     </div>

@@ -1,3 +1,5 @@
+import { formatDateTime } from "@/lib/utils/format";
+
 /** Display labels and badge tones for the order enums (src/api/types/orders.ts). Unknown values are shown humanised, never guessed. */
 type Tone = "neutral" | "success" | "warning" | "danger" | "info" | "primary" | "outline";
 type Entry = { label: string; tone: Tone };
@@ -12,14 +14,14 @@ const ORDER: Record<string, Entry> = {
 };
 
 const SUBORDER: Record<string, Entry> = {
-  PendingConfirmation: { label: "Awaiting confirmation", tone: "warning" },
+  PendingConfirmation: { label: "Waiting for confirmation", tone: "warning" },
   Confirmed: { label: "Confirmed", tone: "info" },
-  Rejected: { label: "Rejected by seller", tone: "danger" },
-  Expired: { label: "Expired", tone: "danger" },
-  InFulfillment: { label: "Being fulfilled", tone: "info" },
+  Rejected: { label: "Rejected", tone: "danger" },
+  Expired: { label: "Not confirmed in time", tone: "danger" },
+  InFulfillment: { label: "Preparing", tone: "info" },
   Delivered: { label: "Delivered", tone: "success" },
-  Accepted: { label: "Accepted", tone: "success" },
-  ClaimDisputed: { label: "Claim open", tone: "danger" },
+  Accepted: { label: "Accepted by buyer", tone: "success" },
+  ClaimDisputed: { label: "Problem reported", tone: "danger" },
   Cancelled: { label: "Cancelled", tone: "danger" },
 };
 
@@ -38,19 +40,19 @@ const PAYMENT: Record<string, Entry> = {
 const FULFILMENT: Record<string, Entry> = {
   NotStarted: { label: "Not started", tone: "neutral" },
   Preparing: { label: "Preparing", tone: "info" },
-  ReadyForCollection: { label: "Ready for collection", tone: "info" },
-  InTransit: { label: "In transit", tone: "info" },
+  ReadyForCollection: { label: "Ready for dispatch", tone: "info" },
+  InTransit: { label: "On the way", tone: "info" },
   Delivered: { label: "Delivered", tone: "success" },
-  Collected: { label: "Collected", tone: "success" },
+  Collected: { label: "Received", tone: "success" },
 };
 
 const CLAIM: Record<string, Entry> = {
   None: { label: "No claim", tone: "neutral" },
-  Filed: { label: "Claim filed", tone: "warning" },
-  UnderReview: { label: "Claim under review", tone: "warning" },
-  Approved: { label: "Claim approved", tone: "success" },
-  Rejected: { label: "Claim rejected", tone: "danger" },
-  Escalated: { label: "Claim escalated", tone: "danger" },
+  Filed: { label: "Problem reported", tone: "warning" },
+  UnderReview: { label: "Problem under review", tone: "warning" },
+  Approved: { label: "Problem resolved for buyer", tone: "success" },
+  Rejected: { label: "Problem report declined", tone: "danger" },
+  Escalated: { label: "Problem escalated", tone: "danger" },
 };
 
 const PAYOUT: Record<string, Entry> = {
@@ -95,20 +97,30 @@ export const statusIs = (value: string | null | undefined, name: string) => !!va
  * so the buyer sees one status instead of "Confirmed" + "Not started" side by side.
  */
 export type BuyerStep = Entry & { key: string; next: string };
-export function buyerStep(s: { status: string; fulfillmentStatus?: string | null; fulfillmentMethod?: string | null }): BuyerStep {
+export function buyerStep(s: { status: string; fulfillmentStatus?: string | null; fulfillmentMethod?: string | null; confirmationDeadlineUtc?: string | null }): BuyerStep {
   const st = norm(s.status ?? "");
   const f = norm(s.fulfillmentStatus ?? "");
-  const pickup = !s.fulfillmentMethod || /PICKUP|COLLECT/.test(norm(s.fulfillmentMethod));
-  if (st === "PENDINGCONFIRMATION") return { key: "waiting", label: "Waiting for seller to confirm", tone: "warning", next: "The seller has 24 hours to confirm. Your card is only authorised, not charged." };
-  if (st === "REJECTED") return { key: "rejected", label: "Rejected by seller", tone: "danger", next: "This seller couldn't fulfil your order. You won't be charged for it." };
-  if (st === "EXPIRED") return { key: "expired", label: "Not confirmed in time", tone: "danger", next: "The seller didn't confirm within 24 hours. You won't be charged for it." };
+  // Freight is the only buyer option (owner, 22 Nov): pickup wording only when the order says so explicitly.
+  const pickup = !!s.fulfillmentMethod && /PICKUP|COLLECT/.test(norm(s.fulfillmentMethod));
+  if (st === "PENDINGCONFIRMATION")
+    return {
+      key: "waiting",
+      label: "Waiting for seller to confirm",
+      tone: "warning",
+      next: `${s.confirmationDeadlineUtc ? `The seller confirms by ${formatDateTime(s.confirmationDeadlineUtc)}.` : "The seller confirms within 24 hours."} Your card is only on hold, not charged.`,
+    };
+  if (st === "REJECTED") return { key: "rejected", label: "Rejected by seller", tone: "danger", next: "This seller couldn't supply your order. You won't be charged for it." };
+  if (st === "EXPIRED") return { key: "expired", label: "Not confirmed in time", tone: "danger", next: "The seller didn't confirm in time. You won't be charged for it." };
   if (st === "CANCELLED") return { key: "cancelled", label: "Cancelled", tone: "danger", next: "This part of the order was cancelled. You won't be charged for it." };
   if (st === "CLAIMDISPUTED") return { key: "claim", label: "Problem reported", tone: "danger", next: "StockOut is reviewing the problem you reported." };
   if (st === "ACCEPTED") return { key: "done", label: "Completed", tone: "success", next: "You accepted the goods. This part of the order is complete." };
   if (st === "DELIVERED" || f === "COLLECTED" || f === "DELIVERED")
     return { key: "received", label: pickup ? "Collected" : "Delivered", tone: "success", next: "Check the goods, then accept them or report a problem." };
-  if (f === "READYFORCOLLECTION") return { key: "ready", label: "Ready for collection", tone: "info", next: "Your order is ready. Collect it from the seller." };
-  if (f === "INTRANSIT") return { key: "transit", label: "On the way", tone: "info", next: "Your order is on its way." };
+  if (f === "READYFORCOLLECTION")
+    return pickup
+      ? { key: "ready", label: "Ready for collection", tone: "info", next: "Your order is ready. Collect it from the seller." }
+      : { key: "ready", label: "Ready for dispatch", tone: "info", next: "Your order is packed and waiting for StockOut freight." };
+  if (f === "INTRANSIT") return { key: "transit", label: "On the way", tone: "info", next: "StockOut freight is bringing your order to your site." };
   // Neutral wording here: the recorded fulfilment method isn't reliable yet (BE-30: collection orders saved as delivery).
   if (f === "PREPARING" || st === "INFULFILLMENT") return { key: "preparing", label: "Seller is preparing", tone: "info", next: "We'll let you know when your order is ready." };
   if (st === "CONFIRMED") return { key: "confirmed", label: "Confirmed by seller", tone: "info", next: "The seller is preparing your order. We'll let you know when it's ready." };
@@ -117,7 +129,7 @@ export function buyerStep(s: { status: string; fulfillmentStatus?: string | null
 }
 
 /** One headline for the whole order: the common step of all sellers, or how many sellers have confirmed. */
-export function buyerOrderHeadline(subOrders: Array<{ status: string; fulfillmentStatus?: string | null; fulfillmentMethod?: string | null }>, fallbackStatus: string): BuyerStep {
+export function buyerOrderHeadline(subOrders: Array<{ status: string; fulfillmentStatus?: string | null; fulfillmentMethod?: string | null; confirmationDeadlineUtc?: string | null }>, fallbackStatus: string): BuyerStep {
   if (!subOrders.length) return { key: "order", ...orderStatus(fallbackStatus), next: "" };
   const steps = subOrders.map(buyerStep);
   if (steps.every((x) => x.key === steps[0].key)) return steps[0];
@@ -127,30 +139,48 @@ export function buyerOrderHeadline(subOrders: Array<{ status: string; fulfillmen
   return { key: "mixed", label: "In progress", tone: "info", next: "Each seller handles their part separately. See each seller below." };
 }
 
-/** Plain-language history line for a status change (no backend codes). */
-export function historyLine(toStatus: string, fromStatus?: string | null): string {
-  const t = norm(toStatus ?? "");
-  const map: Record<string, string> = {
+const HISTORY: Record<"buyer" | "seller", Record<string, string>> = {
+  buyer: {
     PENDINGCONFIRMATION: "Order placed and sent to the seller to confirm",
     CONFIRMED: "Seller confirmed the order",
     REJECTED: "Seller rejected the order",
     EXPIRED: "Seller didn't confirm in time",
     INFULFILLMENT: "Seller started preparing the order",
     PREPARING: "Seller started preparing the order",
-    READYFORCOLLECTION: "Ready for collection",
-    INTRANSIT: "On the way",
-    DELIVERED: "Delivered / collected",
-    COLLECTED: "Collected",
+    READYFORCOLLECTION: "Packed and ready for dispatch",
+    INTRANSIT: "On the way with StockOut freight",
+    DELIVERED: "Delivered to your site",
+    COLLECTED: "Received",
     ACCEPTED: "You accepted the goods",
-    CLAIMDISPUTED: "Problem reported",
+    CLAIMDISPUTED: "You reported a problem",
     COMPLETED: "Order completed",
     CANCELLED: "Order cancelled",
-  };
-  return map[t] ?? `${fromStatus ? `${anyStatusLabel(fromStatus)} → ` : ""}${anyStatusLabel(toStatus)}`;
+  },
+  seller: {
+    PENDINGCONFIRMATION: "New order received",
+    CONFIRMED: "You confirmed the order",
+    REJECTED: "You rejected the order",
+    EXPIRED: "Not confirmed in time",
+    INFULFILLMENT: "Preparing started",
+    PREPARING: "You started preparing the order",
+    READYFORCOLLECTION: "Ready for dispatch",
+    INTRANSIT: "On the way to the buyer (StockOut freight)",
+    DELIVERED: "Delivered to the buyer",
+    COLLECTED: "Received by the buyer",
+    ACCEPTED: "Buyer accepted the goods",
+    CLAIMDISPUTED: "Buyer reported a problem",
+    COMPLETED: "Order completed",
+    CANCELLED: "Order cancelled",
+  },
+};
+
+/** Plain-language history line for a status change (no backend codes), worded for the buyer or the seller. */
+export function historyLine(toStatus: string, fromStatus?: string | null, who: "buyer" | "seller" = "buyer"): string {
+  return HISTORY[who][norm(toStatus ?? "")] ?? `${fromStatus ? `${anyStatusLabel(fromStatus)} → ` : ""}${anyStatusLabel(toStatus)}`;
 }
 
 /** Buyer progress tracker (freight delivery). Index of the step reached; -1 for an ended order (rejected / cancelled). */
-export const ORDER_STEPS = ["Placed", "Confirmed", "Preparing", "Delivered", "Completed"] as const;
+export const ORDER_STEPS = ["Placed", "Confirmed", "Preparing", "On the way", "Delivered", "Completed"] as const;
 export function stepIndex(key: string): number {
   switch (key) {
     case "waiting":
@@ -161,13 +191,14 @@ export function stepIndex(key: string): number {
       return 1;
     case "preparing":
     case "ready":
-    case "transit":
       return 2;
+    case "transit":
+      return 3;
     case "received":
     case "claim":
-      return 3;
-    case "done":
       return 4;
+    case "done":
+      return 5;
     default:
       return -1;
   }

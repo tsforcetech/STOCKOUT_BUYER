@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { ListingImage, assetUrl } from "@/components/common/listing-image";
 import { formatDate, formatDateTime, formatMoney, formatNumber } from "@/lib/utils/format";
 import type { MarketplaceOrderDto, OrderLineSnapshotDto, OrderStatusHistoryDto, SellerSubOrderDto } from "@/api/types/orders";
-import { SellerSlaBadge, isPendingConfirmation } from "./seller-sla";
-import { ORDER_STEPS, anyStatusLabel, buyerOrderHeadline, buyerStep, stepIndex, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, subOrderStatus } from "../order-status";
+import { SellerSlaBadge, isPendingConfirmation, slaState, timeLeft, useNow } from "./seller-sla";
+import { ORDER_STEPS, buyerOrderHeadline, buyerStep, stepIndex, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, statusIs, subOrderStatus } from "../order-status";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { BuyerAcceptance } from "../buyer-acceptance";
+import { SellerDecision } from "../seller-decision";
 import { BuyerOrderImpact } from "@/features/sustainability/impact-report";
 
 /**
@@ -116,14 +117,20 @@ export function BuyerOrderList({ orders }: { orders: MarketplaceOrderDto[] }) {
 
 /* ---------------------------------- Shared: order lines ---------------------------------- */
 
-function Lines({ items }: { items: OrderLineSnapshotDto[] }) {
+function Lines({ items, link = false }: { items: OrderLineSnapshotDto[]; link?: boolean }) {
   return (
     <ul className="divide-y divide-border">
       {items.map((l) => (
         <li key={l.orderLineId} className="flex gap-3 p-4">
           <ListingImage src={assetUrl(l.thumbnailUrlSnapshot)} alt={l.titleSnapshot} className="size-14 shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1">
-            <p className="line-clamp-2 text-sm font-bold text-foreground">{l.titleSnapshot}</p>
+            {link ? (
+              <Link to={`/listings/${l.listingId}`} className="line-clamp-2 text-sm font-bold text-foreground hover:underline">
+                {l.titleSnapshot}
+              </Link>
+            ) : (
+              <p className="line-clamp-2 text-sm font-bold text-foreground">{l.titleSnapshot}</p>
+            )}
             <p className="mt-0.5 text-xs text-muted-foreground">
               {formatNumber(l.quantity)} × {formatMoney(l.unitPrice, l.currency)} · VAT {formatNumber(l.taxRatePercent)}% ({formatMoney(l.taxAmount, l.currency)})
               {l.isWholeLot && " · whole lot"}
@@ -154,68 +161,77 @@ function Amounts({ rows, currency }: { rows: Array<[string, number, boolean?]>; 
 
 /* ---------------------------------- Buyer: order detail ---------------------------------- */
 
-export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
+/** "Seller confirms within 5 h 20 min" for a seller part still waiting (from the server deadline). */
+function ConfirmClock({ sub }: { sub: SellerSubOrderDto }) {
+  const now = useNow();
+  const st = slaState(sub, now);
+  if (!st || st.kind !== "due") return null;
+  return <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning-soft-foreground">Confirms within {timeLeft(st.ms)}</span>;
+}
+
+export function BuyerOrderDetail({ order, actions }: { order: MarketplaceOrderDto; actions?: React.ReactNode }) {
+  // One status for the buyer, worked out from the sellers' parts (the parent order status lags behind, OJ-14).
+  const head = buyerOrderHeadline(order.subOrders, order.status);
+  const pay = paymentStatus(order.paymentStatus);
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
-      <div className="min-w-0 space-y-4">
-        <header>
-          <p className="text-sm text-muted-foreground">Ordered {formatDateTime(order.orderDateUtc)}</p>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Order {order.orderNumber}</h1>
-          {(() => {
-            // One status for the buyer, worked out from the sellers' parts (the parent order status can lag behind).
-            const head = buyerOrderHeadline(order.subOrders, order.status);
-            return (
-              <>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <StatusBadge entry={head} />
-                  <StatusBadge entry={paymentStatus(order.paymentStatus)} />
-                </div>
-                {head.next && <p className="mt-2 text-sm text-body">{head.next}</p>}
-                {stepIndex(head.key) >= 0 && (
-                  <div className="mt-4 rounded-2xl border border-border bg-surface px-3 py-4">
-                    <OrderProgress stepKey={head.key} />
-                  </div>
-                )}
-              </>
-            );
-          })()}
+      <div className="min-w-0 space-y-4 lg:col-start-1">
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-sm text-muted-foreground">Ordered {formatDateTime(order.orderDateUtc)}</p>
+            <h1 className="font-heading text-2xl font-bold text-foreground">Order {order.orderNumber}</h1>
+          </div>
+          {actions}
         </header>
+        <section className="rounded-2xl border border-border bg-surface p-4 sm:p-5" aria-label="Order status">
+          <p className={cn("font-heading text-xl font-bold", head.tone === "danger" ? "text-danger" : head.tone === "success" ? "text-success" : "text-foreground")}>{head.label}</p>
+          {head.next && <p className="mt-1 text-sm text-body">{head.next}</p>}
+          {stepIndex(head.key) >= 0 && (
+            <div className="mt-4">
+              <OrderProgress stepKey={head.key} />
+            </div>
+          )}
+        </section>
         {order.subOrders.some((s) => s.isEscalated && isPendingConfirmation(s.status)) && (
           <p role="status" className="rounded-2xl bg-warning-soft p-4 text-sm leading-6 text-warning-soft-foreground">
             One of your sellers is taking longer than usual to confirm. StockOut is following up with them. You don&apos;t need to do anything.
           </p>
         )}
-        {order.subOrders.map((s) => (
-          <section key={s.subOrderId} className="overflow-hidden rounded-2xl border border-border" aria-label={`From ${s.sellerTradingName || s.sellerLegalName || "seller"}`}>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-muted px-4 py-3">
-              <p className="flex min-w-0 items-center gap-2 font-bold text-foreground">
-                <StorefrontIcon className="size-4 shrink-0" aria-hidden />
-                <span className="truncate">{s.sellerTradingName || s.sellerLegalName || "Seller"}</span>
-              </p>
-              <span className="text-xs text-muted-foreground">{s.subOrderNumber}</span>
-              <span className="ml-auto flex flex-wrap gap-2">
-                <StatusBadge entry={buyerStep(s)} />
-              </span>
-            </div>
-            {(s.claimStatus && claimStatus(s.claimStatus).label !== "No claim") || s.deliveredAtUtc ? (
-              <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
-                {s.deliveredAtUtc && <>Delivered {formatDateTime(s.deliveredAtUtc)}</>}
-                {s.deliveredAtUtc && claimStatus(s.claimStatus).label !== "No claim" && " · "}
-                {claimStatus(s.claimStatus).label !== "No claim" && claimStatus(s.claimStatus).label}
-              </p>
-            ) : null}
-            {s.sellerRejectionReason && <p className="border-b border-border bg-danger-soft px-4 py-2 text-sm text-danger-soft-foreground">Seller's reason: {s.sellerRejectionReason}</p>}
-            <Lines items={s.items} />
-            <div className="border-t border-border px-4 py-3">
-              <Amounts currency={order.currency} rows={[["Materials", s.materialSubtotal], ["VAT", s.applicableMaterialVat], ["Seller total", s.subOrderTotal, true]]} />
-            </div>
-            {ORDER_API.buyerAcceptance && <BuyerAcceptance orderId={order.orderId} sub={s} />}
-          </section>
-        ))}
-        {ORDER_API.sustainabilityReports && <BuyerOrderImpact orderId={order.orderId} />}
-        <History history={order.statusHistory} buyer />
+        {order.subOrders.map((s) => {
+          const claim = claimStatus(s.claimStatus);
+          const hasClaim = !!s.claimStatus && !statusIs(s.claimStatus, "NONE");
+          return (
+            <section key={s.subOrderId} className="overflow-hidden rounded-2xl border border-border" aria-label={`From ${s.sellerTradingName || s.sellerLegalName || "seller"}`}>
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-surface-muted px-4 py-3">
+                <p className="flex min-w-0 items-center gap-2 font-bold text-foreground">
+                  <StorefrontIcon className="size-4 shrink-0" aria-hidden />
+                  <span className="truncate">{s.sellerTradingName || s.sellerLegalName || "Seller"}</span>
+                </p>
+                <span className="text-xs text-muted-foreground">{s.subOrderNumber}</span>
+                <span className="ml-auto flex flex-wrap items-center gap-2">
+                  <ConfirmClock sub={s} />
+                  <StatusBadge entry={buyerStep(s)} />
+                </span>
+              </div>
+              {(hasClaim || s.deliveredAtUtc) && (
+                <p className="border-b border-border px-4 py-2 text-xs text-muted-foreground">
+                  {s.deliveredAtUtc && <>Delivered {formatDateTime(s.deliveredAtUtc)}</>}
+                  {s.deliveredAtUtc && hasClaim && " · "}
+                  {hasClaim && claim.label}
+                </p>
+              )}
+              {s.sellerRejectionReason && <p className="border-b border-border bg-danger-soft px-4 py-2 text-sm text-danger-soft-foreground">Seller&apos;s reason: {s.sellerRejectionReason}</p>}
+              <Lines items={s.items} link />
+              <div className="border-t border-border px-4 py-3">
+                <Amounts currency={order.currency} rows={[["Materials", s.materialSubtotal], ["VAT", s.applicableMaterialVat], ["Seller total", s.subOrderTotal, true]]} />
+              </div>
+              {ORDER_API.buyerAcceptance && <BuyerAcceptance orderId={order.orderId} sub={s} />}
+            </section>
+          );
+        })}
       </div>
-      <aside className="h-fit space-y-4 rounded-2xl border border-border p-5 lg:sticky lg:top-[176px]" aria-label="Order total">
+      {/* On phones the totals come right after the items, before the history. */}
+      <aside className="h-fit space-y-4 rounded-2xl border border-border p-5 lg:sticky lg:top-[176px] lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label="Order total">
         <h2 className="font-heading text-lg font-bold text-foreground">Order total</h2>
         <Amounts
           currency={order.currency}
@@ -227,9 +243,17 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
             ["Total payable", order.totalPayableAmount, true],
           ]}
         />
+        <div className="flex items-center justify-between gap-2 text-sm">
+          <span className="text-muted-foreground">Payment</span>
+          <StatusBadge entry={pay} />
+        </div>
         {order.paymentReference && <p className="break-all text-xs text-muted-foreground">Payment reference {order.paymentReference}</p>}
         <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Amounts are shown as recorded on the order. This page isn&apos;t a tax invoice.</p>
       </aside>
+      <div className="min-w-0 space-y-4 lg:col-start-1">
+        {ORDER_API.sustainabilityReports && <BuyerOrderImpact orderId={order.orderId} />}
+        <History history={order.statusHistory} who="buyer" />
+      </div>
     </div>
   );
 }
@@ -237,10 +261,10 @@ export function BuyerOrderDetail({ order }: { order: MarketplaceOrderDto }) {
 /** Backend reason codes ("ORDER_PLACED_ATOMIC: …") are internal: buyers see plain lines; free-text notes (e.g. a reason) stay. */
 const isCodeNote = (n: string | null | undefined) => !!n && /^[A-Z][A-Z0-9_]{3,}(:|$)/.test(n.trim());
 
-function History({ history, title = "History", buyer = false }: { history: OrderStatusHistoryDto[] | null | undefined; title?: string; buyer?: boolean }) {
+function History({ history, title = "History", who }: { history: OrderStatusHistoryDto[] | null | undefined; title?: string; who: "buyer" | "seller" }) {
   const sorted = [...(history ?? [])].sort((a, b) => a.changedAtUtc.localeCompare(b.changedAtUtc));
-  // The parent order and each sub-order record the same step: show it once for the buyer.
-  const rows = buyer ? sorted.filter((h, i) => !sorted.slice(0, i).some((p) => p.toStatus.toUpperCase().replace(/_/g, "") === h.toStatus.toUpperCase().replace(/_/g, "") && Math.abs(Date.parse(p.changedAtUtc) - Date.parse(h.changedAtUtc)) < 120_000)) : sorted;
+  // The parent order and each sub-order (and status + fulfilment) record the same step: show it once.
+  const rows = sorted.filter((h, i) => !sorted.slice(0, i).some((p) => p.toStatus.toUpperCase().replace(/_/g, "") === h.toStatus.toUpperCase().replace(/_/g, "") && Math.abs(Date.parse(p.changedAtUtc) - Date.parse(h.changedAtUtc)) < 120_000));
   return (
     <section className="rounded-2xl border border-border bg-surface p-4" aria-label={title}>
       <h2 className="font-heading text-lg font-bold text-foreground">{title}</h2>
@@ -251,16 +275,11 @@ function History({ history, title = "History", buyer = false }: { history: Order
           {rows.map((h) => (
             <li key={h.historyId} className="text-sm">
               <p className="font-medium text-foreground">
-                {buyer ? historyLine(h.toStatus, h.fromStatus) : (
-                  <>
-                    {h.fromStatus ? `${anyStatusLabel(h.fromStatus)} → ` : ""}
-                    {anyStatusLabel(h.toStatus)}
-                  </>
-                )}
+                {historyLine(h.toStatus, h.fromStatus, who)}
               </p>
               <p className="text-xs text-muted-foreground">
                 {formatDateTime(h.changedAtUtc)}
-                {h.reasonOrNote && !(buyer && isCodeNote(h.reasonOrNote)) && ` · ${h.reasonOrNote}`}
+                {h.reasonOrNote && !isCodeNote(h.reasonOrNote) && ` · ${h.reasonOrNote}`}
               </p>
             </li>
           ))}
@@ -272,30 +291,59 @@ function History({ history, title = "History", buyer = false }: { history: Order
 
 /* ---------------------------------- Seller: suborders ---------------------------------- */
 
-export function SellerOrderList({ subOrders }: { subOrders: SellerSubOrderDto[] }) {
+/** "SO-10000002-S2" → "SO-10000002" (the buyer's order number). */
+export const parentOrderNumber = (subOrderNumber: string) => subOrderNumber.replace(/-S\d+$/i, "");
+
+/** Seller status with the fulfilment step only when it adds something (no "Confirmed · Not started"). */
+function SellerBadges({ sub, claim = false }: { sub: SellerSubOrderDto; claim?: boolean }) {
+  const st = subOrderStatus(sub.status);
+  const f = fulfilmentStatus(sub.fulfillmentStatus);
+  const showF = !!sub.fulfillmentStatus && !statusIs(sub.fulfillmentStatus, "NOT_STARTED") && f.label !== st.label && !isPendingConfirmation(sub.status);
+  const showClaim = claim && !!sub.claimStatus && !statusIs(sub.claimStatus, "NONE");
+  return (
+    <>
+      <StatusBadge entry={st} />
+      {showF && <StatusBadge entry={f} />}
+      {showClaim && <StatusBadge entry={claimStatus(sub.claimStatus)} />}
+    </>
+  );
+}
+
+export function SellerOrderList({ sellerId, subOrders }: { sellerId: string; subOrders: SellerSubOrderDto[] }) {
   return (
     <ul className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-surface" aria-label="Orders for your listings">
-      {subOrders.map((s) => (
-        <li key={s.subOrderId}>
-          <Link to={`/seller/orders/${s.subOrderId}`} className="flex items-center gap-4 p-4 transition hover:bg-surface-muted">
-            <div className="min-w-0 flex-1">
-              <p className="font-heading font-bold text-foreground">{s.subOrderNumber}</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                {formatDate(s.createdAtUtc)} · {s.sellerTradingName || s.sellerLegalName || "Seller"} · {formatNumber(s.items.length)} item{s.items.length === 1 ? "" : "s"}
-              </p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <StatusBadge entry={subOrderStatus(s.status)} />
-                <StatusBadge entry={fulfilmentStatus(s.fulfillmentStatus)} />
+      {subOrders.map((s) => {
+        const isNew = isPendingConfirmation(s.status);
+        const first = s.items[0];
+        return (
+          <li key={s.subOrderId} className={cn("flex flex-col gap-3 p-4 sm:flex-row sm:items-center", isNew && "border-l-4 border-l-warning bg-warning-soft/30")}>
+            <Link to={`/seller/orders/${s.subOrderId}`} className="group flex min-w-0 flex-1 items-center gap-4">
+              <ListingImage src={assetUrl(first?.thumbnailUrlSnapshot)} alt="" className="size-14 shrink-0 rounded-lg" />
+              <div className="min-w-0 flex-1">
+                <p className="flex flex-wrap items-baseline gap-x-2 font-heading font-bold text-foreground group-hover:underline">
+                  {isNew && <span className="text-xs font-bold uppercase tracking-wide text-warning-soft-foreground">New</span>}
+                  {s.subOrderNumber}
+                </p>
+                <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+                  {first?.titleSnapshot ?? "Order"}
+                  {s.items.length > 1 ? ` +${formatNumber(s.items.length - 1)} more` : ""} · {formatDate(s.createdAtUtc)}
+                </p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <SellerBadges sub={s} claim />
+                  <SellerSlaBadge sub={s} />
+                </div>
               </div>
-              <div className="mt-2 empty:hidden">
-                <SellerSlaBadge sub={s} />
+              <p className="shrink-0 font-heading text-lg font-bold text-foreground">{formatMoney(s.subOrderTotal, first?.currency ?? "AED")}</p>
+              <CaretRightIcon className="hidden size-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
+            </Link>
+            {isNew && (
+              <div className="flex shrink-0 gap-2 sm:flex-col">
+                <SellerDecision sellerId={sellerId} sub={s} compact />
               </div>
-            </div>
-            <p className="shrink-0 font-heading text-lg font-bold text-foreground">{formatMoney(s.subOrderTotal, s.items[0]?.currency ?? "AED")}</p>
-            <CaretRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-          </Link>
-        </li>
-      ))}
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -304,25 +352,40 @@ export function SellerSubOrderDetail({ sub, actions, children }: { sub: SellerSu
   const currency = sub.items[0]?.currency ?? "AED";
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="min-w-0 space-y-4">
-        <header>
-          <p className="text-sm text-muted-foreground">
-            Created {formatDateTime(sub.createdAtUtc)} · Part of order <span className="font-mono text-xs">{sub.parentOrderId.slice(0, 8).toUpperCase()}</span>
-          </p>
-          <h1 className="font-heading text-2xl font-bold text-foreground">Order {sub.subOrderNumber}</h1>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <StatusBadge entry={subOrderStatus(sub.status)} />
-            <StatusBadge entry={fulfilmentStatus(sub.fulfillmentStatus)} />
-            <StatusBadge entry={claimStatus(sub.claimStatus)} />
-          </div>
-          <div className="mt-3 empty:hidden">
-            <SellerSlaBadge sub={sub} detailed />
-          </div>
-        </header>
+      <header className="min-w-0 lg:col-start-1">
+        <p className="text-sm text-muted-foreground">
+          Created {formatDateTime(sub.createdAtUtc)} · Part of buyer order <span className="font-medium text-foreground">{parentOrderNumber(sub.subOrderNumber)}</span>
+        </p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">Order {sub.subOrderNumber}</h1>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <SellerBadges sub={sub} claim />
+        </div>
+        <div className="mt-3 empty:hidden">
+          <SellerSlaBadge sub={sub} detailed />
+        </div>
+      </header>
+      {/* On phones the actions (Confirm / Reject, fulfilment) come right after the header, not below the history. */}
+      <aside className="h-fit space-y-3 rounded-2xl border border-border bg-surface p-5 lg:sticky lg:top-[176px] lg:col-start-2 lg:row-span-2 lg:row-start-1" aria-label="Order actions">
+        <h2 className="font-heading text-lg font-bold text-foreground">{isPendingConfirmation(sub.status) ? "Your decision" : "Next step"}</h2>
+        {actions ?? (
+          <>
+            <Button className="w-full" disabled>
+              <LockSimpleIcon /> Confirm order
+            </Button>
+            <Button variant="secondary" className="w-full" disabled>
+              Reject order
+            </Button>
+          </>
+        )}
+        {!ORDER_API.sellerFulfilmentActions && (
+          <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Dispatch and delivery updates aren&apos;t available yet. They open once the fulfilment rules are approved.</p>
+        )}
+      </aside>
+      <div className="min-w-0 space-y-4 lg:col-start-1">
         <section className="overflow-hidden rounded-2xl border border-border bg-surface" aria-label="Items">
           <Lines items={sub.items} />
           <div className="border-t border-border px-4 py-3">
-            <Amounts currency={currency} rows={[["Materials", sub.materialSubtotal], ["VAT", sub.applicableMaterialVat], ["Order total", sub.subOrderTotal, true]]} />
+            <Amounts currency={currency} rows={[["Materials", sub.materialSubtotal], ["VAT", sub.applicableMaterialVat], ["Seller total", sub.subOrderTotal, true]]} />
           </div>
         </section>
         <section className="rounded-2xl border border-border bg-surface p-4 text-sm" aria-label="Delivery and payout">
@@ -355,24 +418,8 @@ export function SellerSubOrderDetail({ sub, actions, children }: { sub: SellerSu
           </dl>
         </section>
         {children}
-        <History history={sub.statusHistory} />
+        <History history={sub.statusHistory} who="seller" />
       </div>
-      <aside className="h-fit space-y-3 rounded-2xl border border-border bg-surface p-5" aria-label="Order actions">
-        <h2 className="font-heading text-lg font-bold text-foreground">Actions</h2>
-        {actions ?? (
-          <>
-            <Button className="w-full" disabled>
-              <LockSimpleIcon /> Confirm order
-            </Button>
-            <Button variant="secondary" className="w-full" disabled>
-              Reject order
-            </Button>
-          </>
-        )}
-        {!ORDER_API.sellerFulfilmentActions && (
-          <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Dispatch and delivery updates aren&apos;t available yet. They open once the fulfilment rules are approved.</p>
-        )}
-      </aside>
     </div>
   );
 }

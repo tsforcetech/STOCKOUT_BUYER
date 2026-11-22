@@ -1,4 +1,5 @@
 import * as React from "react";
+import { timeLeft, useNow } from "./components/seller-sla";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { EvidenceAndClaims } from "./seller-fulfilment";
 /** BD-ORDER-LIFECYCLE-01 buyer codes (OrderLifecycleService) → buyer wording. */
 const MESSAGES: Record<string, string> = {
   OPEN_CLAIM_BLOCKS_ACCEPTANCE: "You have an open claim on this order, so it can't be accepted until the claim is resolved.",
-  SUB_ORDER_NOT_DELIVERED: "This order hasn't been delivered or collected yet.",
+  SUB_ORDER_NOT_DELIVERED: "This order hasn't been delivered yet.",
   SUB_ORDER_ALREADY_ACCEPTED: "This order has already been accepted.",
   SUB_ORDER_CANCELLED_OR_REJECTED: "This order was cancelled or rejected.",
   MANDATORY_CLAIM_REASON: "Tell us what's wrong with the goods.",
@@ -46,6 +47,7 @@ export function BuyerAcceptance({ orderId, sub }: { orderId: string; sub: Seller
   const [reason, setReason] = React.useState("");
   const [lineId, setLineId] = React.useState("");
   const [qty, setQty] = React.useState("");
+  const now = useNow();
   const delivered = statusIs(sub.status, "DELIVERED");
   const accepted = statusIs(sub.status, "ACCEPTED");
   const claimOpen = !!sub.claimStatus && !statusIs(sub.claimStatus, "NONE") && !statusIs(sub.claimStatus, "APPROVED") && !statusIs(sub.claimStatus, "REJECTED");
@@ -124,7 +126,8 @@ export function BuyerAcceptance({ orderId, sub }: { orderId: string; sub: Seller
             {deadline ? (
               <>
                 {" "}
-                by <span className="font-medium text-foreground">{formatDateTime(deadline)}</span>. If you don&apos;t respond by then, the order may be accepted automatically under StockOut&apos;s terms.
+                by <span className="font-medium text-foreground">{formatDateTime(deadline)}</span>
+                {deadline.getTime() > now && <span className="ml-1 rounded-full bg-warning-soft px-2 py-0.5 text-xs font-medium text-warning-soft-foreground">{timeLeft(deadline.getTime() - now)} left</span>}. If you don&apos;t respond by then, the order may be accepted automatically under StockOut&apos;s terms.
               </>
             ) : (
               "."

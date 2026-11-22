@@ -42,7 +42,7 @@ export function nextSellerStep(sub: SellerSubOrderDto): Step | null {
 }
 
 const STEP: Record<Step, { label: string; title: string; text: string; icon: React.ReactNode }> = {
-  prepare: { label: "Start preparing", title: "Start preparing this order?", text: "The buyer sees that you're packing and preparing their order.", icon: <PackageIcon /> },
+  prepare: { label: "Start preparing", title: "Start preparing this order?", text: "The buyer sees that you're packing their order for StockOut freight.", icon: <PackageIcon /> },
   ready: { label: "Ready for pickup", title: "Mark ready for pickup?", text: "The buyer is told the goods are ready to collect from you.", icon: <CheckCircleIcon /> },
   collected: { label: "Confirm buyer collected", title: "Confirm the buyer collected the goods?", text: "This records the collection time. The buyer then has 5 days to accept the goods or report a problem.", icon: <HandshakeIcon /> },
 };
@@ -65,7 +65,11 @@ export function SellerFulfilment({ sellerId, sub }: { sellerId: string; sub: Sel
   if (!step)
     return (
       <p className="text-sm text-muted-foreground">
-        {isPickup(sub) ? "No fulfilment step is waiting for you." : "StockOut delivers this order. Delivery updates appear here as they happen."}
+        {isPickup(sub)
+          ? "No fulfilment step is waiting for you."
+          : statusIs(sub.fulfillmentStatus, "PREPARING")
+            ? "Keep the goods packed and ready. StockOut freight collects them from you and delivers to the buyer; each step appears here."
+            : "StockOut freight delivers this order. Each delivery step appears here as it happens."}
       </p>
     );
 

@@ -39,7 +39,7 @@ export default function SellerOrdersPage() {
         </SectionCard>
       ) : (
         <>
-          <SellerOrderList subOrders={q.rows} />
+          <SellerOrderList sellerId={seller.sellerId} subOrders={q.rows} />
           <LoadMore q={q} />
         </>
       )}

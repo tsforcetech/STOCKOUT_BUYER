@@ -64,7 +64,7 @@ describe("seller fulfilment (BD-ORDER-LIFECYCLE-01, gated)", () => {
   it("StockOut-delivered orders have no seller step after preparing; a stale version is explained", async () => {
     mockFetch([{ method: "POST", path: `/api/v1/seller/orders/${SO1}/prepare`, respond: () => ({ status: 409, body: { status: 409, code: "CONCURRENCY_CONFLICT" } }) }]);
     const { unmount } = at(<SellerFulfilment sellerId={SELLER} sub={sub({ status: "IN_FULFILLMENT", fulfillmentStatus: "IN_TRANSIT", fulfillmentMethod: "STOCKOUT_DELIVERY" })} />);
-    expect(screen.getByText(/StockOut delivers this order/)).toBeInTheDocument();
+    expect(screen.getByText(/StockOut freight collects them from you|StockOut freight delivers this order/)).toBeInTheDocument();
     unmount();
     at(<SellerFulfilment sellerId={SELLER} sub={sub()} />);
     await userEvent.click(screen.getByRole("button", { name: /Start preparing/ }));
