@@ -115,26 +115,24 @@ export function PlaceOrder({
   if (!canPlaceOrder(s)) return null;
 
   return (
-    <section aria-label="Place your order" className="rounded-xl border border-border p-4">
-      <p className="flex items-center gap-2 text-sm font-bold text-foreground">
-        <TruckIcon className="size-5" aria-hidden /> Freight delivery to your site
-      </p>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Sellers confirm within 24 hours, then StockOut arranges delivery. Your card is only charged after they confirm.
-      </p>
+    <section id="place-order" aria-label="Place your order" className="scroll-mt-40 space-y-3">
       {!deliveryAddressId && (
-        <p className="mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" role="status">
+        <p className="rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" role="status">
           Choose a delivery address under Delivery to place your order.
         </p>
       )}
       {place.error != null && (
-        <p role="alert" className={closed ? "mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" : "mt-3 rounded-lg bg-danger-soft p-3 text-sm text-danger-soft-foreground"}>
+        <p role="alert" className={closed ? "rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" : "rounded-lg bg-danger-soft p-3 text-sm text-danger-soft-foreground"}>
           {placementMessage(place.error)}
         </p>
       )}
-      <Button className="mt-4 w-full rounded-full" size="lg" loading={place.isPending} disabled={disabled} onClick={() => place.mutate()}>
+      <Button className="w-full rounded-full" size="lg" loading={place.isPending} disabled={disabled} onClick={() => place.mutate()}>
         <LockSimpleIcon /> {place.error && !closed ? "Try again" : `Place order · ${formatMoney(s.authorizedAmount, s.currency)}`}
       </Button>
+      <p className="flex items-start justify-center gap-1.5 text-center text-xs leading-5 text-muted-foreground">
+        <TruckIcon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+        <span>Freight to your selected address. Sellers confirm within 24 hours; your card is charged only after they confirm.</span>
+      </p>
     </section>
   );
 }

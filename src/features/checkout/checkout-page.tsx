@@ -379,6 +379,7 @@ function OrderSummary({
   error,
   onRetry,
   placed = null,
+  authorised = false,
 }: {
   readiness: CheckoutValidationResult | undefined;
   loading: boolean;
@@ -386,6 +387,8 @@ function OrderSummary({
   onRetry: () => void;
   /** Set once the order exists: the summary then confirms it instead of offering to order. */
   placed?: { orderId: string; orderNumber: string | null } | null;
+  /** The card is authorised and the order is waiting to be placed (Payment step). */
+  authorised?: boolean;
 }) {
   const r = readiness;
   const blockers = r?.blockers ?? [];
@@ -427,7 +430,7 @@ function OrderSummary({
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Delivery</dt>
-            <dd className="text-muted-foreground">Freight, confirmed before dispatch</dd>
+            <dd className="text-right text-muted-foreground">Confirmed before dispatch</dd>
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <dt className="font-medium text-foreground">Estimated total</dt>
@@ -448,10 +451,33 @@ function OrderSummary({
         </div>
       ) : r && (
         <div className="mt-4" aria-label="Checkout readiness">
-          {r.canProceed ? (
+          {r.canProceed && ORDER_API.placeOrder ? (
+            authorised ? (
+              <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
+                <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />
+                <span>
+                  Card authorised.{" "}
+                  <a href="#place-order" className="font-medium underline underline-offset-2">
+                    Place your order
+                  </a>{" "}
+                  to finish.
+                </span>
+              </p>
+            ) : (
+              <p className="flex items-start gap-2 rounded-lg bg-muted p-3 text-xs leading-5 text-body">
+                <CreditCardIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+                <span>
+                  Next:{" "}
+                  <a href="#co-payment" className="font-medium underline underline-offset-2">
+                    authorise your card
+                  </a>
+                  . You're charged only after sellers confirm.
+                </span>
+              </p>
+            )
+          ) : r.canProceed ? (
             <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
-              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />{" "}
-              {ORDER_API.placeOrder ? "Ready to order. Authorise your card under Payment, then place the order there." : "Readiness confirmed. Ordering will be available in a later release."}
+              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Readiness confirmed. Ordering will be available in a later release.
             </p>
           ) : (
             <ul className="space-y-2">
@@ -480,9 +506,9 @@ function OrderSummary({
           <LockSimpleIcon /> Continue to payment
         </Button>
       )}
-      {!placed && (
+      {!placed && !ORDER_API.placeOrder && (
         <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-          {ORDER_API.placeOrder ? PLACE_ORDER_NOTE_ORDERING : ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
+          {ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
         </p>
       )}
     </aside>
@@ -512,6 +538,7 @@ export default function CheckoutPage() {
   // Freight delivery address chosen under Delivery; order placement sends it (owner decision 22 Nov: freight only).
   const [deliveryAddressId, setDeliveryAddressId] = React.useState<string | null>(null);
   const [placedOrder, setPlacedOrder] = React.useState<{ orderId: string; orderNumber: string | null } | null>(null);
+  const [cardAuthorised, setCardAuthorised] = React.useState(false);
   React.useEffect(() => {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
@@ -583,12 +610,13 @@ export default function CheckoutPage() {
               publishableKey: env.stripePublishableKey,
               deliveryAddressId,
               onOrderPlaced: setPlacedOrder,
+              onAuthorisedChange: setCardAuthorised,
               onCartStale: () => setPaymentStale(true),
               onReadinessStale: () => void readiness.refetch(),
             }}
           />
         </div>
-        <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} placed={placedOrder} />
+        <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} placed={placedOrder} authorised={cardAuthorised} />
       </div>
     </div>
   );

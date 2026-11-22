@@ -61,6 +61,7 @@ export function PaymentStep({
   publishableKey,
   deliveryAddressId = null,
   onOrderPlaced,
+  onAuthorisedChange,
   onCartStale,
   onReadinessStale,
 }: {
@@ -73,6 +74,8 @@ export function PaymentStep({
   deliveryAddressId?: string | null;
   /** The order now exists (placed here, or found on reload). */
   onOrderPlaced?: (order: { orderId: string; orderNumber: string | null }) => void;
+  /** The card is (or stops being) authorised and waiting for the order; the summary shows the next step. */
+  onAuthorisedChange?: (authorised: boolean) => void;
   /** The cart changed elsewhere: reload it and readiness. */
   onCartStale: () => void;
   /** The total changed: re-check readiness. */
@@ -306,20 +309,29 @@ export function PaymentStep({
   const ordered = hasPlacedOrder(s);
   const canCancel = !s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED") || holdFailed;
 
+  const readyToPlace = authorised && ORDER_API.placeOrder && !ordered;
   return (
     <div className="space-y-3">
-      {header}
+      <AuthorisedSignal value={readyToPlace} onChange={onAuthorisedChange} />
+      {!authorised && !ordered && header}
       {authorised && ORDER_API.placeOrder ? (
         <>
           {!ordered && (
-            <div role="status" className="rounded-lg bg-success-soft p-3 text-sm text-success-soft-foreground">
-              <p className="flex items-center gap-2 font-medium">
-                <CheckCircleIcon className="size-4" weight="fill" aria-hidden /> Payment authorised
-              </p>
-              <p className="mt-1">
-                {formatMoney(s.authorizedAmount, s.currency)} is held on your card, not charged. Place your order to finish.
-                {s.authorizationExpiresAtUtc && ` The hold lasts until ${formatDateTime(s.authorizationExpiresAtUtc)}.`}
-              </p>
+            <div role="status" className="flex items-center gap-3 rounded-xl border border-border p-4 text-sm">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-success-soft text-success-soft-foreground">
+                <CheckCircleIcon className="size-5" weight="fill" aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-foreground">Card authorised</p>
+                <p className="text-muted-foreground">
+                  {formatMoney(s.authorizedAmount, s.currency)} on hold, not charged{s.authorizationExpiresAtUtc && ` · hold ends ${formatDateTime(s.authorizationExpiresAtUtc)}`}
+                </p>
+              </div>
+              {canCancel && (
+                <Button size="sm" variant="ghost" loading={cancel.isPending} onClick={() => (setError(null), cancel.mutate())}>
+                  Cancel
+                </Button>
+              )}
             </div>
           )}
           <PlaceOrder s={s} cartVersion={stored?.cartVersion ?? cartVersion} deliveryAddressId={deliveryAddressId} onCartStale={onCartStale} onRecheck={() => void status.refetch()} onPlaced={onOrderPlaced} />
@@ -379,13 +391,22 @@ export function PaymentStep({
         <p className="text-xs text-muted-foreground">Your items are reserved until {formatDateTime(s.earliestReservationExpiresAtUtc)}.</p>
       )}
       {errorBox}
-      {canCancel && (
+      {canCancel && !readyToPlace && (
         <Button size="sm" variant="ghost" loading={cancel.isPending} onClick={() => (setError(null), cancel.mutate())}>
           <XCircleIcon /> Cancel payment
         </Button>
       )}
     </div>
   );
+}
+
+/** Reports the "authorised, waiting for the order" state to the page without re-rendering it on every poll. */
+function AuthorisedSignal({ value, onChange }: { value: boolean; onChange?: (v: boolean) => void }) {
+  React.useEffect(() => {
+    onChange?.(value);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- report changes of the value only
+  }, [value]);
+  return null;
 }
 
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

@@ -34,8 +34,13 @@ describe("payment step with ordering on", () => {
     sessionStorage.setItem(`stockout.market.preauth.${CART}`, JSON.stringify({ cartId: CART, cartVersion: RV, idempotencyKey: "k", checkoutCorrelationId: "corr", expectedTotalAmount: 1050, attemptId: ATTEMPT }));
     mockFetch([{ method: "GET", path: `/api/v1/buyer/checkout/payment-authorizations/${ATTEMPT}`, respond: () => ({ body: authorised }) }]);
     renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={readiness} publishableKey="pk_test_1" deliveryAddressId="ad000000-0000-4000-8000-000000000001" onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
-    expect(await screen.findByText(/Place your order to finish/)).toBeInTheDocument();
+    expect(await screen.findByText("Card authorised")).toBeInTheDocument();
+    expect(screen.getByText(/AED\s1,050\.00 on hold, not charged/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Place order · AED\s1,050\.00/ })).toBeEnabled();
+    // One status, one action: no repeated explainer card and a single Cancel next to the card row.
+    expect(screen.queryByText("Card payment")).not.toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: /Cancel/ })).toHaveLength(1);
+    expect(screen.getAllByRole("button", { name: /Place order/ })).toHaveLength(1);
   });
 
   it("tells the page once the order exists (so the summary stops offering to order)", async () => {

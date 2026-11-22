@@ -79,7 +79,7 @@ describe("order placement (handoff 20 Nov 2026 §4.3, gated)", () => {
   it("posts the authorisation with If-Match and Idempotency-Key, and shows the order only when the server placed it", async () => {
     const { calls } = mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ body: placed }) }]);
     render();
-    expect(screen.getByText("Freight delivery to your site")).toBeInTheDocument();
+    expect(screen.getByText(/Freight to your selected address/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Place order · AED\s1,050\.00/ }));
     expect(await screen.findByText(/Order placed · SO-2026-000123/)).toBeInTheDocument();
     expect(screen.getByText("SO-2026-000123-S1")).toBeInTheDocument();
