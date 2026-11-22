@@ -1,4 +1,5 @@
 import * as React from "react";
+import { FREIGHT_FEE_AED, showsFreight } from "@/lib/orders/freight";
 import { Link } from "react-router";
 import {
   ArrowCounterClockwiseIcon,
@@ -146,6 +147,8 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
   const codes = new Set(blockers.map((b) => b.code));
   const mixed = codes.has("MIXED_CURRENCY_NOT_SUPPORTED");
   const noTax = codes.has("TAX_RATE_UNAVAILABLE");
+  // Freight is AED 10 gross once per order (owner decision 22 Nov); checkout confirms it from the server.
+  const freight = cart.itemCount > 0 && showsFreight(cart.currency) ? FREIGHT_FEE_AED : 0;
   // Generic (cart-wide) blockers are listed here; item-specific ones are shown on their line.
   const general = blockers.filter((b) => !b.listingId);
   const elig = useBuyerEligibility().data;
@@ -169,14 +172,17 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
             <dt className="text-muted-foreground">{noTax ? "Estimated VAT" : `Estimated VAT (${formatNumber(cart.estimatedVatRatePercent)}%)`}</dt>
             <dd className="text-foreground">{noTax ? "Not available" : formatMoney(cart.estimatedVatAmount, cart.currency)}</dd>
           </div>
+          {freight > 0 && (
+            <div className="flex justify-between">
+              <dt className="text-muted-foreground">Freight delivery (incl. VAT)</dt>
+              <dd className="text-foreground">{formatMoney(freight, cart.currency)}</dd>
+            </div>
+          )}
           <div className="flex justify-between border-t border-border pt-2">
             <dt className="font-medium text-foreground">Estimated total</dt>
-            <dd className="font-heading text-xl font-bold text-foreground">{noTax ? formatMoney(cart.totalSubtotal, cart.currency) : formatMoney(cart.estimatedTotal, cart.currency)}</dd>
+            <dd className="font-heading text-xl font-bold text-foreground">{formatMoney((noTax ? cart.totalSubtotal : cart.estimatedTotal) + freight, cart.currency)}</dd>
           </div>
-          <div className="flex justify-between text-xs text-muted-foreground">
-            <dt>Delivery & inspection</dt>
-            <dd>Agreed with seller</dd>
-          </div>
+          {freight > 0 && <p className="text-xs text-muted-foreground">One delivery charge per order, however many sellers. Confirmed at checkout.</p>}
         </dl>
       )}
 

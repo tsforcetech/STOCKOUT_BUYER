@@ -1,4 +1,5 @@
 import { sellerLabel } from "@/lib/seller-code";
+import { FREIGHT_FEE_AED, showsFreight } from "@/lib/orders/freight";
 import { QuickAddToCart, cartListingFromCard } from "@/features/cart/add-to-cart";
 import { Link } from "react-router";
 import { stockLabel } from "../lib/stock";
@@ -96,6 +97,7 @@ export function ListingRow({ item }: { item: ListingSearchCard }) {
               {formatMoney(item.basePrice, item.currency)}
               {item.quantityUnitSymbol && <span className="font-sans text-sm font-normal text-muted-foreground">/{item.quantityUnitSymbol}</span>}
             </p>
+            {showsFreight(item.currency) && <p className="text-[11px] text-muted-foreground sm:text-xs">+ {formatMoney(FREIGHT_FEE_AED, "AED")} delivery</p>}
             {item.isAvailable && item.sellableQuantity > 0 && (
               <p className={cn("text-[11px] sm:text-xs", stockLabel(item.sellableQuantity, null).low ? "font-semibold text-warning-soft-foreground" : "text-muted-foreground")}>
                 {stockLabel(item.sellableQuantity, item.quantityUnitSymbol ?? item.quantityUnitName).text}

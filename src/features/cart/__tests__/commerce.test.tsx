@@ -53,6 +53,10 @@ describe("Stage 8A.2 server cart", () => {
     expect(screen.getByText(/Only 2 available/)).toBeInTheDocument();
     expect(screen.getByRole("spinbutton", { name: "Quantity" })).toHaveValue(4); // never silently reduced
     expect(screen.getByText("Estimated VAT (7.5%)")).toBeInTheDocument(); // rate from the API, not a hardcoded 5%
+    // Freight shown before checkout: AED 10 once per order, included in the estimate (473 + 10).
+    expect(screen.getByText("Freight delivery (incl. VAT)")).toBeInTheDocument();
+    expect(screen.getByText(/AED\s?483\.00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Agreed with seller/)).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Verify my identity" })).toHaveAttribute("href", "/account/verification");
     expect(screen.getByRole("button", { name: /Proceed to checkout/ })).toBeDisabled();
   });

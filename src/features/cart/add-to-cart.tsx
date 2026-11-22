@@ -1,5 +1,6 @@
 import * as React from "react";
-import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon, TrashIcon } from "@phosphor-icons/react";
+import { FREIGHT_FEE_AED, showsFreight } from "@/lib/orders/freight";
+import { CheckIcon, MinusIcon, PlusIcon, ShoppingCartSimpleIcon, TrashIcon, TruckIcon } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
@@ -158,11 +159,20 @@ export function AddToCart({ listing }: { listing: AddToCartListing }) {
       </div>
       <p className="mt-3 text-sm text-body">
         Total <span className="font-heading font-bold text-foreground">{formatMoney(listing.basePrice! * qty, listing.currency)}</span>
+        {showsFreight(listing.currency) && <span className="text-body"> + {formatMoney(FREIGHT_FEE_AED, "AED")} delivery</span>}
         <span className="text-muted-foreground">
           {" "}
           · {formatNumber(max)} {listing.unitSymbol ?? ""} available
         </span>
       </p>
+      {showsFreight(listing.currency) && (
+        <p className="mt-2 flex items-start gap-1.5 text-xs leading-5 text-muted-foreground">
+          <TruckIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
+          <span>
+            Delivered to your site: <span className="font-medium text-foreground">{formatMoney(FREIGHT_FEE_AED, "AED")} per order</span>, VAT included. One charge for the whole order, however many sellers.
+          </span>
+        </p>
+      )}
       {limitReached && <p className="mt-2 text-sm text-warning-soft-foreground">Your cart has {CART_LINE_LIMIT} different items, the maximum. Remove or save one for later to add this.</p>}
       {inCartQty !== null && (
         <p className="mt-2 flex items-center gap-1.5 text-sm text-success-soft-foreground">

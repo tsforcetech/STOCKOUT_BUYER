@@ -1,4 +1,5 @@
 import { useAuthDialog } from "@/features/auth/auth-dialog";
+import { FREIGHT_FEE_AED } from "@/lib/orders/freight";
 import { useLeavingRows } from "./remove-with-undo";
 import { cn } from "@/lib/utils/cn";
 import { safeSellerLabel } from "@/lib/seller-code";
@@ -131,8 +132,8 @@ function GuestCartPage() {
               </div>
             ))}
             <div className="flex justify-between text-muted-foreground">
-              <dt>Delivery & inspection</dt>
-              <dd>Agreed with seller</dd>
+              <dt>Freight delivery (incl. VAT)</dt>
+              <dd>{formatMoney(FREIGHT_FEE_AED, "AED")} per order</dd>
             </div>
           </dl>
           {/* Checkout needs an account (server cart + readiness). After sign-in the cart page offers to move these items

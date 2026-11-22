@@ -42,4 +42,10 @@ describe("listing card: add to cart", () => {
     at(<ListingCard item={item({ isAvailable: false })} />);
     expect(screen.queryByRole("button", { name: /to cart/ })).not.toBeInTheDocument();
   });
+
+  it("shows the AED 10 delivery under the price", () => {
+    mockFetch([]);
+    at(<ListingCard item={item()} />);
+    expect(screen.getByText(/\+ AED\s?10\.00 delivery/)).toBeInTheDocument();
+  });
 });

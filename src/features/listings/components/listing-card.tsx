@@ -1,4 +1,5 @@
 import { sellerLabel } from "@/lib/seller-code";
+import { FREIGHT_FEE_AED, showsFreight } from "@/lib/orders/freight";
 import { Link } from "react-router";
 import { stockLabel } from "../lib/stock";
 import { cn } from "@/lib/utils/cn";
@@ -100,6 +101,7 @@ export function ListingCard({ item }: { item: ListingSearchCard }) {
                 </span>
               )}
             </p>
+            {showsFreight(item.currency) && <span className="text-[11px] text-muted-foreground">+ {formatMoney(FREIGHT_FEE_AED, "AED")} delivery</span>}
             {item.isAvailable && item.sellableQuantity > 0 && (() => {
               const stock = stockLabel(item.sellableQuantity, item.quantityUnitSymbol);
               return <span className={cn("shrink-0 text-[11px]", stock.low ? "font-semibold text-warning-soft-foreground" : "text-muted-foreground")}>{stock.text}</span>;
