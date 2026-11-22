@@ -60,6 +60,7 @@ export function PaymentStep({
   readiness,
   publishableKey,
   deliveryAddressId = null,
+  onOrderPlaced,
   onCartStale,
   onReadinessStale,
 }: {
@@ -70,6 +71,8 @@ export function PaymentStep({
   publishableKey: string;
   /** Delivery address chosen on the checkout page (freight orders need one). */
   deliveryAddressId?: string | null;
+  /** The order now exists (placed here, or found on reload). */
+  onOrderPlaced?: (order: { orderId: string; orderNumber: string | null }) => void;
   /** The cart changed elsewhere: reload it and readiness. */
   onCartStale: () => void;
   /** The total changed: re-check readiness. */
@@ -319,7 +322,7 @@ export function PaymentStep({
               </p>
             </div>
           )}
-          <PlaceOrder s={s} cartVersion={stored?.cartVersion ?? cartVersion} deliveryAddressId={deliveryAddressId} onCartStale={onCartStale} onRecheck={() => void status.refetch()} />
+          <PlaceOrder s={s} cartVersion={stored?.cartVersion ?? cartVersion} deliveryAddressId={deliveryAddressId} onCartStale={onCartStale} onRecheck={() => void status.refetch()} onPlaced={onOrderPlaced} />
         </>
       ) : authorised ? (
         <div role="status" className="rounded-lg bg-success-soft p-3 text-sm text-success-soft-foreground">

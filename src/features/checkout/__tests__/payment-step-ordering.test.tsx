@@ -37,4 +37,15 @@ describe("payment step with ordering on", () => {
     expect(await screen.findByText(/Place your order to finish/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Place order · AED\s1,050\.00/ })).toBeEnabled();
   });
+
+  it("tells the page once the order exists (so the summary stops offering to order)", async () => {
+    sessionStorage.setItem(`stockout.market.preauth.${CART}`, JSON.stringify({ cartId: CART, cartVersion: RV, idempotencyKey: "k", checkoutCorrelationId: "corr", expectedTotalAmount: 1050, attemptId: ATTEMPT }));
+    const ORDER = "0d000000-0000-4000-8000-000000000001";
+    mockFetch([{ method: "GET", path: `/api/v1/buyer/checkout/payment-authorizations/${ATTEMPT}`, respond: () => ({ body: { ...authorised, orderPlaced: true, orderId: ORDER, orderNumber: "SO-10000002", checkoutStage: "SELLER_CONFIRMATION_PENDING" } }) }]);
+    const onOrderPlaced = vi.fn();
+    renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={readiness} publishableKey="pk_test_1" deliveryAddressId="ad000000-0000-4000-8000-000000000001" onOrderPlaced={onOrderPlaced} onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
+    expect(await screen.findByText(/Order placed · SO-10000002/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Place order/ })).not.toBeInTheDocument();
+    expect(onOrderPlaced).toHaveBeenCalledWith({ orderId: ORDER, orderNumber: "SO-10000002" });
+  });
 });

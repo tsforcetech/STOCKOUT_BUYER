@@ -373,7 +373,20 @@ function GeneralBlocker({ code, text }: { code: string; text: string }) {
   );
 }
 
-function OrderSummary({ readiness, loading, error, onRetry }: { readiness: CheckoutValidationResult | undefined; loading: boolean; error: unknown; onRetry: () => void }) {
+function OrderSummary({
+  readiness,
+  loading,
+  error,
+  onRetry,
+  placed = null,
+}: {
+  readiness: CheckoutValidationResult | undefined;
+  loading: boolean;
+  error: unknown;
+  onRetry: () => void;
+  /** Set once the order exists: the summary then confirms it instead of offering to order. */
+  placed?: { orderId: string; orderNumber: string | null } | null;
+}) {
   const r = readiness;
   const blockers = r?.blockers ?? [];
   const codes = new Set(blockers.map((b) => b.code));
@@ -414,7 +427,7 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
           </div>
           <div className="flex justify-between">
             <dt className="text-muted-foreground">Delivery</dt>
-            <dd className="text-muted-foreground">Calculated at checkout</dd>
+            <dd className="text-muted-foreground">Freight, confirmed before dispatch</dd>
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <dt className="font-medium text-foreground">Estimated total</dt>
@@ -423,11 +436,22 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
         </dl>
       )}
 
-      {r && (
+      {placed ? (
+        <div role="status" className="mt-4 rounded-lg bg-success-soft p-3 text-sm text-success-soft-foreground">
+          <p className="flex items-center gap-2 font-medium">
+            <CheckCircleIcon className="size-4 shrink-0" weight="fill" aria-hidden /> Order placed{placed.orderNumber ? ` · ${placed.orderNumber}` : ""}
+          </p>
+          <p className="mt-1 text-xs leading-5">Sellers now confirm their part. You're charged only after they confirm.</p>
+          <Button asChild size="sm" className="mt-3 rounded-full">
+            <Link to={`/account/orders/${placed.orderId}`}>View order</Link>
+          </Button>
+        </div>
+      ) : r && (
         <div className="mt-4" aria-label="Checkout readiness">
           {r.canProceed ? (
             <p className="flex items-start gap-2 rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">
-              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden /> Readiness confirmed. Ordering will be available in a later release.
+              <CheckCircleIcon className="mt-0.5 size-4 shrink-0" weight="fill" aria-hidden />{" "}
+              {ORDER_API.placeOrder ? "Ready to order. Authorise your card under Payment, then place the order there." : "Readiness confirmed. Ordering will be available in a later release."}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -450,19 +474,17 @@ function OrderSummary({ readiness, loading, error, onRetry }: { readiness: Check
         </div>
       )}
 
-      {/* With ordering on, the order is placed in the payment step (after the card is authorised); this goes there. */}
-      <Button
-        size="lg"
-        className="mt-4 w-full rounded-full"
-        disabled={!ORDER_API.placeOrder}
-        aria-describedby="place-order-note"
-        onClick={() => document.getElementById("co-payment")?.scrollIntoView({ behavior: "smooth", block: "start" })}
-      >
-        <LockSimpleIcon /> {ORDER_API.paymentPreAuth ? "Place order" : "Continue to payment"}
-      </Button>
-      <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        {ORDER_API.placeOrder ? PLACE_ORDER_NOTE_ORDERING : ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
-      </p>
+      {/* One action only: with card payment on, paying and placing the order happen in the Payment section. */}
+      {!ORDER_API.paymentPreAuth && (
+        <Button size="lg" className="mt-4 w-full rounded-full" disabled aria-describedby="place-order-note">
+          <LockSimpleIcon /> Continue to payment
+        </Button>
+      )}
+      {!placed && (
+        <p id="place-order-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
+          {ORDER_API.placeOrder ? PLACE_ORDER_NOTE_ORDERING : ORDER_API.paymentPreAuth ? PLACE_ORDER_NOTE_PREAUTH : PLACE_ORDER_NOTE}
+        </p>
+      )}
     </aside>
   );
 }
@@ -489,6 +511,7 @@ export default function CheckoutPage() {
   const [paymentStale, setPaymentStale] = React.useState(false);
   // Freight delivery address chosen under Delivery; order placement sends it (owner decision 22 Nov: freight only).
   const [deliveryAddressId, setDeliveryAddressId] = React.useState<string | null>(null);
+  const [placedOrder, setPlacedOrder] = React.useState<{ orderId: string; orderNumber: string | null } | null>(null);
   React.useEffect(() => {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
@@ -559,12 +582,13 @@ export default function CheckoutPage() {
               readiness: readiness.data,
               publishableKey: env.stripePublishableKey,
               deliveryAddressId,
+              onOrderPlaced: setPlacedOrder,
               onCartStale: () => setPaymentStale(true),
               onReadinessStale: () => void readiness.refetch(),
             }}
           />
         </div>
-        <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} />
+        <OrderSummary readiness={readiness.data} loading={readiness.isLoading} error={readiness.error} onRetry={() => void readiness.refetch()} placed={placedOrder} />
       </div>
     </div>
   );

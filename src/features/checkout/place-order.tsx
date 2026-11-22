@@ -34,6 +34,7 @@ export function PlaceOrder({
   deliveryAddressId,
   onCartStale,
   onRecheck,
+  onPlaced,
 }: {
   s: PaymentAuthorizationStatusResponse;
   cartVersion: string;
@@ -41,6 +42,8 @@ export function PlaceOrder({
   deliveryAddressId: string | null;
   onCartStale: () => void;
   onRecheck: () => void;
+  /** Tells the page an order exists (so the summary stops offering to place one). */
+  onPlaced?: (order: { orderId: string; orderNumber: string | null }) => void;
 }) {
   const qc = useQueryClient();
   const [placed, setPlaced] = React.useState<PlaceBuyerOrderResponse | null>(null);
@@ -67,6 +70,12 @@ export function PlaceOrder({
     if (isApiError(e) && e.code && PLACEMENT_CART_STALE.has(e.code)) onCartStale();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- react to a new error only
   }, [place.error]);
+
+  const placedOrder = placed ? { orderId: placed.orderId, orderNumber: placed.orderNumber } : hasPlacedOrder(s) ? { orderId: s.orderId!, orderNumber: s.orderNumber } : null;
+  React.useEffect(() => {
+    if (placedOrder) onPlaced?.(placedOrder);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per order
+  }, [placedOrder?.orderId]);
 
   if (placed) return <OrderPlaced orderId={placed.orderId} orderNumber={placed.orderNumber} total={formatMoney(placed.totalPayableAmount, placed.currency)} subOrders={placed.sellerSubOrders} />;
   if (hasPlacedOrder(s)) return <OrderPlaced orderId={s.orderId!} orderNumber={s.orderNumber} total={formatMoney(s.authorizedAmount, s.currency)} subOrders={[]} />;
