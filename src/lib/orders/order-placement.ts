@@ -115,5 +115,8 @@ export const PLACEMENT_MESSAGES: Record<string, string> = {
   CART_CONCURRENCY_CONFLICT: "Your cart changed. Reload to review it before ordering.",
 };
 export const placementMessage = (e: unknown) => (isApiError(e) && e.code && PLACEMENT_MESSAGES[e.code]) || getErrorMessage(e);
+/** Codes meaning ordering or freight is switched off on the server: the same request can't succeed until it opens. */
+export const PLACEMENT_CLOSED = new Set(["ORDER_PLACEMENT_DISABLED", "ORDER_PLACEMENT_PREREQUISITES_NOT_MET", "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED", "ORDER_PLACEMENT_DELIVERY_BREAKDOWN_UNAVAILABLE", "COM_DEL_MODE_POLICY_GATED", "COM_DEL_MODE_UNSUPPORTED"]);
+
 /** Codes after which the cart / readiness must be re-read before anything else. */
 export const PLACEMENT_CART_STALE = new Set(["ORDER_PLACEMENT_CART_NOT_FOUND_OR_STALE", "ORDER_PLACEMENT_SNAPSHOT_MISMATCH", "ORDER_PLACEMENT_AMOUNT_MISMATCH", "INVALID_IF_MATCH_HEADER", "CART_CONCURRENCY_CONFLICT"]);

@@ -67,6 +67,15 @@ describe("order placement (handoff 20 Nov 2026 §4.3, gated)", () => {
     expect(screen.queryByText(/collection/i)).not.toBeInTheDocument();
   });
 
+  it("COM_DEL_MODE_POLICY_GATED (freight not enabled on the server) is a notice with no Try again", async () => {
+    mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ status: 400, body: { status: 400, code: "COM_DEL_MODE_POLICY_GATED", title: "Bad Request" } }) }]);
+    render();
+    await userEvent.click(screen.getByRole("button", { name: /Place order/ }));
+    expect(await screen.findByText(/Freight delivery orders aren't open yet/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Try again/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Place order/ })).toBeDisabled();
+  });
+
   it("posts the authorisation with If-Match and Idempotency-Key, and shows the order only when the server placed it", async () => {
     const { calls } = mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ body: placed }) }]);
     render();

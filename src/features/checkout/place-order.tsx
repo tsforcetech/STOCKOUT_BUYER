@@ -11,6 +11,7 @@ import { preAuthStore } from "@/lib/orders/payment-preauth";
 import {
   ORDER_PLACED_STAGES,
   PLACEMENT_CART_STALE,
+  PLACEMENT_CLOSED,
   canPlaceOrder,
   hasPlacedOrder,
   isUncertainPlacement,
@@ -92,7 +93,8 @@ export function PlaceOrder({
     );
 
   const uncertain = place.error != null && isUncertainPlacement(place.error);
-  const closed = isApiError(place.error) && (place.error.status === 503 || place.error.code === "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED");
+  // Ordering or freight is switched off on the server: retrying can't help, so no "Try again" (cancel the hold instead).
+  const closed = isApiError(place.error) && (place.error.status === 503 || PLACEMENT_CLOSED.has(place.error.code ?? ""));
   const disabled = closed || !deliveryAddressId;
 
   if (uncertain)
