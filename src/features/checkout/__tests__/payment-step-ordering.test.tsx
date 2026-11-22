@@ -30,10 +30,10 @@ const authorised = {
 };
 
 describe("payment step with ordering on", () => {
-  it("after a provider-verified authorisation, offers Place order (collection) and no cancel-only dead end", async () => {
+  it("after a provider-verified authorisation, offers Place order (freight, with the chosen address) and no cancel-only dead end", async () => {
     sessionStorage.setItem(`stockout.market.preauth.${CART}`, JSON.stringify({ cartId: CART, cartVersion: RV, idempotencyKey: "k", checkoutCorrelationId: "corr", expectedTotalAmount: 1050, attemptId: ATTEMPT }));
     mockFetch([{ method: "GET", path: `/api/v1/buyer/checkout/payment-authorizations/${ATTEMPT}`, respond: () => ({ body: authorised }) }]);
-    renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={readiness} publishableKey="pk_test_1" onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
+    renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={readiness} publishableKey="pk_test_1" deliveryAddressId="ad000000-0000-4000-8000-000000000001" onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
     expect(await screen.findByText(/Place your order to finish/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Place order · AED\s1,050\.00/ })).toBeEnabled();
   });

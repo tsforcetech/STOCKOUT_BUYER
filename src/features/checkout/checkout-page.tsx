@@ -313,7 +313,7 @@ function addressOwnerFor(cart: BuyerCartResponse, readiness: CheckoutValidationR
  * Delivery: StockOut ships every order by freight to the chosen site (owner decision 21 Nov 2026), so there is no
  * method to pick and no collection option; the buyer only chooses the address.
  */
-function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }) {
+function DeliverySection({ addressOwner, onAddressChange }: { addressOwner: AddressOwner | null; onAddressChange: (addressId: string | null) => void }) {
   return (
     <section className={sectionCls} aria-labelledby="co-delivery-h">
       <SectionTitle id="co-delivery-h" n={3} title="Delivery" />
@@ -326,7 +326,7 @@ function DeliverySection({ addressOwner }: { addressOwner: AddressOwner | null }
           <p className="mt-0.5 leading-5 text-muted-foreground">StockOut arranges truck delivery to the address below once the sellers confirm. Any delivery charge is confirmed with you before dispatch.</p>
         </div>
       </div>
-      <CheckoutAddressPicker owner={addressOwner} />
+      <CheckoutAddressPicker owner={addressOwner} onChange={onAddressChange} />
     </section>
   );
 }
@@ -487,6 +487,8 @@ export default function CheckoutPage() {
   const [reviewed, setReviewed] = React.useState<{ rowVersion: string; cart: BuyerCartResponse } | null>(null);
   // The payment step found the cart stale (If-Match / concurrency refusal).
   const [paymentStale, setPaymentStale] = React.useState(false);
+  // Freight delivery address chosen under Delivery; order placement sends it (owner decision 22 Nov: freight only).
+  const [deliveryAddressId, setDeliveryAddressId] = React.useState<string | null>(null);
   React.useEffect(() => {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
@@ -549,13 +551,14 @@ export default function CheckoutPage() {
         <div className="min-w-0 space-y-4">
           <BuyerSection readiness={readiness.data} onRetry={() => void readiness.refetch()} cart={cart} onCartChanged={(c) => (queryClient.setQueryData(commerceKeys.cart, c), setReviewed({ rowVersion: c.rowVersion, cart: c }))} />
           <ItemsSection cart={cart} readiness={readiness.data} />
-          <DeliverySection addressOwner={addressOwnerFor(reviewed.cart, readiness.data)} />
+          <DeliverySection addressOwner={addressOwnerFor(reviewed.cart, readiness.data)} onAddressChange={setDeliveryAddressId} />
           <PaymentSection
             payment={{
               cart,
               cartVersion: reviewed.rowVersion,
               readiness: readiness.data,
               publishableKey: env.stripePublishableKey,
+              deliveryAddressId,
               onCartStale: () => setPaymentStale(true),
               onReadinessStale: () => void readiness.refetch(),
             }}

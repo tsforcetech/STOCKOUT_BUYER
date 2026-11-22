@@ -4,7 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { renderWithApp } from "@/test/render";
 import { mockFetch } from "@/test/http";
 import { PlaceOrder } from "../place-order";
-import { canPlaceOrder, collectionSelections, hasPlacedOrder } from "@/lib/orders/order-placement";
+import { canPlaceOrder, freightSelections, hasPlacedOrder } from "@/lib/orders/order-placement";
 import type { PaymentAuthorizationStatusResponse } from "@/api/types/payment-preauth";
 
 afterEach(() => {
@@ -27,10 +27,11 @@ const status = (over: Partial<PaymentAuthorizationStatusResponse> = {}) =>
   }) as PaymentAuthorizationStatusResponse;
 const placed = { orderPlaced: true, checkoutStage: "SELLER_CONFIRMATION_PENDING", isIdempotentReplay: false, orderId: ORDER, paymentAuthorizationAttemptId: ATTEMPT, orderNumber: "SO-2026-000123", orderStatus: "PendingConfirmation", paymentStatus: "AUTHORIZED", currency: "AED", materialSubtotal: 1000, materialVat: 50, deliveryAmount: 0, deliveryVatAmount: 0, totalPayableAmount: 1050, createdAtUtc: "2026-11-20T10:00:00Z", sellerSubOrders: [{ subOrderId: "so1", subOrderNumber: "SO-2026-000123-S1", sellerOrganizationId: S1, status: "PENDING_CONFIRMATION", materialSubtotal: 1000, materialVat: 50, subOrderTotal: 1050, confirmationDeadlineUtc: "2026-11-21T10:00:00Z", deliveryMode: "SELF_COLLECTION", deliveryFeeSubtotal: 0, deliveryVatAmount: 0 }] };
 
-function render(s = status()) {
+const ADDR = "ad000000-0000-4000-8000-000000000001";
+function render(s = status(), deliveryAddressId: string | null = ADDR) {
   const onCartStale = vi.fn();
   const onRecheck = vi.fn();
-  renderWithApp([{ path: "/checkout", element: <PlaceOrder s={s} cartVersion={RV} onCartStale={onCartStale} onRecheck={onRecheck} /> }, { path: "/account/orders/:id", element: <p>order page</p> }], "/checkout");
+  renderWithApp([{ path: "/checkout", element: <PlaceOrder s={s} cartVersion={RV} deliveryAddressId={deliveryAddressId} onCartStale={onCartStale} onRecheck={onRecheck} /> }, { path: "/account/orders/:id", element: <p>order page</p> }], "/checkout");
   return { onCartStale, onRecheck };
 }
 
@@ -44,11 +45,26 @@ describe("order placement (handoff 20 Nov 2026 §4.3, gated)", () => {
     expect(hasPlacedOrder(status({ checkoutStage: "SELLER_CONFIRMATION_PENDING", orderId: ORDER }))).toBe(true);
   });
 
-  it("collection for each seller in the authorisation, once per seller", () => {
-    expect(collectionSelections(status())).toEqual([
-      { sellerId: S1, sellerOrganizationId: S1, deliveryMode: "SELF_COLLECTION", shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null },
-      { sellerId: S2, sellerOrganizationId: null, deliveryMode: "SELF_COLLECTION", shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null },
+  it("freight arranged by StockOut for each seller in the authorisation, once per seller (no collection)", () => {
+    expect(freightSelections(status())).toEqual([
+      { sellerId: S1, sellerOrganizationId: S1, deliveryMode: "PLATFORM_ARRANGED_DELIVERY", shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null },
+      { sellerId: S2, sellerOrganizationId: null, deliveryMode: "PLATFORM_ARRANGED_DELIVERY", shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null },
     ]);
+  });
+
+  it("needs a delivery address before ordering", () => {
+    render(status(), null);
+    expect(screen.getByText(/Choose a delivery address under Delivery/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Place order/ })).toBeDisabled();
+  });
+
+  it("explains that freight orders aren't open yet when the backend's delivery gate is closed, and stops", async () => {
+    mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/orders", respond: () => ({ status: 400, body: { status: 400, code: "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED", title: "Bad Request" } }) }]);
+    render();
+    await userEvent.click(screen.getByRole("button", { name: /Place order/ }));
+    expect(await screen.findByText(/Freight delivery orders aren't open yet/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Place order/ })).toBeDisabled();
+    expect(screen.queryByText(/collection/i)).not.toBeInTheDocument();
   });
 
   it("posts the authorisation with If-Match and Idempotency-Key, and shows the order only when the server placed it", async () => {
@@ -62,7 +78,7 @@ describe("order placement (handoff 20 Nov 2026 §4.3, gated)", () => {
     const post = calls.find((c) => c.method === "POST")!;
     expect(post.headers.get("If-Match")).toBe(`"${RV}"`);
     expect(post.headers.get("Idempotency-Key")).toMatch(/^[A-Za-z0-9_.-]{8,100}$/);
-    expect(post.body).toEqual({ paymentAuthorizationAttemptId: ATTEMPT, cartId: CART, purchasingOrganizationId: ORG, deliveryAddressId: null, expectedPayableTotal: 1050, currency: "AED", sellerSelections: collectionSelections(status()) });
+    expect(post.body).toEqual({ paymentAuthorizationAttemptId: ATTEMPT, cartId: CART, purchasingOrganizationId: ORG, deliveryAddressId: ADDR, expectedPayableTotal: 1050, currency: "AED", sellerSelections: freightSelections(status()) });
   });
 
   it("BE-19: If-Match is the attempt's own cart version from the status, not the page's", async () => {

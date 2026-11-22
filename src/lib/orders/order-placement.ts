@@ -29,44 +29,54 @@ export const hasPlacedOrder = (s: Status) => (s.orderPlaced || ORDER_PLACED_STAG
 export const canPlaceOrder = (s: Status) => s.internalStatus === "AUTHORIZED" && s.isProviderVerified && PLACEABLE_STAGES.has(s.checkoutStage) && !hasPlacedOrder(s);
 
 /**
- * One selection per seller in the authorisation snapshot (the server checks every seller has exactly one). Collect
- * from seller only: delivery modes, fees and VAT issuer are not approved yet (COM-DEL-01).
+ * Owner decision 22 Nov 2026: buyers get freight delivery only (no collect-from-seller). StockOut arranges the freight
+ * (PLATFORM_ARRANGED_DELIVERY); whether StockOut or the seller ends up moving the goods is handled after the order,
+ * not chosen by the buyer. One selection per seller in the authorisation snapshot (the server checks every seller has
+ * exactly one). The server takes the delivery address from deliveryAddressId (UserOrganization snapshot).
+ * Until the backend approves delivery modes (COM-DEL-01 gate) it refuses these orders with
+ * ORDER_PLACEMENT_DELIVERY_NOT_APPROVED; that is shown as "not open yet", never worked around with collection.
  */
-export function collectionSelections(s: Pick<PaymentAuthorizationStatusResponse, "reservations">): SellerSubOrderDeliverySelection[] {
+export const BUYER_DELIVERY_MODE = "PLATFORM_ARRANGED_DELIVERY" as const;
+
+export function freightSelections(s: Pick<PaymentAuthorizationStatusResponse, "reservations">): SellerSubOrderDeliverySelection[] {
   const bySeller = new Map<string, string | null>();
   for (const r of s.reservations) if (!bySeller.has(r.sellerId)) bySeller.set(r.sellerId, r.sellerOrganizationId ?? null);
-  return [...bySeller].map(([sellerId, sellerOrganizationId]) => ({ sellerId, sellerOrganizationId, deliveryMode: "SELF_COLLECTION", shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null }));
+  return [...bySeller].map(([sellerId, sellerOrganizationId]) => ({ sellerId, sellerOrganizationId, deliveryMode: BUYER_DELIVERY_MODE, shippingOptionCode: null, overrideDeliveryAddressId: null, buyerDeliveryInstructions: null }));
 }
 
-export function placementRequest(s: PaymentAuthorizationStatusResponse): PlaceBuyerOrderRequest {
+export function placementRequest(s: PaymentAuthorizationStatusResponse, deliveryAddressId: string): PlaceBuyerOrderRequest {
   return {
     paymentAuthorizationAttemptId: s.attemptId,
     cartId: s.cartId,
     purchasingOrganizationId: s.buyerOrganizationId ?? null,
-    deliveryAddressId: null,
+    deliveryAddressId,
     expectedPayableTotal: s.authorizedAmount,
     currency: "AED",
-    sellerSelections: collectionSelections(s),
+    sellerSelections: freightSelections(s),
   };
 }
 
-/** Idempotency key per authorisation, kept for the tab so a retry (or a reload mid-request) is the same request. */
-const keyOf = (attemptId: string) => `stockout.market.place-order.${attemptId}`;
+/**
+ * Idempotency key per authorisation and delivery address, kept for the tab so a retry (or a reload mid-request) is the
+ * same request. Choosing another address makes a different request, so it gets its own key (the server still allows
+ * only one order per authorisation).
+ */
+const keyOf = (attemptId: string, addressId = "") => `stockout.market.place-order.${attemptId}${addressId ? `.${addressId}` : ""}`;
 export const placementKey = {
-  get(attemptId: string): string {
+  get(attemptId: string, addressId?: string): string {
     try {
-      const existing = sessionStorage.getItem(keyOf(attemptId));
+      const existing = sessionStorage.getItem(keyOf(attemptId, addressId));
       if (existing) return existing;
       const fresh = `order-${newId()}`;
-      sessionStorage.setItem(keyOf(attemptId), fresh);
+      sessionStorage.setItem(keyOf(attemptId, addressId), fresh);
       return fresh;
     } catch {
       return `order-${attemptId}`;
     }
   },
-  clear(attemptId: string) {
+  clear(attemptId: string, addressId?: string) {
     try {
-      sessionStorage.removeItem(keyOf(attemptId));
+      sessionStorage.removeItem(keyOf(attemptId, addressId));
     } catch {
       /* ignore */
     }
@@ -80,8 +90,8 @@ export const isUncertainPlacement = (e: unknown) => !isApiError(e) || e.kind ===
 export const PLACEMENT_MESSAGES: Record<string, string> = {
   ORDER_PLACEMENT_DISABLED: "Ordering isn't open yet. Your payment stays a hold on your card; nothing is charged.",
   ORDER_PLACEMENT_PREREQUISITES_NOT_MET: "Ordering isn't open yet. Your payment stays a hold on your card; nothing is charged.",
-  ORDER_PLACEMENT_DELIVERY_NOT_APPROVED: "Collection orders aren't open yet. Your payment stays a hold on your card; nothing is charged.",
-  ORDER_PLACEMENT_DELIVERY_BREAKDOWN_UNAVAILABLE: "This payment includes delivery, which can't be ordered yet. Cancel the payment and choose collection.",
+  ORDER_PLACEMENT_DELIVERY_NOT_APPROVED: "Freight delivery orders aren't open yet. Your payment stays a hold on your card and nothing is charged; it's released automatically if no order is placed.",
+  ORDER_PLACEMENT_DELIVERY_BREAKDOWN_UNAVAILABLE: "We can't confirm the delivery charge for this order yet. Your payment stays a hold on your card; nothing is charged.",
   ORDER_PLACEMENT_PAYMENT_NOT_AUTHORIZED: "Your payment isn't authorised yet. Wait for the confirmation above, then try again.",
   ORDER_PLACEMENT_AUTHORIZATION_EXPIRED: "Your payment hold expired. Check your cart again and authorise a new payment.",
   ORDER_PLACEMENT_RESERVATION_NOT_HELD: "Your items are no longer reserved. Check your cart again and authorise a new payment.",
@@ -98,9 +108,9 @@ export const PLACEMENT_MESSAGES: Record<string, string> = {
   ORDER_PLACEMENT_CATALOG_SNAPSHOT_UNAVAILABLE: "We couldn't confirm the items right now. Try again in a moment.",
   ORDER_PLACEMENT_NUMBER_ALLOCATION_UNAVAILABLE: "Ordering is temporarily unavailable. Try again in a moment.",
   ORDER_PLACEMENT_PERSISTENCE_UNAVAILABLE: "Ordering is temporarily unavailable. Try again in a moment.",
-  COM_DEL_SELLER_SELECTION_MISMATCH: "Every seller in your order needs a collection or delivery choice. Reload and try again.",
-  COM_DEL_MODE_UNSUPPORTED: "That delivery method isn't available. Choose collection.",
-  COM_DEL_MODE_POLICY_GATED: "That delivery method isn't available yet. Choose collection.",
+  COM_DEL_SELLER_SELECTION_MISMATCH: "Your order's sellers changed. Reload and try again.",
+  COM_DEL_MODE_UNSUPPORTED: "Freight delivery isn't available for this order yet. Your payment stays a hold; nothing is charged.",
+  COM_DEL_MODE_POLICY_GATED: "Freight delivery orders aren't open yet. Your payment stays a hold; nothing is charged.",
   INVALID_IF_MATCH_HEADER: "Your cart needs reloading before ordering. Reload and try again.",
   CART_CONCURRENCY_CONFLICT: "Your cart changed. Reload to review it before ordering.",
 };

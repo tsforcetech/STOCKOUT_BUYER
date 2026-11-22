@@ -28,18 +28,31 @@ import type { PlaceBuyerOrderResponse } from "@/api/types/order-placement";
  * ORDER_API.placeOrder is on. Turns the provider-verified authorisation into an order: Collect from seller for every
  * seller, same Idempotency-Key on every retry, success only when the server says orderPlaced with an order stage.
  */
-export function PlaceOrder({ s, cartVersion, onCartStale, onRecheck }: { s: PaymentAuthorizationStatusResponse; cartVersion: string; onCartStale: () => void; onRecheck: () => void }) {
+export function PlaceOrder({
+  s,
+  cartVersion,
+  deliveryAddressId,
+  onCartStale,
+  onRecheck,
+}: {
+  s: PaymentAuthorizationStatusResponse;
+  cartVersion: string;
+  /** The address chosen under Delivery; freight orders need one. */
+  deliveryAddressId: string | null;
+  onCartStale: () => void;
+  onRecheck: () => void;
+}) {
   const qc = useQueryClient();
   const [placed, setPlaced] = React.useState<PlaceBuyerOrderResponse | null>(null);
 
   const place = useApiMutation({
     toastOnError: false,
     // BE-19: the attempt's own cart version from the server (survives a reload or a 3DS return); the page's as fallback.
-    mutationFn: () => orderPlacementService.place(placementRequest(s), s.cartVersion || cartVersion, placementKey.get(s.attemptId)),
+    mutationFn: () => orderPlacementService.place(placementRequest(s, deliveryAddressId!), s.cartVersion || cartVersion, placementKey.get(s.attemptId, deliveryAddressId!)),
     onSuccess: (res) => {
       if (res.orderPlaced && ORDER_PLACED_STAGES.has(res.checkoutStage) && res.orderId) {
         setPlaced(res);
-        placementKey.clear(s.attemptId);
+        placementKey.clear(s.attemptId, deliveryAddressId ?? undefined);
         preAuthStore.clear(s.cartId);
         void qc.invalidateQueries({ queryKey: ["buyer", "cart"] });
         void qc.invalidateQueries({ queryKey: orderKeys.buyerList });
@@ -70,7 +83,8 @@ export function PlaceOrder({ s, cartVersion, onCartStale, onRecheck }: { s: Paym
     );
 
   const uncertain = place.error != null && isUncertainPlacement(place.error);
-  const disabled = isApiError(place.error) && (place.error.status === 503 || place.error.code === "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED");
+  const closed = isApiError(place.error) && (place.error.status === 503 || place.error.code === "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED");
+  const disabled = closed || !deliveryAddressId;
 
   if (uncertain)
     return (
@@ -97,13 +111,18 @@ export function PlaceOrder({ s, cartVersion, onCartStale, onRecheck }: { s: Paym
       <p className="mt-1 text-sm text-muted-foreground">
         Sellers confirm within 24 hours, then StockOut arranges delivery. Your card is only charged after they confirm.
       </p>
+      {!deliveryAddressId && (
+        <p className="mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" role="status">
+          Choose a delivery address under Delivery to place your order.
+        </p>
+      )}
       {place.error != null && (
-        <p role="alert" className={disabled ? "mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" : "mt-3 rounded-lg bg-danger-soft p-3 text-sm text-danger-soft-foreground"}>
+        <p role="alert" className={closed ? "mt-3 rounded-lg bg-warning-soft p-3 text-sm text-warning-soft-foreground" : "mt-3 rounded-lg bg-danger-soft p-3 text-sm text-danger-soft-foreground"}>
           {placementMessage(place.error)}
         </p>
       )}
       <Button className="mt-4 w-full rounded-full" size="lg" loading={place.isPending} disabled={disabled} onClick={() => place.mutate()}>
-        <LockSimpleIcon /> {place.error && !disabled ? "Try again" : `Place order · ${formatMoney(s.authorizedAmount, s.currency)}`}
+        <LockSimpleIcon /> {place.error && !closed ? "Try again" : `Place order · ${formatMoney(s.authorizedAmount, s.currency)}`}
       </Button>
     </section>
   );
