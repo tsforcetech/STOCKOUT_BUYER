@@ -14,8 +14,16 @@ export const BLOCKER_TEXT: Record<string, string> = {
   BUYER_ORGANIZATION_UNAUTHORIZED: "Your account isn't authorised to buy for this company. Ask your company's owner to check your role.",
   COMMERCE_SELF_PURCHASE_DENIED: "You can't buy your own business's listings. Remove them from your cart.",
   CART_EMPTY: "Your cart is empty.",
-  // BE-13: only when coordinate enforcement is switched on. Never assume it is.
-  BUYER_ADDRESS_LOCATION_REQUIRED: "Your delivery address has no map pin. Add a delivery pin to the address, then try again.",
+  // Freight (handoff 22 Nov): freight needs a map pin on the delivery address.
+  BUYER_ADDRESS_LOCATION_REQUIRED: "Your delivery address has no map pin. Freight needs one: edit the address under Delivery and drop a pin.",
+  COM_DEL_ADDRESS_REQUIRED: "Choose a delivery address under Delivery.",
+  BUYER_ADDRESS_NOT_FOUND: "That delivery address no longer exists. Choose another address under Delivery.",
+  BUYER_ADDRESS_SNAPSHOT_INVALID: "That delivery address can't be used for this purchase. Choose another address under Delivery.",
+  BUYER_ADDRESS_SNAPSHOT_UNAVAILABLE: "We couldn't check your delivery address right now. Please try again in a moment.",
+  COM_DEL_MODE_POLICY_GATED: "Freight delivery orders aren't open yet. Your cart is saved; you can order as soon as they open.",
+  FREIGHT_VAT_OR_TAX_ISSUER_UNAPPROVED: "Freight delivery orders aren't open yet. Your cart is saved; you can order as soon as they open.",
+  FREIGHT_PROVIDER_UNAVAILABLE: "Freight pricing is unavailable right now. Please try again later.",
+  FREIGHT_MULTI_SELLER_ALLOCATION_UNAPPROVED: "Orders from more than one seller can't be delivered together yet. Order from one seller at a time.",
   // BE-12: a temporary outage of the company check. Never a reason to re-verify identity.
   BUYER_ELIGIBILITY_UNAVAILABLE: "We couldn't confirm your company's buying access right now. Please try again in a moment.",
 };

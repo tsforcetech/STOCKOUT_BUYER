@@ -14,8 +14,13 @@ export const ORDER_PAGE_SIZE = 20;
  */
 export const ordersService = {
   /** If-Match: the cart rowVersion being reviewed (409 CART_CONCURRENCY_CONFLICT when the cart changed). */
-  checkoutReadiness: (cartRowVersion?: string | null, signal?: AbortSignal) =>
-    http.get<CheckoutValidationResult>("/api/v1/buyer/checkout/readiness", { signal, headers: cartRowVersion ? { "If-Match": `"${cartRowVersion}"` } : undefined }),
+  /** With a delivery mode and address the result includes freight (AED 10 gross) and address / map-pin blockers. */
+  checkoutReadiness: (cartRowVersion?: string | null, signal?: AbortSignal, delivery?: { deliveryMode: string; deliveryAddressId: string } | null) =>
+    http.get<CheckoutValidationResult>("/api/v1/buyer/checkout/readiness", {
+      signal,
+      headers: cartRowVersion ? { "If-Match": `"${cartRowVersion}"` } : undefined,
+      query: delivery ? { deliveryMode: delivery.deliveryMode, deliveryAddressId: delivery.deliveryAddressId } : undefined,
+    }),
   buyerOrders: (page: number, signal?: AbortSignal) => http.get<MarketplaceOrderDto[]>("/api/v1/buyer/orders", { query: { page, pageSize: ORDER_PAGE_SIZE }, signal }),
   buyerOrder: (orderId: string, signal?: AbortSignal) => http.get<MarketplaceOrderDto>(`/api/v1/buyer/orders/${seg(orderId)}`, { signal }),
   sellerOrders: (sellerId: string, page: number, signal?: AbortSignal) =>
@@ -33,7 +38,7 @@ export const sellerOrderActions = {
 };
 
 export const orderKeys = {
-  readiness: (rv: string | null | undefined) => ["checkout", "readiness", rv ?? ""] as const,
+  readiness: (rv: string | null | undefined, addressId?: string | null) => ["checkout", "readiness", rv ?? "", addressId ?? ""] as const,
   buyerList: ["orders", "buyer"] as const,
   buyerDetail: (id: string) => ["orders", "buyer", id] as const,
   sellerList: (sellerId: string) => ["orders", "seller", sellerId] as const,

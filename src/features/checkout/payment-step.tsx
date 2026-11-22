@@ -25,7 +25,7 @@ import type { BuyerCartResponse } from "@/api/types/buyer-commerce";
 import type { CheckoutValidationResult } from "@/api/types/orders";
 import type { PaymentAuthorizationStatusResponse } from "@/api/types/payment-preauth";
 import { ORDER_API } from "@/lib/orders/order-api";
-import { hasPlacedOrder } from "@/lib/orders/order-placement";
+import { BUYER_DELIVERY_MODE, hasPlacedOrder } from "@/lib/orders/order-placement";
 import { PlaceOrder } from "./place-order";
 
 export const preauthKeys = { status: (attemptId: string) => ["buyer", "payment-authorization", attemptId] as const };
@@ -164,6 +164,8 @@ export function PaymentStep({
           expectedTotalAmount: key.expectedTotalAmount,
           currency: "AED",
           idempotencyKey: key.idempotencyKey,
+          // Freight (handoff 22 Nov): the hold includes the server-priced delivery for this address.
+          ...(deliveryAddressId ? { deliveryMode: BUYER_DELIVERY_MODE, deliveryAddressId } : {}),
         },
         cartVersion,
         key.idempotencyKey,
@@ -245,7 +247,9 @@ export function PaymentStep({
   // 1. Nothing started yet (or the last attempt ended): offer to start.
   if (!attemptId || (s && ENDED.has(s.internalStatus))) {
     const ended = s && attemptId ? s : null;
-    const canStart = !!readiness?.canProceed && total !== null && readiness.currency === "AED";
+    // Freight needs the address first, so the hold already includes delivery (else placement would mismatch).
+    const needsAddress = ORDER_API.placeOrder && !deliveryAddressId;
+    const canStart = !!readiness?.canProceed && total !== null && readiness.currency === "AED" && !needsAddress;
     // An expired reservation is re-checked (stock, price, eligibility) before another attempt.
     const recheck = ended?.internalStatus === "AUTHORIZATION_EXPIRED";
     return (
@@ -273,7 +277,11 @@ export function PaymentStep({
           )}
           {canStart && <span className="text-sm text-muted-foreground">Amount to authorise: {formatMoney(total, readiness?.currency)}</span>}
         </div>
-        {!canStart && readiness && <p className="text-xs text-muted-foreground">Card payment opens once your cart is ready for checkout (see the order summary).</p>}
+        {needsAddress ? (
+          <p className="text-xs text-muted-foreground">Choose a delivery address under Delivery first. Your card hold then includes freight.</p>
+        ) : (
+          !canStart && readiness && <p className="text-xs text-muted-foreground">Card payment opens once your cart is ready for checkout (see the order summary).</p>
+        )}
       </div>
     );
   }

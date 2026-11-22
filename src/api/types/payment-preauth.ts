@@ -10,6 +10,9 @@ type Utc = string;
 export interface CreatePaymentAuthorizationRequest {
   cartId: Guid;
   cartVersion: string;
+  /** Freight (handoff 22 Nov): the server prices delivery (AED 10 gross) into the hold when these are sent. */
+  deliveryMode?: string | null;
+  deliveryAddressId?: Guid | null;
   /** null for an individual (B2C) buyer; the cart's authorised company for B2B. */
   purchasingOrganizationId: Guid | null;
   checkoutCorrelationId?: string | null;

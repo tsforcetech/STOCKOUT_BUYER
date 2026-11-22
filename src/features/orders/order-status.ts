@@ -109,9 +109,9 @@ export function buyerStep(s: { status: string; fulfillmentStatus?: string | null
       tone: "warning",
       next: `${s.confirmationDeadlineUtc ? `The seller confirms by ${formatDateTime(s.confirmationDeadlineUtc)}.` : "The seller confirms within 24 hours."} Your card is only on hold, not charged.`,
     };
-  if (st === "REJECTED") return { key: "rejected", label: "Rejected by seller", tone: "danger", next: "This seller couldn't supply your order. You won't be charged for it." };
-  if (st === "EXPIRED") return { key: "expired", label: "Not confirmed in time", tone: "danger", next: "The seller didn't confirm in time. You won't be charged for it." };
-  if (st === "CANCELLED") return { key: "cancelled", label: "Cancelled", tone: "danger", next: "This part of the order was cancelled. You won't be charged for it." };
+  if (st === "REJECTED") return { key: "rejected", label: "Rejected by seller", tone: "danger", next: "This seller couldn't supply your part of the order. StockOut is releasing that amount from your card hold; it shows here once confirmed." };
+  if (st === "EXPIRED") return { key: "expired", label: "Not confirmed in time", tone: "danger", next: "The seller didn't confirm in time. StockOut is releasing that amount from your card hold; it shows here once confirmed." };
+  if (st === "CANCELLED") return { key: "cancelled", label: "Cancelled", tone: "danger", next: "This part of the order was cancelled. Any change to your payment shows here once StockOut confirms it." };
   if (st === "CLAIMDISPUTED") return { key: "claim", label: "Problem reported", tone: "danger", next: "StockOut is reviewing the problem you reported." };
   if (st === "ACCEPTED") return { key: "done", label: "Completed", tone: "success", next: "You accepted the goods. This part of the order is complete." };
   if (st === "DELIVERED" || f === "COLLECTED" || f === "DELIVERED")

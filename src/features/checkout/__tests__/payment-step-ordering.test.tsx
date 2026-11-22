@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { renderWithApp } from "@/test/render";
 import { mockFetch } from "@/test/http";
 import { PaymentStep } from "../payment-step";
@@ -52,5 +53,20 @@ describe("payment step with ordering on", () => {
     expect(await screen.findByText(/Order placed · SO-10000002/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Place order/ })).not.toBeInTheDocument();
     expect(onOrderPlaced).toHaveBeenCalledWith({ orderId: ORDER, orderNumber: "SO-10000002" });
+  });
+
+  it("freight: the card hold waits for a delivery address, then includes it so the server adds freight", async () => {
+    const freightReadiness = { ...readiness, estimatedPayableTotal: 1060, deliveryMode: "PLATFORM_ARRANGED_DELIVERY", deliveryFeeSubtotal: 9.52, deliveryVatAmount: 0.48 } as unknown as CheckoutValidationResult;
+    const { calls } = mockFetch([{ method: "POST", path: "/api/v1/buyer/checkout/payment-authorizations", respond: () => ({ status: 409, body: { status: 409, code: "PAYMENT_PREAUTH_AMOUNT_MISMATCH", title: "Conflict" } }) }]);
+    const { unmount } = renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={freightReadiness} publishableKey="pk_test_1" deliveryAddressId={null} onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
+    expect(screen.getByRole("button", { name: /Continue to card payment/ })).toBeDisabled();
+    expect(screen.getByText(/Choose a delivery address under Delivery first/)).toBeInTheDocument();
+    unmount();
+    const ADDR = "ad000000-0000-4000-8000-000000000001";
+    renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={freightReadiness} publishableKey="pk_test_1" deliveryAddressId={ADDR} onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
+    expect(screen.getByText(/Amount to authorise: AED\s1,060\.00/)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Continue to card payment/ }));
+    const body = (await vi.waitFor(() => calls.find((c) => c.method === "POST")!)).body as Record<string, unknown>;
+    expect(body).toMatchObject({ deliveryMode: "PLATFORM_ARRANGED_DELIVERY", deliveryAddressId: ADDR, expectedTotalAmount: 1060 });
   });
 });

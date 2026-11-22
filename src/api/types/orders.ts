@@ -170,7 +170,19 @@ export interface CheckoutValidationResult {
   totalMaterialSubtotal: number;
   applicableVatRatePercent: number;
   estimatedVatAmount: number;
+  /** Includes freight when a delivery mode and address were sent (freight handoff 22 Nov). */
   estimatedPayableTotal: number;
+  /** Freight (handoff 22 Nov): present when readiness was asked with deliveryMode + deliveryAddressId. */
+  deliveryMode?: string | null;
+  deliveryAddressId?: Guid | null;
+  /** Net of VAT (AED 9.52 of the AED 10.00 gross). */
+  deliveryFeeSubtotal?: number;
+  applicableDeliveryVatRatePercent?: number | null;
+  deliveryVatAmount?: number;
+  totalVatAmount?: number;
+  deliveryPolicyGateStatus?: string | null;
+  deliveryTaxIssuerRole?: string | null;
+  freightAllocationBasis?: string | null;
   sellerSubOrders: SellerSubOrderPreviewDto[];
   blockers: CheckoutBlockerDto[];
   /** base64 8-byte cart rowversion */

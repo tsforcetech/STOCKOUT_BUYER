@@ -35,6 +35,7 @@ import type { AddressOwner } from "@/services/addresses.service";
 import type { CheckoutValidationResult, OrderLinePreviewDto } from "@/api/types/orders";
 import { env } from "@/config/env";
 import { PaymentStep } from "./payment-step";
+import { BUYER_DELIVERY_MODE } from "@/lib/orders/order-placement";
 
 /**
  * Checkout review (Stage 8C). Totals, the seller breakdown, line issues and blockers come from
@@ -398,6 +399,8 @@ function OrderSummary({
   const general = blockers.filter((b) => !b.listingId);
   const account = general.filter((b) => BUYER_BLOCKERS.includes(b.code));
   const lineIssues = blockers.some((b) => b.listingId) || !!r?.sellerSubOrders.some((g) => g.lines.some((l) => !l.isPurchasable));
+  // Freight is priced by the server once an address is chosen: one AED 10 gross charge per order (VAT included).
+  const freight = r?.deliveryMode ? (r.deliveryFeeSubtotal ?? 0) + (r.deliveryVatAmount ?? 0) : null;
   return (
     <aside className="h-fit rounded-2xl border border-border bg-surface p-5 shadow-raised lg:sticky lg:top-[176px]" aria-label="Order summary">
       <h2 className="font-heading text-lg font-bold text-foreground">Order summary</h2>
@@ -429,8 +432,8 @@ function OrderSummary({
             <dd className="text-foreground">{noTax ? "Not available" : formatMoney(r.estimatedVatAmount, r.currency)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-muted-foreground">Delivery</dt>
-            <dd className="text-right text-muted-foreground">Confirmed before dispatch</dd>
+            <dt className="text-muted-foreground">{freight != null ? "Freight delivery (incl. VAT)" : "Delivery"}</dt>
+            <dd className={freight != null ? "text-foreground" : "text-right text-muted-foreground"}>{freight != null ? formatMoney(freight, r.currency) : "Choose an address"}</dd>
           </div>
           <div className="flex justify-between border-t border-border pt-2">
             <dt className="font-medium text-foreground">Estimated total</dt>
@@ -543,8 +546,10 @@ export default function CheckoutPage() {
     if (q.data && !reviewed) setReviewed({ rowVersion: q.data.rowVersion, cart: q.data });
   }, [q.data, reviewed]);
   const readiness = useQuery({
-    queryKey: orderKeys.readiness(reviewed?.rowVersion),
-    queryFn: ({ signal }) => ordersService.checkoutReadiness(reviewed?.rowVersion, signal),
+    // With the chosen address the server adds freight (AED 10 gross) and checks the address map pin (handoff 22 Nov).
+    queryKey: orderKeys.readiness(reviewed?.rowVersion, deliveryAddressId),
+    queryFn: ({ signal }) => ordersService.checkoutReadiness(reviewed?.rowVersion, signal, deliveryAddressId ? { deliveryMode: BUYER_DELIVERY_MODE, deliveryAddressId } : null),
+    placeholderData: (prev) => prev,
     enabled: !!reviewed && reviewed.cart.itemCount > 0,
     // 400/409 are answers, not glitches: never resend the same If-Match.
     retry: (n, e) => !(isApiError(e) && e.status >= 400 && e.status < 500) && n < 1,
