@@ -24,9 +24,10 @@ const LOCATION_KEY = "stockout.market.emirate";
 function useStoredEmirate(): [string, (v: string) => void] {
   const [value, setValue] = React.useState(() => {
     try {
-      return localStorage.getItem(LOCATION_KEY) ?? "Dubai";
+      // "" = All UAE until the buyer picks an emirate (UX audit 22 Nov: no Dubai default for everyone).
+      return localStorage.getItem(LOCATION_KEY) ?? "";
     } catch {
-      return "Dubai";
+      return "";
     }
   });
   const set = (v: string) => {
@@ -92,7 +93,7 @@ function RecentlyViewed() {
 const PROMISES = [
   { icon: SealCheckIcon, title: "Verified sellers", body: "Trade licence or Emirates ID checked" },
   { icon: ClipboardTextIcon, title: "Inspected by StockOut", body: "Physical checks on selected categories" },
-  { icon: MapPinIcon, title: "All 7 emirates", body: "Collect from a seller nearby" },
+  { icon: MapPinIcon, title: "All 7 emirates", body: "Delivered to your site across the UAE" },
   { icon: RecycleIcon, title: "Surplus, not landfill", body: "Unused stock from finished projects" },
 ] as const;
 
@@ -138,7 +139,7 @@ export default function HomePage() {
               <br />
               <span className="text-action">Verified for reuse.</span>
             </h1>
-            <p className="mt-3 max-w-xl text-sm text-white/80 sm:text-base">New, unused and quality surplus stock from verified UAE sellers — collect today.</p>
+            <p className="mt-3 max-w-xl text-sm text-white/80 sm:text-base">New, unused and quality surplus stock from verified UAE sellers, delivered to your site.</p>
 
             <div className="mt-7 max-w-[1100px]">
               <SearchFrame>
@@ -279,7 +280,7 @@ export default function HomePage() {
 
       <ListingRail title="Just listed" query={{ sort: "date_desc" }} viewAllHref={searchHref({ sort: "date_desc" })} />
       <ListingRail
-        title={emirate ? `Available near you · ${emirate}` : "Available near you"}
+        title={emirate ? `Available near you · ${emirate}` : "In stock across the UAE"}
         query={{ stateOrEmirate: emirate || undefined, inStockOnly: true }}
         viewAllHref={searchHref({ stateOrEmirate: emirate, inStockOnly: true })}
       />

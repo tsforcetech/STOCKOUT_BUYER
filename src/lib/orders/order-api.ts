@@ -19,7 +19,7 @@ export const ORDER_API = {
   /**
    * POST /api/v1/buyer/checkout/orders after AUTHORIZED + isProviderVerified (handoff 20 Nov 2026 §4.3, §7). Off unless
    * VITE_ORDER_PLACEMENT=on AND the payment step is on; the server answers 503 ORDER_PLACEMENT_DISABLED while its own
-   * OrderPlacement:Enabled flag is false. Collect from seller only until delivery policy is approved.
+   * OrderPlacement:Enabled flag is false. Freight delivery only (owner decision 22 Nov).
    */
   placeOrder: env.paymentPreAuthEnabled && env.orderPlacementEnabled,
   /** Stage 8C.9: seller confirm / reject (POST /seller/orders/{id}/confirm|reject), live 12 Nov 2026. */

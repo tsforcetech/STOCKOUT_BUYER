@@ -26,7 +26,7 @@ import type { PlaceBuyerOrderResponse } from "@/api/types/order-placement";
 
 /**
  * Last checkout step (handoff 20 Nov 2026 §4.3, §6 step 5, §7), shown under an authorised payment while
- * ORDER_API.placeOrder is on. Turns the provider-verified authorisation into an order: Collect from seller for every
+ * ORDER_API.placeOrder is on. Turns the provider-verified authorisation into an order: freight delivery for every
  * seller, same Idempotency-Key on every retry, success only when the server says orderPlaced with an order stage.
  */
 export function PlaceOrder({
