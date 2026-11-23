@@ -143,36 +143,29 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
   );
 }
 
+/**
+ * Slim consent bar (UX audit 22 Nov): a strip at the bottom, above the phone tab bar, that never covers the page's
+ * main buttons. Same three choices and the same policy link as before; Customise opens the full settings dialog.
+ */
 function CookieBanner({ busy, error, onChoose, onCustomise }: { busy: boolean; error: string | null; onChoose: (c: CookieChoice) => void; onCustomise: () => void }) {
   return (
     <>
-    {/* In-flow spacer: lets every page scroll its last content (e.g. the sign-in button) clear of the banner on phones. */}
-    <div aria-hidden className="h-56 sm:h-44" />
-    <section
-      aria-label="Cookie consent"
-      className="fixed inset-x-3 bottom-[4.5rem] z-40 mx-auto max-w-3xl rounded-2xl border border-border bg-surface p-3 shadow-raised sm:p-5 md:bottom-4"
-    >
-      <div className="flex gap-3">
-        <CookieIcon className="mt-0.5 hidden size-6 shrink-0 sm:block" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-heading text-base font-bold text-foreground">Your cookie choices</h2>
-          <p className="mt-1 text-sm text-muted-foreground sm:hidden">
-            Necessary cookies keep sign-in and your cart working. Optional ones only with your OK.{" "}
-            <Link to={policyPath(COOKIE_POLICY)} className="font-medium text-foreground underline underline-offset-4">
-              Cookie Policy
-            </Link>
+      {/* In-flow spacer: the last content of every page can scroll clear of the bar. */}
+      <div aria-hidden className="h-28 sm:h-16" />
+      <section aria-label="Cookie consent" className="fixed inset-x-0 bottom-16 z-40 border-t border-border bg-surface/95 shadow-raised backdrop-blur md:bottom-0">
+        <h2 className="sr-only">Your cookie choices</h2>
+        <div className="mx-auto flex max-w-[1336px] flex-col gap-2 px-4 py-2.5 sm:flex-row sm:items-center sm:gap-4 sm:px-6">
+          <p className="flex min-w-0 flex-1 items-start gap-2 text-xs leading-5 text-body sm:items-center sm:text-sm">
+            <CookieIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground sm:mt-0" aria-hidden />
+            <span>
+              We use cookies to keep you signed in and your cart saved. Optional ones only with your OK.{" "}
+              <Link to={policyPath(COOKIE_POLICY)} className="font-medium text-foreground underline underline-offset-4">
+                Cookie Policy
+              </Link>
+            </span>
           </p>
-          <p className="mt-1 hidden text-sm text-muted-foreground sm:block">
-            Strictly necessary cookies keep StockOut working (sign-in, security, your cart). With your permission we'd also use functional, analytics and
-            marketing cookies. Nothing optional is set until you choose. Read the{" "}
-            <Link to={policyPath(COOKIE_POLICY)} className="font-medium text-foreground underline underline-offset-4">
-              Cookie Policy
-            </Link>
-            .
-          </p>
-          <FormError message={error} />
-          <div className="mt-3 flex flex-wrap gap-2 [&>button]:min-h-10">
-            <Button variant="secondary" size="sm" onClick={() => onChoose(NONE)} disabled={busy}>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="ghost" size="sm" onClick={() => onChoose(NONE)} disabled={busy}>
               Reject optional
             </Button>
             <Button variant="secondary" size="sm" onClick={onCustomise} disabled={busy}>
@@ -182,9 +175,9 @@ function CookieBanner({ busy, error, onChoose, onCustomise }: { busy: boolean; e
               Accept all
             </Button>
           </div>
+          <FormError message={error} />
         </div>
-      </div>
-    </section>
+      </section>
     </>
   );
 }
