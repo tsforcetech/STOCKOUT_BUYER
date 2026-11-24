@@ -3,6 +3,7 @@ import { Outlet, useLocation } from "react-router";
 import { applySeo } from "@/lib/seo/use-seo";
 import { CookieConsentProvider } from "@/features/privacy/cookie-consent";
 import { PolicyGateProvider } from "@/features/legal/policy-gate";
+import { trackPageView } from "@/lib/analytics/consent-mode";
 
 /** Wraps every route: cookie consent banner/settings and the pending-policy gate need router links on all pages. */
 /** Signed-in, transactional and auth pages stay out of search results. */
@@ -18,6 +19,11 @@ export function RootLayout() {
       path: pathname,
       noindex: PRIVATE.test(pathname),
     });
+  }, [pathname]);
+  // After the page has set its own title.
+  React.useEffect(() => {
+    const t = window.setTimeout(() => trackPageView(pathname, document.title), 0);
+    return () => window.clearTimeout(t);
   }, [pathname]);
   return (
     <CookieConsentProvider>

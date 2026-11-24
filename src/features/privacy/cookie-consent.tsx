@@ -1,4 +1,5 @@
 import * as React from "react";
+import { updateConsent } from "@/lib/analytics/consent-mode";
 import { Link } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { CookieIcon } from "@phosphor-icons/react";
@@ -116,6 +117,11 @@ export function CookieConsentProvider({ children }: { children: React.ReactNode 
     carried.current = subject;
     save.mutate(previous);
   }, [signedIn, prefs.data, chosen, subject, save]);
+
+  // Google Consent Mode: pass the saved choice to GTM (defaults in index.html are all denied).
+  React.useEffect(() => {
+    if (chosen && prefs.data) updateConsent({ functional: prefs.data.functional, analytics: prefs.data.analytics, marketing: prefs.data.marketing });
+  }, [chosen, prefs.data]);
 
   const value = React.useMemo<CookieConsentValue>(() => ({ consent: chosen ? prefs.data! : null, openSettings: () => setSettingsOpen(true) }), [chosen, prefs.data]);
   const showBanner = ready && prefs.isSuccess && !chosen && !settingsOpen && !save.isPending && !(signedIn && rememberedChoice() && !save.isError);
