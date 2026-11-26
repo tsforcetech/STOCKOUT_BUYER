@@ -1,4 +1,5 @@
 import * as React from "react";
+import { disablePush } from "@/lib/push/web-push";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { configureAuthHandlers, refreshSession } from "@/lib/api/client";
@@ -251,6 +252,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const token = tokenStore.getAccessToken();
     const refreshToken = tokenStore.get()?.refreshToken ?? tokenStore.getPersistedRefreshToken();
     const sid = token ? decodeJwtPayload(token)?.sid : undefined;
+    // Push: this browser stops receiving the account's notifications before the session ends (handoff 26 Nov §6).
+    // Bounded so a slow notification service never blocks signing out.
+    await Promise.race([disablePush(), new Promise((r) => setTimeout(r, 3000))]);
     let revoked = false;
     if (refreshToken) {
       try {

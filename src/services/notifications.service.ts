@@ -18,6 +18,12 @@ export const notificationsService = {
   markRead: async (notificationId: string) =>
     unwrapData<MarkReadResultDto>(await http.post<Envelope<MarkReadResultDto>>(`${BASE}/${encodeURIComponent(notificationId)}/read`)),
   markAllRead: async () => unwrapData<MarkAllReadResultDto>(await http.post<Envelope<MarkAllReadResultDto>>(`${BASE}/read-all`)),
+  /** Web push: enroll (or refresh) this browser's FCM token. The token is never logged or shown. */
+  registerDevice: async (body: { platform: "WEB"; installationId: string; fcmToken: string; organizationId?: string | null }) =>
+    unwrapData<{ deviceId: string; alreadyRegistered: boolean }>(await http.post<Envelope<{ deviceId: string; alreadyRegistered: boolean }>>(`${BASE}/devices`, body)),
+  /** Logout / account switch: revoke this browser installation's registrations (idempotent). */
+  revokeInstallation: async (installationId: string) =>
+    unwrapData<{ revokedCount: number }>(await http.delete<Envelope<{ revokedCount: number }>>(`${BASE}/devices/installations/${encodeURIComponent(installationId)}`)),
 };
 
 export const notificationKeys = {

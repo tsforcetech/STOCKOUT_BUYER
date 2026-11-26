@@ -32,5 +32,14 @@ export const env = {
   orderLifecycleEnabled: import.meta.env.VITE_ORDER_LIFECYCLE === "on",
   /** SUS-03 buyer/seller impact reports. Off unless "on" (Wave A public activation is policy-gated). */
   sustainabilityReportsEnabled: import.meta.env.VITE_SUSTAINABILITY_REPORTS === "on",
+  /** Firebase web push (public web-app config + public VAPID key). Push stays off unless every value is set. */
+  firebase: {
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY ?? "",
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN ?? "",
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID ?? "",
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID ?? "",
+    appId: import.meta.env.VITE_FIREBASE_APP_ID ?? "",
+    vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY ?? "",
+  },
   isDev: import.meta.env.DEV,
 } as const;

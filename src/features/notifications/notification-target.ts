@@ -17,8 +17,33 @@ const BY_ENTITY: Record<string, string> = {
   BUYER_VERIFICATION: "/account/verification",
 };
 
-export function notificationHref(n: Pick<UserNotificationDto, "navigationTarget" | "relatedEntityType">): string | null {
-  return safeInternalPath(n.navigationTarget) ?? (n.relatedEntityType ? (BY_ENTITY[n.relatedEntityType.toUpperCase()] ?? null) : null);
+/** Handoff 26 Nov §5: order notifications open the order (buyer) or the seller's part (seller). */
+const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const BY_ENTITY_ID: Record<string, (id: string) => string> = {
+  ORDER: (id) => `/account/orders/${id}`,
+  SUB_ORDER: (id) => `/seller/orders/${id}`,
+  SUBORDER: (id) => `/seller/orders/${id}`,
+};
+
+/** The server's canonical targets (handoff §5) mapped to this site's routes; admin targets don't exist here. */
+const SITE_PATHS: Array<[RegExp, string]> = [
+  [/^\/buyer\/orders\//, "/account/orders/"],
+  [/^\/buyer\/verification(?=$|[/?#])/, "/account/verification"],
+  [/^\/buyer\/saved-searches(?=$|[/?#])/, "/account/saved-searches"],
+];
+function toSitePath(path: string | null): string | null {
+  if (!path) return null;
+  if (/^\/admin(\/|$)/.test(path)) return null;
+  for (const [re, to] of SITE_PATHS) if (re.test(path)) return path.replace(re, to);
+  return path;
+}
+
+export function notificationHref(n: Pick<UserNotificationDto, "navigationTarget" | "relatedEntityType"> & { relatedEntityId?: string | null }): string | null {
+  const own = toSitePath(safeInternalPath(n.navigationTarget));
+  if (own) return own;
+  const type = n.relatedEntityType?.toUpperCase() ?? "";
+  if (n.relatedEntityId && GUID.test(n.relatedEntityId) && BY_ENTITY_ID[type]) return BY_ENTITY_ID[type](n.relatedEntityId);
+  return BY_ENTITY[type] ?? null;
 }
 
 /** Bell badge text: hidden at zero, capped at 99+. */

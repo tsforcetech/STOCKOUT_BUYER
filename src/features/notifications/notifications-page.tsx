@@ -1,4 +1,5 @@
 import * as React from "react";
+import { PushOptIn } from "./push-opt-in";
 import { useNavigate } from "react-router";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { BellIcon, BuildingsIcon, CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
@@ -83,7 +84,8 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader eyebrow="My account" title="Notifications" description="Updates about your saved searches, verification and account." />
+      <PageHeader eyebrow="My account" title="Notifications" description="Updates about your orders, saved searches, verification and account." />
+      <PushOptIn />
       <AccountTabs />
       <SectionCard>
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">

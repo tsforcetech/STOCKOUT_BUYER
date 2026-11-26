@@ -1,4 +1,8 @@
+import * as React from "react";
 import { Link } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { notificationKeys } from "@/services/notifications.service";
+import { onForegroundPush, refreshPush } from "@/lib/push/web-push";
 import { BellIcon } from "@phosphor-icons/react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { badgeText } from "./notification-target";
@@ -8,6 +12,15 @@ import { useUnreadNotifications } from "./use-notifications";
 export function NotificationBell() {
   const { status } = useAuth();
   const unread = useUnreadNotifications();
+  const qc = useQueryClient();
+  // Push already on for this browser: refresh the registration, and while the page is open turn pushes into a
+  // bell/inbox refresh (no second OS notification).
+  React.useEffect(() => {
+    if (status !== "authenticated") return;
+    let off = () => {};
+    void refreshPush().then(() => onForegroundPush(() => void qc.invalidateQueries({ queryKey: notificationKeys.all })).then((f) => (off = f)));
+    return () => off();
+  }, [status, qc]);
   if (status !== "authenticated") return null;
   const text = badgeText(unread.data?.unreadCount);
   return (
