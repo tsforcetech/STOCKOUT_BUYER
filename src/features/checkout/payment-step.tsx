@@ -315,14 +315,31 @@ export function PaymentStep({
   const holdFailed = !s.orderPlaced && !hasPlacedOrder(s) && s.recoveryStatus === "POST_AUTH_HOLD_FAILED" && s.internalStatus === "RECONCILIATION_REQUIRED";
   const delayed = !holdFailed && !authorised && !polling && !needsCard && (s.internalStatus === "RECONCILIATION_REQUIRED" || pollFrom !== null || s.isDelayedProcessing);
   const ordered = hasPlacedOrder(s);
-  const canCancel = !s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED") || holdFailed;
+  // The server refuses a buyer cancel once the card is authorised and the stock is held (PAYMENT_PREAUTH_ALREADY_
+  // AUTHORIZED_PROTECTED): only StockOut can release it, so never offer a Cancel that can't work.
+  const heldProtected = s.internalStatus === "AUTHORIZED" && s.reservationStatus === "HELD_POST_AUTH" && !holdFailed;
+  const canCancel = (!s.orderPlaced && !ordered && s.checkoutStage !== "CHECKOUT_RECONCILIATION_REQUIRED" && (NEEDS_CARD.has(s.internalStatus) || s.internalStatus === "AUTHORIZED") && !heldProtected) || holdFailed;
+  // A hold from an earlier version of the cart (resumed after PAYMENT_PREAUTH_ACTIVE_ATTEMPT_CONFLICT): different cart
+  // version or amount. It can't pay for this cart, so no Place order for it.
+  const staleHold = authorised && !ordered && ((!!s.cartVersion && s.cartVersion !== cartVersion) || (total !== null && Math.abs(s.authorizedAmount - total) > 0.005));
 
-  const readyToPlace = authorised && ORDER_API.placeOrder && !ordered;
+  const readyToPlace = authorised && ORDER_API.placeOrder && !ordered && !staleHold;
   return (
     <div className="space-y-3">
       <AuthorisedSignal value={readyToPlace} onChange={onAuthorisedChange} />
       {!authorised && !ordered && header}
-      {authorised && ORDER_API.placeOrder ? (
+      {staleHold ? (
+        <div role="status" className="rounded-xl border border-warning/40 bg-warning-soft p-4 text-sm text-warning-soft-foreground">
+          <p className="font-bold">Your card has an earlier hold of {formatMoney(s.authorizedAmount, s.currency)}</p>
+          <p className="mt-1">
+            It&apos;s from a previous checkout, before your cart changed, so it can&apos;t pay for this order
+            {total !== null ? ` (${formatMoney(total, readiness?.currency ?? s.currency)})` : ""}. Nothing has been charged. Only one hold can be open at a time, so it has to be released first.
+          </p>
+          <p className="mt-2">
+            It&apos;s released automatically{s.authorizationExpiresAtUtc ? ` on ${formatDateTime(s.authorizationExpiresAtUtc)}` : ""}, or StockOut support can release it now. Then come back here to pay for this cart.
+          </p>
+        </div>
+      ) : authorised && ORDER_API.placeOrder ? (
         <>
           {!ordered && (
             <div role="status" className="flex items-center gap-3 rounded-xl border border-border p-4 text-sm">

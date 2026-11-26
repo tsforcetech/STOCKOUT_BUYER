@@ -40,7 +40,8 @@ describe("payment step with ordering on", () => {
     expect(screen.getByRole("button", { name: /Place order · AED\s1,050\.00/ })).toBeEnabled();
     // One status, one action: no repeated explainer card and a single Cancel next to the card row.
     expect(screen.queryByText("Card payment")).not.toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: /Cancel/ })).toHaveLength(1);
+    // The server refuses a buyer cancel of an authorised, held card (PAYMENT_PREAUTH_ALREADY_AUTHORIZED_PROTECTED).
+    expect(screen.queryByRole("button", { name: /Cancel/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: /Place order/ })).toHaveLength(1);
   });
 
@@ -68,5 +69,16 @@ describe("payment step with ordering on", () => {
     await userEvent.click(screen.getByRole("button", { name: /Continue to card payment/ }));
     const body = (await vi.waitFor(() => calls.find((c) => c.method === "POST")!)).body as Record<string, unknown>;
     expect(body).toMatchObject({ deliveryMode: "PLATFORM_ARRANGED_DELIVERY", deliveryAddressId: ADDR, expectedTotalAmount: 1060 });
+  });
+
+  it("an earlier hold for a different cart is explained, with no Place order and no Cancel that can't work", async () => {
+    sessionStorage.setItem(`stockout.market.preauth.${CART}`, JSON.stringify({ cartId: CART, cartVersion: RV, idempotencyKey: "k", checkoutCorrelationId: "corr", expectedTotalAmount: 1050, attemptId: ATTEMPT }));
+    mockFetch([{ method: "GET", path: `/api/v1/buyer/checkout/payment-authorizations/${ATTEMPT}`, respond: () => ({ body: { ...authorised, authorizedAmount: 1806.53, cartVersion: "AAAAAAAAAAE=", authorizationExpiresAtUtc: "2026-11-29T12:15:00Z" } }) }]);
+    const now = { ...readiness, estimatedPayableTotal: 2793.03 } as unknown as CheckoutValidationResult;
+    renderWithApp([{ path: "/checkout", element: <PaymentStep cart={{ cartId: CART, buyerOrganizationId: null }} cartVersion={RV} readiness={now} publishableKey="pk_test_1" deliveryAddressId="ad000000-0000-4000-8000-000000000001" onCartStale={() => {}} onReadinessStale={() => {}} /> }], "/checkout");
+    expect(await screen.findByText(/Your card has an earlier hold of AED\s1,806\.53/)).toBeInTheDocument();
+    expect(screen.getByText(/can't pay for this order \(AED\s2,793\.03\)/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Place order/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Cancel/ })).not.toBeInTheDocument();
   });
 });
