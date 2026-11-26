@@ -7,6 +7,19 @@ function stripeKey(value: string | undefined): string {
   return key.startsWith("pk_test_") ? key : "";
 }
 
+function firebaseWebPush() {
+  const v = (x: string | undefined) => (x ?? "").trim();
+  const config = {
+    apiKey: v(import.meta.env.VITE_FIREBASE_API_KEY),
+    authDomain: v(import.meta.env.VITE_FIREBASE_AUTH_DOMAIN),
+    projectId: v(import.meta.env.VITE_FIREBASE_PROJECT_ID),
+    messagingSenderId: v(import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID),
+    appId: v(import.meta.env.VITE_FIREBASE_APP_ID),
+  };
+  const vapidKey = v(import.meta.env.VITE_FIREBASE_VAPID_KEY);
+  return { config, vapidKey, enabled: Object.values(config).every(Boolean) && !!vapidKey };
+}
+
 export const env = {
   /** Gateway origin. Empty string means same-origin `/api` (dev proxy or reverse proxy). */
   apiBaseUrl: trimTrailingSlash(import.meta.env.VITE_API_BASE_URL ?? ""),
@@ -32,5 +45,10 @@ export const env = {
   orderLifecycleEnabled: import.meta.env.VITE_ORDER_LIFECYCLE === "on",
   /** SUS-03 buyer/seller impact reports. Off unless "on" (Wave A public activation is policy-gated). */
   sustainabilityReportsEnabled: import.meta.env.VITE_SUSTAINABILITY_REPORTS === "on",
+  /**
+   * Browser push (FCM). Public web config + public VAPID key only; push is offered only when all six are set. The
+   * service worker is generated from the same values at build time (firebase-messaging-sw.plugin.ts).
+   */
+  firebase: firebaseWebPush(),
   isDev: import.meta.env.DEV,
 } as const;

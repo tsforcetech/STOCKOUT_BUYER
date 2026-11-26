@@ -48,3 +48,34 @@ export interface MarkAllReadResultDto {
 
 /** pageSize must be 1–100 (NotificationInputValidator.MaxPageSize). */
 export const NOTIFICATION_MAX_PAGE_SIZE = 100;
+
+/** Push device registration (NotificationIntegration /devices). The raw FCM token is sent once and never echoed back. */
+export type PushPlatform = "WEB" | "ANDROID" | "IOS";
+
+export interface RegisterPushDeviceRequest {
+  platform: PushPlatform;
+  /** Stable per-browser id, 8–100 characters. */
+  installationId: string;
+  fcmToken: string;
+  organizationId?: string | null;
+}
+
+export interface RegisterPushDeviceResultDto {
+  deviceId: string;
+  alreadyRegistered?: boolean;
+}
+
+/** Device metadata only: GET /devices never returns a token. */
+export interface PushDeviceDto {
+  deviceId: string;
+  organizationId: string | null;
+  platform: PushPlatform | string;
+  installationId: string;
+  registeredAtUtc: string;
+  lastSeenAtUtc: string | null;
+}
+
+export interface RevokePushDevicesResultDto {
+  revokedCount?: number;
+  wasRevoked?: boolean;
+}

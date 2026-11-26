@@ -3,17 +3,21 @@ import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
+import { firebaseMessagingSw } from "./firebase-messaging-sw.plugin";
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), "");
   const proxyTarget = env.VITE_DEV_PROXY_TARGET || "https://stockout.flowb.io";
+  const base = env.VITE_BASE_PATH || "/";
 
   return {
     // GitHub Pages serves project sites under /<repo>/; VITE_BASE_PATH sets that prefix at build time.
-    base: env.VITE_BASE_PATH || "/",
+    base,
     plugins: [
       react(),
       tailwindcss(),
+      // FCM web push worker built from the public VITE_FIREBASE_* config (nothing emitted when it is incomplete).
+      firebaseMessagingSw({ env, base, inboxPath: "account/notifications", icon: "apple-touch-icon.png" }),
       {
         // Pre-launch: keep every page out of search engines until VITE_SEO_INDEXING=on (see src/lib/seo/site.ts).
         name: "seo-indexing-switch",

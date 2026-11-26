@@ -108,6 +108,26 @@ describe("notification helpers", () => {
     expect(notificationHref({ navigationTarget: null, relatedEntityType: "UNKNOWN" })).toBeNull();
   });
 
+  it("routes order notifications by role and maps backend canonical paths to this app", () => {
+    const h = (notificationType: string, relatedEntityType: string, relatedEntityId: string | null = "7856fffe-b325-4810-998f-ebe873fbd7c8", navigationTarget: string | null = null) =>
+      notificationHref({ notificationType, relatedEntityType, relatedEntityId, navigationTarget });
+    expect(h("ORDER_PLACED", "ORDER")).toBe("/account/orders/7856fffe-b325-4810-998f-ebe873fbd7c8");
+    expect(h("BUYER_ORDER_SELLER_CONFIRMED", "ORDER")).toBe("/account/orders/7856fffe-b325-4810-998f-ebe873fbd7c8");
+    expect(h("SELLER_NEW_ORDER_RECEIVED", "SUB_ORDER", "11223344-5566")).toBe("/seller/orders/11223344-5566");
+    // Staff-only types have no screen in the marketplace: they stay in the inbox.
+    expect(h("ADMIN_NEW_ORDER_PLACED", "ORDER")).toBeNull();
+    expect(h("FINANCE_RECONCILIATION_APPROVAL_REQUIRED", "ORDER")).toBeNull();
+    expect(h("ADMIN_ORDER_CLAIM_AWAITING_REVIEW", "CLAIM")).toBeNull();
+    expect(h("SOMETHING_NEW", "SOMETHING_NEW")).toBeNull();
+    // An id that isn't a single safe path segment is never spliced into a route.
+    expect(h("ORDER_PLACED", "ORDER", "../admin")).toBe("/account/orders");
+    // Canonical backend paths → this app's routes.
+    expect(h("SEARCH_ALERT_MATCHED", "SAVED_SEARCH", "s-1", "/buyer/saved-searches/s-1")).toBe("/account/saved-searches");
+    expect(h("BUYER_ORDER_DELIVERED", "ORDER", null, "/buyer/orders/o-1")).toBe("/account/orders/o-1");
+    expect(h("ADMIN_NEW_ORDER_PLACED", "ORDER", null, "/admin/orders/o-1")).toBeNull();
+    expect(h("BUYER_ORDER_DELIVERED", "ORDER", "o-2", "javascript:alert(1)")).toBe("/account/orders/o-2");
+  });
+
   it("caps the badge at 99+ and hides it at zero", () => {
     expect(badgeText(0)).toBeNull();
     expect(badgeText(7)).toBe("7");

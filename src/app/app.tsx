@@ -11,6 +11,7 @@ import { FavoritesProvider } from "@/lib/favorites/favorites-context";
 import { ThemeProvider, useTheme } from "./providers/theme";
 import { createQueryClient } from "./providers/query-client";
 import { createAppRouter } from "./router/router";
+import { PushBridge } from "@/features/notifications/push-bridge";
 
 function ThemedToaster() {
   const { resolved } = useTheme();
@@ -26,6 +27,7 @@ export function App() {
         <QueryClientProvider client={queryClient}>
           <TooltipProvider delayDuration={250}>
             <AuthProvider>
+              <PushBridge openInbox={() => void router.navigate("/account/notifications")} />
               <SellerModeProvider>
                 <CartProvider>
                   <FavoritesProvider>

@@ -12,13 +12,56 @@ export function safeInternalPath(value: string | null | undefined): string | nul
   return v;
 }
 
-const BY_ENTITY: Record<string, string> = {
-  SAVED_SEARCH: "/account/saved-searches",
-  BUYER_VERIFICATION: "/account/verification",
-};
+/** An id that is safe to put in one path segment. */
+const SAFE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/;
+const safeId = (v: string | null | undefined) => (v && SAFE_ID.test(v) ? v : null);
 
-export function notificationHref(n: Pick<UserNotificationDto, "navigationTarget" | "relatedEntityType">): string | null {
-  return safeInternalPath(n.navigationTarget) ?? (n.relatedEntityType ? (BY_ENTITY[n.relatedEntityType.toUpperCase()] ?? null) : null);
+/**
+ * Backend canonical paths (/buyer/..., /seller/...; handoff 26 Nov 2026 §5) mapped to this app's routes. Admin and
+ * Finance paths don't exist in the marketplace, so they map to nothing (the item stays in the inbox).
+ */
+function toAppPath(path: string): string | null {
+  const [pathname] = path.split(/[?#]/);
+  const seg = pathname.split("/").filter(Boolean);
+  const [area, section, id] = seg;
+  if (area === "buyer") {
+    if (section === "orders") return id && safeId(id) ? `/account/orders/${id}` : "/account/orders";
+    if (section === "verification") return "/account/verification";
+    if (section === "saved-searches") return "/account/saved-searches";
+    return null;
+  }
+  if (area === "seller" && section === "orders") return id && safeId(id) ? `/seller/orders/${id}` : "/seller/orders";
+  if (area === "notifications") return "/account/notifications";
+  if (area === "admin") return null;
+  return path;
+}
+
+/** Role-aware route from (notificationType, relatedEntityType, relatedEntityId). */
+function entityPath(n: Partial<Pick<UserNotificationDto, "notificationType" | "relatedEntityType" | "relatedEntityId">>): string | null {
+  const type = (n.notificationType ?? "").toUpperCase();
+  const entity = (n.relatedEntityType ?? "").toUpperCase();
+  const id = safeId(n.relatedEntityId);
+  const staff = type.startsWith("ADMIN_") || type.startsWith("FINANCE_");
+  switch (entity) {
+    case "ORDER":
+      return staff ? null : id ? `/account/orders/${id}` : "/account/orders";
+    case "SUB_ORDER":
+      return type.startsWith("SELLER_") ? (id ? `/seller/orders/${id}` : "/seller/orders") : null;
+    case "BUYER_VERIFICATION":
+      return "/account/verification";
+    case "SAVED_SEARCH":
+      return "/account/saved-searches";
+    default:
+      // CLAIM / ESCALATION are admin screens; unknown types stay in the inbox.
+      return null;
+  }
+}
+
+export function notificationHref(
+  n: Pick<UserNotificationDto, "navigationTarget" | "relatedEntityType"> & Partial<Pick<UserNotificationDto, "notificationType" | "relatedEntityId">>,
+): string | null {
+  const target = safeInternalPath(n.navigationTarget);
+  return (target ? toAppPath(target) : null) ?? entityPath(n);
 }
 
 /** Bell badge text: hidden at zero, capped at 99+. */

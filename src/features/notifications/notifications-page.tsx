@@ -14,6 +14,7 @@ import { notificationKeys, notificationsService } from "@/services/notifications
 import type { UserNotificationDto } from "@/api/types/notifications";
 import { AccountTabs } from "@/features/account/account-tabs";
 import { notificationHref } from "./notification-target";
+import { PushOptIn } from "./push-opt-in";
 
 const PAGE_SIZE = 20;
 
@@ -83,9 +84,10 @@ export default function NotificationsPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader eyebrow="My account" title="Notifications" description="Updates about your saved searches, verification and account." />
+      <PageHeader eyebrow="My account" title="Notifications" description="Updates about your orders, saved searches, verification and account." />
       <AccountTabs />
       <SectionCard>
+        <PushOptIn />
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div role="tablist" aria-label="Show" className="inline-flex rounded-full bg-surface-muted p-1">
             {tab(false, "All")}
@@ -119,7 +121,7 @@ export default function NotificationsPage() {
         ) : q.error && !data ? (
           <ErrorState error={q.error} onRetry={() => void q.refetch()} />
         ) : !data?.items.length ? (
-          <EmptyState icon={<BellIcon className="size-6" />} title={unreadOnly ? "No unread notifications" : "No notifications yet"} description={unreadOnly ? "You're all caught up." : "We'll let you know when a saved search matches or your verification changes."} />
+          <EmptyState icon={<BellIcon className="size-6" />} title={unreadOnly ? "No unread notifications" : "No notifications yet"} description={unreadOnly ? "You're all caught up." : "We'll let you know when an order moves, a saved search matches or your verification changes."} />
         ) : (
           <ul className="divide-y divide-border rounded-xl border border-border" aria-label="Notifications">
             {data.items.map((n) => {

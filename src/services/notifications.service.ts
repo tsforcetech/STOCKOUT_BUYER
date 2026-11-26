@@ -7,7 +7,7 @@ const BASE = "/api/v1/notifications";
 /**
  * The signed-in user's notifications. The user comes only from the token: no recipient id is ever sent. Without
  * organizationId the server returns the user's personal and organization notifications together.
- * Push device enrollment (/devices) is not used: Firebase push isn't enabled (Firebase:Enabled=false).
+ * Browser push enrollment (/devices) lives in push-devices.service.ts.
  */
 export const notificationsService = {
   list: async (q: { unreadOnly: boolean; page: number; pageSize: number }, signal?: AbortSignal) =>
