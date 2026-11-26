@@ -17,7 +17,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       // FCM web push worker built from the public VITE_FIREBASE_* config (nothing emitted when it is incomplete).
-      firebaseMessagingSw({ env, base, inboxPath: "account/notifications", icon: "apple-touch-icon.png" }),
+      firebaseMessagingSw({ env, inboxPath: "account/notifications", icon: "apple-touch-icon.png" }),
       {
         // Pre-launch: keep every page out of search engines until VITE_SEO_INDEXING=on (see src/lib/seo/site.ts).
         name: "seo-indexing-switch",
