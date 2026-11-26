@@ -119,6 +119,7 @@ function GuestCartPage() {
             title="Missing items for this project?"
             body="Add everything else to one request for quote, or upload your BOQ. Verified sellers quote you."
             cta="Get quotes for the missing items"
+            quiet
           />
         </div>
 

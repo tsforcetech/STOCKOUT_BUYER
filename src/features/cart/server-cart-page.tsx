@@ -182,15 +182,14 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
             <dt className="font-medium text-foreground">Estimated total</dt>
             <dd className="font-heading text-xl font-bold text-foreground">{formatMoney((noTax ? cart.totalSubtotal : cart.estimatedTotal) + freight, cart.currency)}</dd>
           </div>
-          {freight > 0 && <p className="text-xs text-muted-foreground">One delivery charge per order, however many sellers. Confirmed at checkout.</p>}
+          {freight > 0 && <p className="text-xs text-muted-foreground">One delivery charge per order, however many sellers.</p>}
         </dl>
       )}
 
-      <section aria-label="Checkout readiness" className="mt-4">
-        {cart.checkoutReadiness.canProceed ? (
-          <p className="rounded-lg bg-success-soft p-3 text-xs leading-5 text-success-soft-foreground">Your cart is ready for checkout.</p>
-        ) : canGoToCheckout ? (
-          <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">{blockerText(general[0])}</p>
+      {/* One message at a time: real blockers above the button; when checkout is open, one quiet line under it. */}
+      <section aria-label="Checkout readiness" className={canGoToCheckout ? "sr-only" : "mt-4"}>
+        {canGoToCheckout ? (
+          <p>Ready for checkout.</p>
         ) : (
           <ul className="space-y-2">
             {general.map((b) => (
@@ -219,13 +218,12 @@ function Summary({ cart, onClear, busy }: { cart: BuyerCartResponse; onClear: ()
           <LockSimpleIcon /> Proceed to checkout
         </Button>
       )}
-      <p id="checkout-note" className="mt-3 rounded-lg bg-cream p-3 text-xs leading-5 text-body">
-        {canGoToCheckout ? (
-          <>Review your order on the next step. Placing orders and payment open at launch.</>
-        ) : (
-          <>Checkout opens once the points above are resolved. Your cart is saved to your account.</>
-        )}{" "}
-        VAT shown is an estimate.
+      <p id="checkout-note" className="mt-2 text-center text-xs leading-5 text-muted-foreground">
+        {canGoToCheckout
+          ? cart.checkoutReadiness.canProceed
+            ? "You'll confirm the delivery address and pay on the next step."
+            : "You'll choose the company you're buying for on the next step."
+          : "Checkout opens once the points above are resolved. Your cart is saved."}
       </p>
       <button type="button" onClick={onClear} disabled={busy} className="mt-3 w-full cursor-pointer text-center text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground disabled:opacity-50">
         Clear cart
@@ -353,6 +351,7 @@ export function ServerCartPage() {
                 title="Missing items for this project?"
                 body="Add everything else to one request for quote, or upload your BOQ. Verified sellers quote you."
                 cta="Get quotes for the missing items"
+                quiet
               />
             </div>
             <Summary cart={cart} busy={actions.isPending} onClear={() => setConfirmClear(true)} />

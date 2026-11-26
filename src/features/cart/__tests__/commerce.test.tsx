@@ -276,7 +276,7 @@ describe("BE-01 cart gate", () => {
     mockFetch([...sessionRoutes([]), cartRoute(() => ({ body: cart({ checkoutReadiness: { canProceed: false, blockers: [{ code: "BUYER_ORGANIZATION_REQUIRED", message: "x", listingId: null }] } }) })), empty, wishIds]);
     page(<CartPage />, "/cart");
     expect(await screen.findByRole("link", { name: /Proceed to checkout/ })).toHaveAttribute("href", "/checkout");
-    expect(screen.getByText(/Choose the company you.re buying for at checkout/)).toBeInTheDocument();
+    expect(screen.getByText(/choose the company you.re buying for on the next step/)).toBeInTheDocument();
   });
 });
 

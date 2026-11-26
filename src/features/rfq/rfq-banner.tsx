@@ -75,6 +75,7 @@ export function RfqBanner({
   title,
   body,
   cta,
+  quiet = false,
   className,
   beforeOpen,
 }: {
@@ -83,6 +84,8 @@ export function RfqBanner({
   title: string;
   body: string;
   cta?: string;
+  /** Outline button: use where the page already has a main black action (e.g. the cart's Proceed to checkout). */
+  quiet?: boolean;
   className?: string;
   beforeOpen?: () => void;
 }) {
@@ -159,7 +162,10 @@ export function RfqBanner({
       <button
         type="button"
         onClick={open}
-        className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full bg-ink px-6 text-sm font-semibold text-ink-foreground shadow-raised transition-colors hover:bg-ink-hover"
+        className={cn(
+          "inline-flex h-11 shrink-0 cursor-pointer items-center gap-2 rounded-full px-6 text-sm font-semibold transition-colors",
+          quiet ? "border border-border-strong bg-surface text-foreground hover:border-foreground" : "bg-ink text-ink-foreground shadow-raised hover:bg-ink-hover",
+        )}
       >
         {cta ?? "Share your RFQ"} <ArrowRightIcon className="size-4" />
       </button>
