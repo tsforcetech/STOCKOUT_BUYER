@@ -1,0 +1,10 @@
+We couldn't approve your verification
+
+Hi {{RecipientName}}, we reviewed your documents on {{RejectedAtUtc}} and couldn't approve them.
+
+Resubmit documents: https://www.stockoutme.com/account/verification
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

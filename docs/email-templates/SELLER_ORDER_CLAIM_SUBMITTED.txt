@@ -1,0 +1,10 @@
+A buyer reported a problem
+
+Hi {{RecipientName}}, the buyer reported a problem with {{SubOrderNumber}}.
+
+Respond: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

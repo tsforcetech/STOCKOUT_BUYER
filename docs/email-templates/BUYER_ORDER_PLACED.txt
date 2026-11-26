@@ -1,0 +1,10 @@
+Thank you, your order is placed
+
+Hi {{RecipientName}}, order {{OrderNumber}} is with the sellers. Your card has a hold of {{TotalAmount}}; you're charged only for the items sellers confirm.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+Finish your payout setup
+
+Hi {{RecipientName}}, we can't pay {{CompanyName}} until your payout details are complete: {{MissingItems}}.
+
+Complete setup: {{PayoutSetupUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

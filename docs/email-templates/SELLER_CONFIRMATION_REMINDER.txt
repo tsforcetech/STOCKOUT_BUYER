@@ -1,0 +1,10 @@
+{{HoursLeft}} hours left to confirm
+
+Hi {{RecipientName}}, order {{SubOrderNumber}} ({{SubOrderTotal}}) is still waiting. Please confirm or reject by {{ConfirmationDeadlineUtc}}.
+
+Confirm or reject: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

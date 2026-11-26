@@ -1,0 +1,10 @@
+You're a verified seller
+
+Hi {{RecipientName}}, {{CompanyName}} is now a verified StockOut seller. Your listings show the verified badge.
+
+List your first item: https://www.stockoutme.com/seller/listings/new
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+You received a quote
+
+Hi {{RecipientName}}, {{SellerName}} quoted {{QuoteAmount}} for your request {{RequestNumber}}. The quote is valid until {{ValidUntil}}.
+
+Review quote: {{RequestUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

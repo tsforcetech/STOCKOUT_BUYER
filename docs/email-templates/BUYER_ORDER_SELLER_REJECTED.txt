@@ -1,0 +1,10 @@
+A seller couldn't supply your order
+
+Hi {{RecipientName}}, {{SellerName}} couldn't supply their part of order {{OrderNumber}} ({{SubOrderTotal}}).
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

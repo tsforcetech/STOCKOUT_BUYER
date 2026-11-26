@@ -1,0 +1,10 @@
+Your order is confirmed
+
+Hi {{RecipientName}}, {{SellerName}} confirmed their part of order {{OrderNumber}} ({{SubOrderTotal}}). StockOut is arranging freight; we'll email the delivery date.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

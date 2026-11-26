@@ -1,0 +1,10 @@
+Your refund is on its way
+
+Hi {{RecipientName}}, we refunded {{Amount}} for order {{OrderNumber}} to your card. It usually appears within 5–10 working days.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

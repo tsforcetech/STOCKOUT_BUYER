@@ -1,0 +1,10 @@
+Your listing needs a few changes
+
+Hi {{RecipientName}}, our team reviewed {{ListingTitle}}. Please update the following, then resubmit:
+
+Edit listing: {{SellerListingUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

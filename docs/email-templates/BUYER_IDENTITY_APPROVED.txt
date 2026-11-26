@@ -1,0 +1,10 @@
+You're verified
+
+Hi {{RecipientName}}, your identity was approved on {{VerifiedAtUtc}}. You can now check out and place orders.
+
+Go to your cart: https://www.stockoutme.com/cart
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

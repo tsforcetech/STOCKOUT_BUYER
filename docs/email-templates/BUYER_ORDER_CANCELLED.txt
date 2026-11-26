@@ -1,0 +1,10 @@
+Your order was cancelled
+
+Hi {{RecipientName}}, order {{OrderNumber}} was cancelled ({{CancelledBy}}). You won't be charged; any card hold is being released.
+
+View order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

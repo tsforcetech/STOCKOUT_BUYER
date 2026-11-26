@@ -1,0 +1,10 @@
+A buyer needs something you sell
+
+Hi {{RecipientName}}, a buyer in {{Emirate}} is looking for {{RequestTitle}}. Reply with a quote before {{CloseDate}}.
+
+Send a quote: {{RequestUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

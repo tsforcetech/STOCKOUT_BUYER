@@ -1,0 +1,10 @@
+An order was cancelled
+
+Hi {{RecipientName}}, {{SubOrderNumber}} was cancelled ({{CancelledBy}}). Please don't prepare or hand it to freight.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

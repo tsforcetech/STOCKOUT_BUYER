@@ -1,0 +1,10 @@
+Your listing wasn't approved
+
+Hi {{RecipientName}}, {{ListingTitle}} can't be published on StockOut.
+
+View listing: {{SellerListingUrl}}
+
+See the prohibited items policy for what can be listed.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

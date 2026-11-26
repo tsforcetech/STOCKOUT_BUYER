@@ -1,0 +1,10 @@
+Your card hold was released
+
+Hi {{RecipientName}}, the hold of {{Amount}} on your card was released ({{Reason}}). Your bank may take a few days to show it.
+
+Go to StockOut: https://www.stockoutme.com/
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

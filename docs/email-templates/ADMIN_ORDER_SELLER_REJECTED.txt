@@ -1,0 +1,10 @@
+A seller rejected an order
+
+{{SellerName}} rejected {{SubOrderNumber}} ({{SubOrderTotal}}). Reason: {{Reason}}. Payment reconciliation is pending.
+
+Open order: {{AdminOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

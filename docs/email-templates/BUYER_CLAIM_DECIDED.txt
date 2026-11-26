@@ -1,0 +1,10 @@
+We've reviewed your report
+
+Hi {{RecipientName}}, StockOut reviewed your report on order {{OrderNumber}}.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

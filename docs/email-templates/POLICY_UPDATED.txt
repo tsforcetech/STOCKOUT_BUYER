@@ -1,0 +1,10 @@
+We've updated our {{PolicyName}}
+
+Hi {{RecipientName}}, our {{PolicyName}} changes on {{EffectiveDate}}. {{ChangeSummary}}
+
+Read and accept: {{PolicyUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

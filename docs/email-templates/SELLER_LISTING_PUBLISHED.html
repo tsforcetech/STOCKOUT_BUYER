@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light"><meta name="supported-color-schemes" content="light">
+<title>Live now: {{ListingTitle}}</title>
+<!-- StockOut email template: SELLER_LISTING_PUBLISHED (Seller). Double-brace placeholders are replaced by NotificationIntegration (values HTML-encoded; *Html placeholders are server-built HTML). -->
+<style>
+  @media (max-width:620px) { .container { width:100% !important; } .px { padding-left:20px !important; padding-right:20px !important; } .h1 { font-size:24px !important; line-height:30px !important; } }
+  a { color:#1A1A1A; }
+</style>
+</head>
+<body style="margin:0;padding:0;background:#F4F4F2;-webkit-text-size-adjust:100%;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:#F4F4F2;">{{ListingTitle}} is approved and visible to buyers.&#8202;&#847;&#8202;&#847;&#8202;&#847;&#8202;&#847;</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F2;"><tr><td align="center" style="padding:24px 12px;">
+<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:600px;background:#FFFFFF;border-radius:20px;overflow:hidden;font-family:'Geist','Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+  <tr><td style="background:#1A1A1A;padding:26px 32px;" class="px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+      <td><a href="https://www.stockoutme.com" style="text-decoration:none;"><img src="https://www.stockoutme.com/email/stockout-logo-white.png" width="153" height="32" alt="StockOut" style="display:block;border:0;width:153px;height:32px;"></a></td>
+      <td align="right" style="font-size:12px;color:#BDBDB5;">Verified surplus marketplace</td>
+    </tr></table>
+  </td></tr>
+  <tr><td style="height:4px;background:#F8FF2C;line-height:4px;font-size:0;">&nbsp;</td></tr>
+  <tr><td class="px" style="padding:32px 32px 8px 32px;">
+    <span style="display:inline-block;padding:5px 12px;border-radius:999px;background:#E6F6F0;color:#047857;font-size:12px;font-weight:700;letter-spacing:0.4px;">PUBLISHED</span>
+    <h1 class="h1" style="margin:16px 0 8px 0;font-size:28px;line-height:34px;font-weight:800;color:#1A1A1A;">Your listing is live</h1>
+    <p style="margin:0 0 24px 0;font-size:15px;line-height:24px;color:#2D2D27;">Hi {{RecipientName}}, <b>{{ListingTitle}}</b> is approved and now visible to buyers across the UAE.</p>
+  </td></tr>
+  <tr><td style="padding:0 32px 20px 32px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #EEEEED;border-radius:14px;background:#FFFFFF;"><tr><td style="padding:18px 20px;"><div style="font-size:12px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#74756C;padding-bottom:10px;">Listing</div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr><td style="padding:10px 0;font-size:14px;color:#74756C;">Price</td><td align="right" style="padding:10px 0;font-size:14px;color:#2D2D27;">{{Price}}</td></tr><tr><td style="padding:10px 0;border-top:1px solid #EEEEED;font-size:14px;color:#74756C;">Available</td><td align="right" style="padding:10px 0;border-top:1px solid #EEEEED;font-size:14px;color:#2D2D27;">{{Quantity}}</td></tr><tr><td style="padding:10px 0;border-top:1px solid #EEEEED;font-size:14px;color:#74756C;">Listing no.</td><td align="right" style="padding:10px 0;border-top:1px solid #EEEEED;font-size:14px;color:#2D2D27;">{{ListingNumber}}</td></tr></table></td></tr></table></td></tr>
+  <tr><td class="px" align="left" style="padding:4px 32px 28px 32px;">
+    <table role="presentation" cellpadding="0" cellspacing="0"><tr><td style="border-radius:999px;background:#1A1A1A;">
+      <a href="{{PublicListingUrl}}" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:700;color:#F8FF2C;text-decoration:none;border-radius:999px;">See it on StockOut &rarr;</a>
+    </td></tr></table>
+    
+  </td></tr>
+  <tr><td style="background:#FDFEF2;border-top:1px solid #EEEEED;padding:22px 32px;" class="px">
+    <p style="margin:0 0 6px 0;font-size:13px;line-height:20px;color:#2D2D27;">Questions? Reply to this email or write to <a href="mailto:info@stockoutme.com" style="color:#1A1A1A;font-weight:600;">info@stockoutme.com</a>.</p>
+    <p style="margin:0;font-size:12px;line-height:18px;color:#74756C;">You're receiving this because of activity on your StockOut account ({{RecipientEmail}}). Order and security emails are always sent. <a href="https://www.stockoutme.com/account/notifications" style="color:#74756C;">Notification settings</a></p>
+    <p style="margin:12px 0 0 0;font-size:12px;color:#74756C;">&copy; {{Year}} StockOut &middot; Dubai, United Arab Emirates</p>
+  </td></tr>
+</table>
+</td></tr></table>
+</body></html>

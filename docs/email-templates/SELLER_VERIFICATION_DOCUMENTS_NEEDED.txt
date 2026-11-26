@@ -1,0 +1,10 @@
+We need a few more documents
+
+Hi {{RecipientName}}, to finish verifying {{CompanyName}} we need the following:
+
+Upload documents: https://www.stockoutme.com/seller/onboarding
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

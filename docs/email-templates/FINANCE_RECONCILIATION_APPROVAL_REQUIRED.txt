@@ -1,0 +1,10 @@
+Payment reconciliation needs approval
+
+Order {{OrderNumber}} needs a payment reconciliation of {{Amount}} ({{ReconciliationType}}). Nothing has moved yet.
+
+Review and approve: {{FinanceUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

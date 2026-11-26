@@ -1,0 +1,10 @@
+Your account is temporarily locked
+
+Hi {{RecipientName}}, we locked your account after several failed sign-in attempts. You can try again after {{UnlockDateTime}}, or reset your password now.
+
+Reset password: https://www.stockoutme.com/forgot-password
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+Your bulk import is done
+
+Hi {{RecipientName}}, your file {{FileName}} finished processing.
+
+Review import: {{ImportUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

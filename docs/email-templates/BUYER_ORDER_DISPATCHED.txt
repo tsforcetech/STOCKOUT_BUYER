@@ -1,0 +1,10 @@
+Your order is on the way
+
+Hi {{RecipientName}}, order {{OrderNumber}} from {{SellerName}} is with StockOut freight. Expected delivery: {{DeliveryWindow}}.
+
+Track your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

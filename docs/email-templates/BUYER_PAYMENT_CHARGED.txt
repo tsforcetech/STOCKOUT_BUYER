@@ -1,0 +1,10 @@
+Payment taken
+
+Hi {{RecipientName}}, we charged {{ChargedAmount}} to your card for the confirmed parts of order {{OrderNumber}}. Anything not confirmed has been released.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

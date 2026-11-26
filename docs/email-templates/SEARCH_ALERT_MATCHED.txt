@@ -1,0 +1,10 @@
+New stock matches your search
+
+Hi {{RecipientName}}, {{MatchCount}} new listings match {{SearchName}}.
+
+See all matches: {{SearchUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+Application received
+
+Hi {{RecipientName}}, we received the seller application for {{CompanyName}}. Our team usually reviews within {{TargetBusinessDays}} working days.
+
+View application: https://www.stockoutme.com/seller/onboarding
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

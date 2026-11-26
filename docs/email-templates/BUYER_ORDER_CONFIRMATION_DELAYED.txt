@@ -1,0 +1,10 @@
+A seller is taking longer than usual
+
+Hi {{RecipientName}}, {{SellerName}} hasn't confirmed their part of order {{OrderNumber}} yet. StockOut is following up; you don't need to do anything. Your card is not charged for this part.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

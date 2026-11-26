@@ -1,0 +1,10 @@
+Your order was delivered
+
+Hi {{RecipientName}}, order {{OrderNumber}} from {{SellerName}} was delivered. Please check the goods and accept them, or report a problem by {{AcceptByDateTime}}. After that it's accepted automatically.
+
+Accept or report a problem: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

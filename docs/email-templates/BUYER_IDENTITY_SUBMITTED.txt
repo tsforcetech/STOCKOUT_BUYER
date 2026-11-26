@@ -1,0 +1,10 @@
+We received your documents
+
+Hi {{RecipientName}}, thanks for submitting your {{DocumentType}} on {{SubmittedAtUtc}}. We usually review within {{TargetBusinessDays}} working days and will email you the result.
+
+View verification: https://www.stockoutme.com/account/verification
+
+You can keep adding to your cart while we review.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

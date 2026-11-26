@@ -1,0 +1,10 @@
+We received your report
+
+Hi {{RecipientName}}, thanks for reporting a problem with order {{OrderNumber}}. StockOut will review it with the seller and update you; acceptance is paused meanwhile.
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

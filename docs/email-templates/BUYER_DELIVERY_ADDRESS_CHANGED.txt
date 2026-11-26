@@ -1,0 +1,10 @@
+Delivery address updated
+
+Hi {{RecipientName}}, order {{OrderNumber}} will now be delivered to:
+
+View your order: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

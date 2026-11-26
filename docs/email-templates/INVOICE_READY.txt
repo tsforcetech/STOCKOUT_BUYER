@@ -1,0 +1,10 @@
+Your tax invoice is ready
+
+Hi {{RecipientName}}, tax invoice {{InvoiceNumber}} ({{Amount}}) for order {{OrderNumber}} is ready to download.
+
+Download invoice: {{InvoiceUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,888 @@
+[
+ {
+  "code": "AUTH_EMAIL_VERIFICATION_CODE",
+  "audience": "Any user",
+  "category": "Account",
+  "subject": "Your StockOut code: {{Code}}",
+  "placeholders": [
+   "Code",
+   "ExpiryMinutes",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_PASSWORD_RESET",
+  "audience": "Any user",
+  "category": "Account",
+  "subject": "Reset your StockOut password",
+  "placeholders": [
+   "ExpiryMinutes",
+   "RecipientEmail",
+   "RecipientName",
+   "ResetCode",
+   "ResetUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_WELCOME",
+  "audience": "New user",
+  "category": "Account",
+  "subject": "Welcome to StockOut",
+  "placeholders": [
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_PASSWORD_CHANGED",
+  "audience": "Any user",
+  "category": "Security",
+  "subject": "Your StockOut password was changed",
+  "placeholders": [
+   "ChangedAtDateTime",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_NEW_SIGN_IN",
+  "audience": "Any user",
+  "category": "Security",
+  "subject": "New sign-in to your StockOut account",
+  "placeholders": [
+   "Device",
+   "Location",
+   "RecipientEmail",
+   "RecipientName",
+   "SignInDateTime",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_EMAIL_CHANGED",
+  "audience": "Any user (old and new address)",
+  "category": "Security",
+  "subject": "Your StockOut email address was changed",
+  "placeholders": [
+   "NewEmail",
+   "OldEmail",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "AUTH_ACCOUNT_LOCKED",
+  "audience": "Any user",
+  "category": "Security",
+  "subject": "Your StockOut account is temporarily locked",
+  "placeholders": [
+   "RecipientEmail",
+   "RecipientName",
+   "UnlockDateTime",
+   "Year"
+  ]
+ },
+ {
+  "code": "COMPANY_INVITATION",
+  "audience": "Invitee",
+  "category": "Account",
+  "subject": "{{InviterName}} invited you to {{CompanyName}} on StockOut",
+  "placeholders": [
+   "CompanyName",
+   "ExpiryDateTime",
+   "InvitationUrl",
+   "InviterName",
+   "RecipientEmail",
+   "Role",
+   "Year"
+  ]
+ },
+ {
+  "code": "POLICY_UPDATED",
+  "audience": "All users",
+  "category": "Legal",
+  "subject": "We've updated StockOut's {{PolicyName}}",
+  "placeholders": [
+   "ChangeSummary",
+   "EffectiveDate",
+   "PolicyName",
+   "PolicyUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_IDENTITY_SUBMITTED",
+  "audience": "Buyer",
+  "category": "Verification",
+  "subject": "We received your verification",
+  "placeholders": [
+   "DocumentType",
+   "RecipientEmail",
+   "RecipientName",
+   "SubmittedAtUtc",
+   "TargetBusinessDays",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_IDENTITY_APPROVED",
+  "audience": "Buyer",
+  "category": "Verification",
+  "subject": "You're verified: you can now buy on StockOut",
+  "placeholders": [
+   "RecipientEmail",
+   "RecipientName",
+   "VerifiedAtUtc",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_IDENTITY_REJECTED",
+  "audience": "Buyer",
+  "category": "Verification",
+  "subject": "Action needed: your verification wasn't approved",
+  "placeholders": [
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "RejectedAtUtc",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_VERIFICATION_SUBMITTED",
+  "audience": "Seller",
+  "category": "Verification",
+  "subject": "We received {{CompanyName}}'s seller application",
+  "placeholders": [
+   "CompanyName",
+   "RecipientEmail",
+   "RecipientName",
+   "TargetBusinessDays",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_VERIFICATION_APPROVED",
+  "audience": "Seller",
+  "category": "Verification",
+  "subject": "{{CompanyName}} is verified: start selling",
+  "placeholders": [
+   "CompanyName",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_VERIFICATION_DOCUMENTS_NEEDED",
+  "audience": "Seller",
+  "category": "Verification",
+  "subject": "Action needed: more documents for {{CompanyName}}",
+  "placeholders": [
+   "CompanyName",
+   "MissingDocuments",
+   "MissingDocumentsHtml",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_VERIFICATION_REJECTED",
+  "audience": "Seller",
+  "category": "Verification",
+  "subject": "{{CompanyName}}'s seller application wasn't approved",
+  "placeholders": [
+   "CompanyName",
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "ADMIN_VERIFICATION_PENDING",
+  "audience": "Admin",
+  "category": "Verification",
+  "subject": "{{PendingCount}} verifications waiting for review",
+  "placeholders": [
+   "AdminUrl",
+   "OldestSubmittedAt",
+   "PendingCount",
+   "RecipientEmail",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_LISTING_SUBMITTED",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Listing submitted: {{ListingTitle}}",
+  "placeholders": [
+   "ListingTitle",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerListingUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_LISTING_PUBLISHED",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Live now: {{ListingTitle}}",
+  "placeholders": [
+   "ListingNumber",
+   "ListingTitle",
+   "Price",
+   "PublicListingUrl",
+   "Quantity",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_LISTING_CHANGES_REQUESTED",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Changes needed: {{ListingTitle}}",
+  "placeholders": [
+   "ChangesHtml",
+   "ListingTitle",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerListingUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_LISTING_REJECTED",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Not approved: {{ListingTitle}}",
+  "placeholders": [
+   "ListingTitle",
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerListingUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_IMPORT_COMPLETED",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Your import is done: {{CreatedCount}} listings created",
+  "placeholders": [
+   "CreatedCount",
+   "ErrorCount",
+   "FileName",
+   "ImportUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_LISTING_SOLD_OUT",
+  "audience": "Seller",
+  "category": "Listings",
+  "subject": "Sold out: {{ListingTitle}}",
+  "placeholders": [
+   "ListingTitle",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerListingUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "ADMIN_LISTINGS_PENDING_REVIEW",
+  "audience": "Admin",
+  "category": "Listings",
+  "subject": "{{PendingCount}} listings waiting for review",
+  "placeholders": [
+   "AdminUrl",
+   "OldestSubmittedAt",
+   "PendingCount",
+   "RecipientEmail",
+   "Year"
+  ]
+ },
+ {
+  "code": "SEARCH_ALERT_MATCHED",
+  "audience": "Buyer",
+  "category": "Buying",
+  "subject": "New matches for \u201c{{SearchName}}\u201d",
+  "placeholders": [
+   "ListingsRowsHtml",
+   "MatchCount",
+   "RecipientEmail",
+   "RecipientName",
+   "SearchName",
+   "SearchUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_QUOTE_RECEIVED",
+  "audience": "Buyer",
+  "category": "Buying",
+  "subject": "New quote for your request {{RequestNumber}}",
+  "placeholders": [
+   "QuoteAmount",
+   "RecipientEmail",
+   "RecipientName",
+   "RequestNumber",
+   "RequestUrl",
+   "SellerName",
+   "ValidUntil",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_NEW_BUYER_REQUEST",
+  "audience": "Seller",
+  "category": "Selling",
+  "subject": "New buyer request: {{RequestTitle}}",
+  "placeholders": [
+   "CloseDate",
+   "Emirate",
+   "RecipientEmail",
+   "RecipientName",
+   "RequestTitle",
+   "RequestUrl",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_PLACED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "Order {{OrderNumber}} placed",
+  "placeholders": [
+   "ConfirmationDeadlineUtc",
+   "DeliveryAddressHtml",
+   "DeliveryAmount",
+   "ItemsRowsHtml",
+   "MaterialsAmount",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "TotalAmount",
+   "VatAmount",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_NEW_ORDER_RECEIVED",
+  "audience": "Seller",
+  "category": "Orders",
+  "subject": "New order {{SubOrderNumber}}: confirm by {{ConfirmationDeadlineUtc}}",
+  "placeholders": [
+   "BuyerEmirate",
+   "ConfirmationDeadlineUtc",
+   "ItemsRowsHtml",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "PLATFORM_ADMIN_NEW_ORDER",
+  "audience": "Admin",
+  "category": "Orders",
+  "subject": "New order {{OrderNumber}} \u00b7 {{TotalAmount}}",
+  "placeholders": [
+   "AdminOrderUrl",
+   "BuyerEmirate",
+   "BuyerName",
+   "ConfirmationDeadlineUtc",
+   "ItemsRowsHtml",
+   "OrderNumber",
+   "RecipientEmail",
+   "SellerCount",
+   "SellerNamesHtml",
+   "TotalAmount",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_CONFIRMATION_REMINDER",
+  "audience": "Seller",
+  "category": "Orders",
+  "subject": "Reminder: confirm order {{SubOrderNumber}} by {{ConfirmationDeadlineUtc}}",
+  "placeholders": [
+   "ConfirmationDeadlineUtc",
+   "HoursLeft",
+   "ItemsRowsHtml",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_CONFIRMATION_DELAYED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "Update on order {{OrderNumber}}",
+  "placeholders": [
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "Year"
+  ]
+ },
+ {
+  "code": "ADMIN_SELLER_CONFIRMATION_ESCALATED",
+  "audience": "Admin",
+  "category": "Orders",
+  "subject": "Escalated: {{SellerName}} missed confirmation on {{SubOrderNumber}}",
+  "placeholders": [
+   "AdminEscalationUrl",
+   "AdminReviewDeadlineUtc",
+   "ConfirmationDeadlineUtc",
+   "RecipientEmail",
+   "SellerName",
+   "SubOrderNumber",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_SELLER_CONFIRMED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "{{SellerName}} confirmed your order {{OrderNumber}}",
+  "placeholders": [
+   "ItemsRowsHtml",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_SELLER_REJECTED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "{{SellerName}} couldn't supply part of order {{OrderNumber}}",
+  "placeholders": [
+   "OrderNumber",
+   "OrderUrl",
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "ADMIN_ORDER_SELLER_REJECTED",
+  "audience": "Admin",
+  "category": "Orders",
+  "subject": "Seller rejected {{SubOrderNumber}}",
+  "placeholders": [
+   "AdminOrderUrl",
+   "Reason",
+   "RecipientEmail",
+   "SellerName",
+   "SubOrderNumber",
+   "SubOrderTotal",
+   "Year"
+  ]
+ },
+ {
+  "code": "FINANCE_RECONCILIATION_APPROVAL_REQUIRED",
+  "audience": "Finance",
+  "category": "Payments",
+  "subject": "Approval needed: payment reconciliation for {{OrderNumber}}",
+  "placeholders": [
+   "Amount",
+   "FinanceUrl",
+   "OrderNumber",
+   "RecipientEmail",
+   "ReconciliationType",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_PAYMENT_CHARGED",
+  "audience": "Buyer",
+  "category": "Payments",
+  "subject": "Payment taken for order {{OrderNumber}}: {{ChargedAmount}}",
+  "placeholders": [
+   "ChargedAmount",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_DELIVERY_SCHEDULED",
+  "audience": "Buyer",
+  "category": "Delivery",
+  "subject": "Delivery booked for order {{OrderNumber}}",
+  "placeholders": [
+   "DeliveryAddressHtml",
+   "DeliveryContact",
+   "DeliveryReference",
+   "DeliveryWindow",
+   "ItemsRowsHtml",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_COLLECTION_SCHEDULED",
+  "audience": "Seller",
+  "category": "Delivery",
+  "subject": "Collection booked for {{SubOrderNumber}}",
+  "placeholders": [
+   "CollectionAddress",
+   "CollectionWindow",
+   "DeliveryContact",
+   "DeliveryReference",
+   "ItemsRowsHtml",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_DISPATCHED",
+  "audience": "Buyer",
+  "category": "Delivery",
+  "subject": "On the way: order {{OrderNumber}}",
+  "placeholders": [
+   "DeliveryAddressHtml",
+   "DeliveryWindow",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_DELIVERED",
+  "audience": "Buyer",
+  "category": "Delivery",
+  "subject": "Delivered: order {{OrderNumber}}. Please check the goods",
+  "placeholders": [
+   "AcceptByDateTime",
+   "ItemsRowsHtml",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_ORDER_DELIVERED",
+  "audience": "Seller",
+  "category": "Delivery",
+  "subject": "Delivered: {{SubOrderNumber}}",
+  "placeholders": [
+   "AcceptByDateTime",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ACCEPTANCE_REMINDER",
+  "audience": "Buyer",
+  "category": "Delivery",
+  "subject": "Reminder: check order {{OrderNumber}} by {{AcceptByDateTime}}",
+  "placeholders": [
+   "AcceptByDateTime",
+   "DaysLeft",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_ACCEPTED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "Order {{OrderNumber}} completed",
+  "placeholders": [
+   "DeemedNote",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_ORDER_ACCEPTED",
+  "audience": "Seller",
+  "category": "Orders",
+  "subject": "Accepted: {{SubOrderNumber}}. Payout process started",
+  "placeholders": [
+   "DeemedNote",
+   "NetPayout",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_CLAIM_SUBMITTED",
+  "audience": "Buyer",
+  "category": "Claims",
+  "subject": "We received your report for order {{OrderNumber}}",
+  "placeholders": [
+   "OrderNumber",
+   "OrderUrl",
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_ORDER_CLAIM_SUBMITTED",
+  "audience": "Seller",
+  "category": "Claims",
+  "subject": "Problem reported on {{SubOrderNumber}}",
+  "placeholders": [
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "ADMIN_ORDER_CLAIM_AWAITING_REVIEW",
+  "audience": "Admin",
+  "category": "Claims",
+  "subject": "Claim to review: {{SubOrderNumber}}",
+  "placeholders": [
+   "AdminClaimsUrl",
+   "Reason",
+   "RecipientEmail",
+   "SellerName",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_CLAIM_DECIDED",
+  "audience": "Buyer",
+  "category": "Claims",
+  "subject": "Decision on your report for order {{OrderNumber}}",
+  "placeholders": [
+   "Decision",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_CLAIM_DECIDED",
+  "audience": "Seller",
+  "category": "Claims",
+  "subject": "Decision on the claim for {{SubOrderNumber}}",
+  "placeholders": [
+   "Decision",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_ORDER_CANCELLED",
+  "audience": "Buyer",
+  "category": "Orders",
+  "subject": "Order {{OrderNumber}} cancelled",
+  "placeholders": [
+   "CancelledBy",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_ORDER_CANCELLED",
+  "audience": "Seller",
+  "category": "Orders",
+  "subject": "Cancelled: {{SubOrderNumber}}",
+  "placeholders": [
+   "CancelledBy",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_DELIVERY_ADDRESS_CHANGED",
+  "audience": "Buyer",
+  "category": "Delivery",
+  "subject": "Delivery address updated for order {{OrderNumber}}",
+  "placeholders": [
+   "DeliveryAddressHtml",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_DELIVERY_ADDRESS_CHANGED",
+  "audience": "Seller",
+  "category": "Delivery",
+  "subject": "Address changed for {{SubOrderNumber}}",
+  "placeholders": [
+   "BuyerEmirate",
+   "RecipientEmail",
+   "RecipientName",
+   "SellerOrderUrl",
+   "SubOrderNumber",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_PAYMENT_HOLD_RELEASED",
+  "audience": "Buyer",
+  "category": "Payments",
+  "subject": "Card hold released: {{Amount}}",
+  "placeholders": [
+   "Amount",
+   "Reason",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "BUYER_REFUND_ISSUED",
+  "audience": "Buyer",
+  "category": "Payments",
+  "subject": "Refund of {{Amount}} for order {{OrderNumber}}",
+  "placeholders": [
+   "Amount",
+   "OrderNumber",
+   "OrderUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "INVOICE_READY",
+  "audience": "Buyer / Seller",
+  "category": "Payments",
+  "subject": "Your tax invoice {{InvoiceNumber}} is ready",
+  "placeholders": [
+   "Amount",
+   "InvoiceNumber",
+   "InvoiceUrl",
+   "OrderNumber",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_PAYOUT_SENT",
+  "audience": "Seller",
+  "category": "Payouts",
+  "subject": "Payout sent: {{NetPayout}}",
+  "placeholders": [
+   "BankLast4",
+   "FeeAmount",
+   "GrossAmount",
+   "NetPayout",
+   "OrderNumbers",
+   "PayoutsUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SELLER_PAYOUT_SETUP_INCOMPLETE",
+  "audience": "Seller",
+  "category": "Payouts",
+  "subject": "Action needed: finish your payout setup",
+  "placeholders": [
+   "CompanyName",
+   "MissingItems",
+   "PayoutSetupUrl",
+   "RecipientEmail",
+   "RecipientName",
+   "Year"
+  ]
+ },
+ {
+  "code": "SUPPORT_REPLY",
+  "audience": "Buyer / Seller",
+  "category": "Support",
+  "subject": "Reply to your request {{TicketNumber}}",
+  "placeholders": [
+   "RecipientEmail",
+   "RecipientName",
+   "ReplyPreview",
+   "TicketNumber",
+   "TicketUrl",
+   "Year"
+  ]
+ }
+]

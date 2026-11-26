@@ -1,0 +1,10 @@
+The claim was decided
+
+Hi {{RecipientName}}, StockOut decided the buyer's claim on {{SubOrderNumber}}.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+Your order was delivered
+
+Hi {{RecipientName}}, {{SubOrderNumber}} was delivered. The buyer has until {{AcceptByDateTime}} to accept or report a problem; then your payout process starts.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+The delivery address changed
+
+Hi {{RecipientName}}, the buyer changed the delivery address for {{SubOrderNumber}} to {{BuyerEmirate}}. StockOut freight is re-planning; nothing changes for your collection unless we tell you.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

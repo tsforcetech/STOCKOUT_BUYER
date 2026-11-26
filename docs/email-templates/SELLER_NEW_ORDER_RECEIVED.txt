@@ -1,0 +1,10 @@
+You have a new order
+
+Hi {{RecipientName}}, a buyer ordered from {{SellerName}}. Please confirm or reject order {{SubOrderNumber}} by {{ConfirmationDeadlineUtc}}.
+
+Confirm or reject: {{SellerOrderUrl}}
+
+Can't fulfil it? Reject with a reason so the buyer's card hold is released quickly.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

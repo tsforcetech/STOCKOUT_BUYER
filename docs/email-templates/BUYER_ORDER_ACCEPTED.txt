@@ -1,0 +1,10 @@
+Order completed
+
+Hi {{RecipientName}}, you accepted order {{OrderNumber}}{{DeemedNote}}. Thank you for buying surplus and keeping materials out of landfill.
+
+Buy again: {{OrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

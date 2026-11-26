@@ -1,0 +1,10 @@
+Confirm it's you
+
+Hi {{RecipientName}}, use this code to finish creating your account or to sign in.
+
+Open StockOut: https://www.stockoutme.com/login
+
+Didn't ask for a code? You can ignore this email; your account is safe.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

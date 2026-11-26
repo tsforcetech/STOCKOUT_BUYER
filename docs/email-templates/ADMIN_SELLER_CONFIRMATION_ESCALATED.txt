@@ -1,0 +1,10 @@
+Seller confirmation overdue
+
+{{SellerName}} did not confirm {{SubOrderNumber}} ({{SubOrderTotal}}) by {{ConfirmationDeadlineUtc}}. Decide by {{AdminReviewDeadlineUtc}}.
+
+Open escalation: {{AdminEscalationUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

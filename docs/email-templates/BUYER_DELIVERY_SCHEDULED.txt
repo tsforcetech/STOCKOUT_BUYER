@@ -1,0 +1,10 @@
+Your delivery is booked
+
+Hi {{RecipientName}}, StockOut freight will deliver order {{OrderNumber}} on {{DeliveryWindow}}. Please make sure someone can receive and check the goods.
+
+Track your order: {{OrderUrl}}
+
+Need a different day or site? Change it from the order page before dispatch.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

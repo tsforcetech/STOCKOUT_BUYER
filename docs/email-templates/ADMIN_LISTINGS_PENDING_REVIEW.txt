@@ -1,0 +1,10 @@
+Listings waiting for review
+
+{{PendingCount}} listings are waiting for approval. The oldest was submitted on {{OldestSubmittedAt}}.
+
+Open approvals: {{AdminUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

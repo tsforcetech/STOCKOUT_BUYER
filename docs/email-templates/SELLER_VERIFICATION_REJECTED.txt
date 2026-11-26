@@ -1,0 +1,10 @@
+We couldn't approve your application
+
+Hi {{RecipientName}}, we couldn't approve the seller application for {{CompanyName}}.
+
+Review and resubmit: https://www.stockoutme.com/seller/onboarding
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+Your payout is on its way
+
+Hi {{RecipientName}}, we sent {{NetPayout}} to your bank account ending {{BankLast4}}.
+
+View payouts: {{PayoutsUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

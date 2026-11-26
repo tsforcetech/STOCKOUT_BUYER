@@ -1,0 +1,10 @@
+Your listing is live
+
+Hi {{RecipientName}}, {{ListingTitle}} is approved and now visible to buyers across the UAE.
+
+See it on StockOut: {{PublicListingUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

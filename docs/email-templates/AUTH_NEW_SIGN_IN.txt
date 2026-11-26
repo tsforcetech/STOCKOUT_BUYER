@@ -1,0 +1,10 @@
+New sign-in to your account
+
+Hi {{RecipientName}}, your account was just used to sign in.
+
+Review sessions: https://www.stockoutme.com/account/security
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

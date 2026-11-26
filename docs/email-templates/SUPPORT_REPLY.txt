@@ -1,0 +1,10 @@
+We replied to your request
+
+Hi {{RecipientName}}, StockOut support replied to {{TicketNumber}}: {{ReplyPreview}}
+
+Open conversation: {{TicketUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

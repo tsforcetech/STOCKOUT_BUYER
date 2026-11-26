@@ -1,0 +1,10 @@
+Verifications waiting for you
+
+{{PendingCount}} buyer and seller verifications are waiting. The oldest was submitted on {{OldestSubmittedAt}}.
+
+Open review queue: {{AdminUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

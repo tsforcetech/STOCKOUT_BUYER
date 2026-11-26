@@ -1,0 +1,10 @@
+You're invited to {{CompanyName}}
+
+{{InviterName}} invited you to join {{CompanyName}} on StockOut as {{Role}}. The invitation expires on {{ExpiryDateTime}}.
+
+Accept invitation: {{InvitationUrl}}
+
+Not expecting this? You can ignore it.
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

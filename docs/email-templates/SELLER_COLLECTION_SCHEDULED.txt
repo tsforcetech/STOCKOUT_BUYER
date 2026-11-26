@@ -1,0 +1,10 @@
+Freight collection is booked
+
+Hi {{RecipientName}}, StockOut freight will collect order {{SubOrderNumber}} on {{CollectionWindow}}. Please have the goods packed and labelled with the order number.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

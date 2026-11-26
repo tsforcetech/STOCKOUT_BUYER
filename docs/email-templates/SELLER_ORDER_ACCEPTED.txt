@@ -1,0 +1,10 @@
+The buyer accepted your order
+
+Hi {{RecipientName}}, the buyer accepted {{SubOrderNumber}}{{DeemedNote}}. Your payout of {{NetPayout}} follows the holding period.
+
+View order: {{SellerOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

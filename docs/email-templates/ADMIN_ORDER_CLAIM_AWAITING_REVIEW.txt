@@ -1,0 +1,10 @@
+A claim needs review
+
+The buyer of {{SubOrderNumber}} ({{SellerName}}) reported: {{Reason}}
+
+Open claims: {{AdminClaimsUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

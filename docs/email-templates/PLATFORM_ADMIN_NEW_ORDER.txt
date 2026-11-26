@@ -1,0 +1,10 @@
+New order {{OrderNumber}}
+
+{{BuyerName}} placed an order with {{SellerCount}} seller(s). Sellers must confirm by {{ConfirmationDeadlineUtc}}.
+
+Open in admin: {{AdminOrderUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

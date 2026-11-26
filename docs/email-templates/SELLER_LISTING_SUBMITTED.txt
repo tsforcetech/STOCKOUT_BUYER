@@ -1,0 +1,10 @@
+Your listing is in review
+
+Hi {{RecipientName}}, {{ListingTitle}} was submitted for review. Most listings are reviewed within 1 working day.
+
+View listing: {{SellerListingUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

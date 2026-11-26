@@ -1,0 +1,10 @@
+Your email address was changed
+
+Hi {{RecipientName}}, your StockOut sign-in email changed from {{OldEmail}} to {{NewEmail}}.
+
+Review account security: https://www.stockoutme.com/account/security
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE

@@ -1,0 +1,10 @@
+A listing sold out
+
+Hi {{RecipientName}}, {{ListingTitle}} has no stock left and is hidden from search. Add stock to show it again.
+
+Update stock: {{SellerListingUrl}}
+
+
+
+Questions? info@stockoutme.com
+StockOut, Dubai, UAE
