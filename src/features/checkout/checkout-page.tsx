@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeftIcon,
@@ -532,6 +532,7 @@ function ChangedNotice({ onReload }: { onReload: () => void }) {
 }
 
 export default function CheckoutPage() {
+  const navigate = useNavigate();
   const q = useServerCart();
   const queryClient = useQueryClient();
   // The rowVersion the buyer is reviewing. If a refetch brings a different one, the cart changed elsewhere.
@@ -614,7 +615,8 @@ export default function CheckoutPage() {
               readiness: readiness.data,
               publishableKey: env.stripePublishableKey,
               deliveryAddressId,
-              onOrderPlaced: setPlacedOrder,
+              // The order exists: move to its confirmation page and drop the used checkout from history.
+              onOrderPlaced: (o) => (setPlacedOrder(o), navigate(`/checkout/complete/${o.orderId}`, { replace: true })),
               onAuthorisedChange: setCardAuthorised,
               onCartStale: () => setPaymentStale(true),
               onReadinessStale: () => void readiness.refetch(),

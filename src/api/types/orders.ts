@@ -103,6 +103,8 @@ export interface MarketplaceOrderDto {
   applicableMaterialVat: number;
   deliveryAmount: number;
   deliveryVatAmount: number;
+  /** Order-time delivery address (JSON of OrderTimeDeliveryAddressSnapshotDto); freight orders only. */
+  deliveryAddressSnapshotJson?: string | null;
   totalPayableAmount: number;
   status: MarketplaceOrderStatus | string;
   paymentStatus: OrderPaymentStatus | string;

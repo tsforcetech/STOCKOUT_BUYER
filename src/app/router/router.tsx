@@ -49,6 +49,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: "seller/onboarding", lazy: page(() => import("@/features/seller/onboarding-page")) },
               { path: "checkout", lazy: page(() => import("@/features/checkout/checkout-page")) },
+              { path: "checkout/complete/:orderId", lazy: page(() => import("@/features/checkout/order-confirmation-page")) },
               {
                 path: "account",
                 lazy: page(() => import("@/features/account/account-layout")),
