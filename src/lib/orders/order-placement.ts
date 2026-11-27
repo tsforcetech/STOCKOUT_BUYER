@@ -88,6 +88,8 @@ export const isUncertainPlacement = (e: unknown) => !isApiError(e) || e.kind ===
 
 /** OrderPlacementApiErrorCodes / OrderPlacementErrorCodes / COM-DEL-01 codes → buyer wording. */
 export const PLACEMENT_MESSAGES: Record<string, string> = {
+  ORDER_PLACEMENT_CATALOG_LISTING_MISMATCH: "One of the items changed while you were paying (price, quantity or details). Check your cart and try again; nothing is charged.",
+  ORDER_PLACEMENT_LISTING_VERSION_UNAVAILABLE: "One of the items is no longer available in the version you added. Check your cart and try again; nothing is charged.",
   ORDER_PLACEMENT_DISABLED: "Ordering isn't open yet. Your payment stays a hold on your card; nothing is charged.",
   ORDER_PLACEMENT_PREREQUISITES_NOT_MET: "Ordering isn't open yet. Your payment stays a hold on your card; nothing is charged.",
   ORDER_PLACEMENT_DELIVERY_NOT_APPROVED: "Freight delivery orders aren't open yet. Your payment stays a hold on your card and nothing is charged; it's released automatically if no order is placed.",
@@ -119,4 +121,4 @@ export const placementMessage = (e: unknown) => (isApiError(e) && e.code && PLAC
 export const PLACEMENT_CLOSED = new Set(["ORDER_PLACEMENT_DISABLED", "ORDER_PLACEMENT_PREREQUISITES_NOT_MET", "ORDER_PLACEMENT_DELIVERY_NOT_APPROVED", "ORDER_PLACEMENT_DELIVERY_BREAKDOWN_UNAVAILABLE", "COM_DEL_MODE_POLICY_GATED", "COM_DEL_MODE_UNSUPPORTED"]);
 
 /** Codes after which the cart / readiness must be re-read before anything else. */
-export const PLACEMENT_CART_STALE = new Set(["ORDER_PLACEMENT_CART_NOT_FOUND_OR_STALE", "ORDER_PLACEMENT_SNAPSHOT_MISMATCH", "ORDER_PLACEMENT_AMOUNT_MISMATCH", "INVALID_IF_MATCH_HEADER", "CART_CONCURRENCY_CONFLICT"]);
+export const PLACEMENT_CART_STALE = new Set(["ORDER_PLACEMENT_CATALOG_LISTING_MISMATCH", "ORDER_PLACEMENT_LISTING_VERSION_UNAVAILABLE", "ORDER_PLACEMENT_CART_NOT_FOUND_OR_STALE", "ORDER_PLACEMENT_SNAPSHOT_MISMATCH", "ORDER_PLACEMENT_AMOUNT_MISMATCH", "INVALID_IF_MATCH_HEADER", "CART_CONCURRENCY_CONFLICT"]);

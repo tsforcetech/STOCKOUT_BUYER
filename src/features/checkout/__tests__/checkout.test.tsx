@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { renderWithApp, sessionRoutes } from "@/test/render";
@@ -314,10 +315,12 @@ describe("Stage 8C seller orders (read only)", () => {
 
   it("view components render a DTO directly", () => {
     render(
-      <MemoryRouter>
-        <BuyerOrderDetail order={order()} />
-        <SellerSubOrderDetail sub={sub({ statusHistory: [] })} />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <BuyerOrderDetail order={order()} />
+          <SellerSubOrderDetail sub={sub({ statusHistory: [] })} />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     expect(screen.getAllByText("No status changes recorded yet.").length).toBe(2);
   });
@@ -501,9 +504,11 @@ describe("Stage 8C.9 seller confirmation SLA and decisions", () => {
 
   it("buyer sees a calm delay notice when a seller is escalated", () => {
     render(
-      <MemoryRouter>
-        <BuyerOrderDetail order={order({ subOrders: [sub({ isEscalated: true })] })} />
-      </MemoryRouter>,
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <BuyerOrderDetail order={order({ subOrders: [sub({ isEscalated: true })] })} />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
     expect(screen.getByText(/taking longer than usual to confirm/)).toBeInTheDocument();
   });

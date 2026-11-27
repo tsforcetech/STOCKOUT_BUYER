@@ -91,6 +91,8 @@ export interface ConfirmDialogProps {
   title: React.ReactNode;
   description: React.ReactNode;
   confirmLabel?: string;
+  /** Label of the button that closes without acting (default "Cancel"). */
+  cancelLabel?: string;
   tone?: "danger" | "primary";
   loading?: boolean;
   onConfirm: () => void;
@@ -98,7 +100,7 @@ export interface ConfirmDialogProps {
 }
 
 /** Confirmation for destructive or irreversible actions. Stays open while `loading`. */
-export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = "Confirm", tone = "danger", loading, onConfirm, children }: ConfirmDialogProps) {
+export function ConfirmDialog({ open, onOpenChange, title, description, confirmLabel = "Confirm", cancelLabel = "Cancel", tone = "danger", loading, onConfirm, children }: ConfirmDialogProps) {
   return (
     <AlertPrimitive.Root open={open} onOpenChange={(next) => !loading && onOpenChange(next)}>
       <AlertPrimitive.Portal>
@@ -110,7 +112,7 @@ export function ConfirmDialog({ open, onOpenChange, title, description, confirmL
           <div className="mt-5 flex justify-end gap-2">
             <AlertPrimitive.Cancel asChild>
               <Button variant="secondary" disabled={loading}>
-                Cancel
+                {cancelLabel}
               </Button>
             </AlertPrimitive.Cancel>
             <Button

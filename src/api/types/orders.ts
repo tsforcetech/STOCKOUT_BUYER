@@ -87,6 +87,33 @@ export interface SellerSubOrderDto {
   statusHistory: OrderStatusHistoryDto[];
 }
 
+/**
+ * C#: Contracts.Orders.OrderReconciliationSummaryDto (OJ-02/OJ-04). Proposed money changes after a seller rejection or a
+ * buyer cancellation. These are proposals until Finance executes them: never show them as refunded or charged.
+ */
+export interface OrderReconciliationSummaryDto {
+  reconciliationId: Guid;
+  revision: number;
+  disposition?: string | number | null;
+  reconciliationStatus: string;
+  recommendedProviderAction?: string | number | null;
+  totalSubOrdersCount: number;
+  activeSubOrdersCount: number;
+  rejectedSubOrdersCount: number;
+  currency: string;
+  originalOrderPayableAmount: number;
+  retainedDeliveryGrossAmount: number;
+  proposedRefundableDeliveryGrossAmount: number;
+  proposedRejectedMaterialAmount: number;
+  proposedTotalAdjustmentAmount: number;
+  activeOrderRemainingPayableAmount: number;
+  requiresFinanceRiskApproval: boolean;
+  isFinancialExecutionBlocked: boolean;
+  requiresTaxCreditNote: boolean;
+  safeExplanationMessage: string;
+  evaluatedAtUtc: IsoDateTime;
+}
+
 /** C#: Contracts.Orders.MarketplaceOrderDto (buyer's parent order with every seller suborder) */
 export interface MarketplaceOrderDto {
   orderId: Guid;
@@ -116,6 +143,8 @@ export interface MarketplaceOrderDto {
   updatedAtUtc: IsoDateTime | null;
   subOrders: SellerSubOrderDto[];
   statusHistory: OrderStatusHistoryDto[];
+  /** OJ-02/OJ-04: present after a seller rejection or a buyer cancellation changed what is owed. */
+  reconciliationSummary?: OrderReconciliationSummaryDto | null;
 }
 
 /** C#: Contracts.Orders.OrderStatusHistoryDto */

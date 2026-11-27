@@ -11,6 +11,7 @@ import { SellerSlaBadge, isPendingConfirmation, slaState, timeLeft, useNow } fro
 import { ORDER_STEPS, buyerOrderHeadline, buyerStep, stepIndex, claimStatus, fulfilmentStatus, historyLine, payoutStatus, paymentStatus, statusIs, subOrderStatus } from "../order-status";
 import { ORDER_API } from "@/lib/orders/order-api";
 import { BuyerAcceptance } from "../buyer-acceptance";
+import { CancelOrderCard, CancelSellerPart, DeliveryAddressCard, ReconciliationNotice } from "../buyer-order-actions";
 import { SellerDecision } from "../seller-decision";
 import { BuyerOrderImpact } from "@/features/sustainability/impact-report";
 
@@ -192,6 +193,7 @@ export function BuyerOrderDetail({ order, actions }: { order: MarketplaceOrderDt
             </div>
           )}
         </section>
+        <ReconciliationNotice summary={order.reconciliationSummary} currency={order.currency} />
         {order.subOrders.some((s) => s.isEscalated && isPendingConfirmation(s.status)) && (
           <p role="status" className="rounded-2xl bg-warning-soft p-4 text-sm leading-6 text-warning-soft-foreground">
             One of your sellers is taking longer than usual to confirm. StockOut is following up with them. You don&apos;t need to do anything.
@@ -224,6 +226,9 @@ export function BuyerOrderDetail({ order, actions }: { order: MarketplaceOrderDt
               <Lines items={s.items} link />
               <div className="border-t border-border px-4 py-3">
                 <Amounts currency={order.currency} rows={[["Materials", s.materialSubtotal], ["VAT", s.applicableMaterialVat], ["Seller total", s.subOrderTotal, true]]} />
+                <div className="-mb-1 mt-1 flex justify-end">
+                  <CancelSellerPart order={order} sub={s} />
+                </div>
               </div>
               {ORDER_API.buyerAcceptance && <BuyerAcceptance orderId={order.orderId} sub={s} />}
             </section>
@@ -249,6 +254,8 @@ export function BuyerOrderDetail({ order, actions }: { order: MarketplaceOrderDt
         </div>
         {order.paymentReference && <p className="break-all text-xs text-muted-foreground">Payment reference {order.paymentReference}</p>}
         <p className="rounded-lg bg-cream p-3 text-xs leading-5 text-body">Amounts are shown as recorded on the order. This page isn&apos;t a tax invoice.</p>
+        <DeliveryAddressCard order={order} />
+        <CancelOrderCard order={order} />
       </aside>
       <div className="min-w-0 space-y-4 lg:col-start-1">
         {ORDER_API.sustainabilityReports && <BuyerOrderImpact orderId={order.orderId} />}
