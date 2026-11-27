@@ -306,10 +306,12 @@ function SellerBadges({ sub, claim = false }: { sub: SellerSubOrderDto; claim?: 
   const st = subOrderStatus(sub.status);
   const f = fulfilmentStatus(sub.fulfillmentStatus);
   const showF = !!sub.fulfillmentStatus && !statusIs(sub.fulfillmentStatus, "NOT_STARTED") && f.label !== st.label && !isPendingConfirmation(sub.status);
+  // While in fulfilment the step itself (Preparing, On the way…) is the status: one badge, not two.
+  const showSt = !(showF && statusIs(sub.status, "IN_FULFILLMENT"));
   const showClaim = claim && !!sub.claimStatus && !statusIs(sub.claimStatus, "NONE");
   return (
     <>
-      <StatusBadge entry={st} />
+      {showSt && <StatusBadge entry={st} />}
       {showF && <StatusBadge entry={f} />}
       {showClaim && <StatusBadge entry={claimStatus(sub.claimStatus)} />}
     </>
@@ -325,11 +327,12 @@ export function SellerOrderList({ sellerId, subOrders }: { sellerId: string; sub
         return (
           <li key={s.subOrderId} className={cn("flex flex-col gap-3 p-4 sm:flex-row sm:items-center", isNew && "border-l-4 border-l-warning bg-warning-soft/30")}>
             <Link to={`/seller/orders/${s.subOrderId}`} className="group flex min-w-0 flex-1 items-center gap-4">
-              <ListingImage src={assetUrl(first?.thumbnailUrlSnapshot)} alt="" className="size-14 shrink-0 rounded-lg" />
+              <ListingImage src={assetUrl(first?.thumbnailUrlSnapshot)} alt="" className="size-12 shrink-0 rounded-lg sm:size-14" />
               <div className="min-w-0 flex-1">
                 <p className="flex flex-wrap items-baseline gap-x-2 font-heading font-bold text-foreground group-hover:underline">
                   {isNew && <span className="text-xs font-bold uppercase tracking-wide text-warning-soft-foreground">New</span>}
-                  {s.subOrderNumber}
+                  <span className="whitespace-nowrap">{s.subOrderNumber}</span>
+                  <span className="ml-auto whitespace-nowrap sm:hidden">{formatMoney(s.subOrderTotal, first?.currency ?? "AED")}</span>
                 </p>
                 <p className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
                   {first?.titleSnapshot ?? "Order"}
@@ -340,7 +343,7 @@ export function SellerOrderList({ sellerId, subOrders }: { sellerId: string; sub
                   <SellerSlaBadge sub={s} />
                 </div>
               </div>
-              <p className="shrink-0 font-heading text-lg font-bold text-foreground">{formatMoney(s.subOrderTotal, first?.currency ?? "AED")}</p>
+              <p className="hidden shrink-0 font-heading text-lg font-bold text-foreground sm:block">{formatMoney(s.subOrderTotal, first?.currency ?? "AED")}</p>
               <CaretRightIcon className="hidden size-4 shrink-0 text-muted-foreground sm:block" aria-hidden />
             </Link>
             {isNew && (
