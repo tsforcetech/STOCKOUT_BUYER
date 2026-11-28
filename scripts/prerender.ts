@@ -250,10 +250,46 @@ async function main() {
     urls.push({ loc: p, priority: t.name ? (t.emirate ? "0.7" : "0.8") : "0.8" });
   }
 
-  // Home and categories keep the app shell but get the organisation / site search data.
+  // StockOut's own pages get real text, canonical and robots in the first HTML (crawlers don't wait for the app).
+  // index.html is also the app fallback for other routes; the app sets their own tags when it starts.
+  const brand = "StockOut (Stockoutme)";
   fs.writeFileSync(
     indexFile,
-    template.replace("</head>", `    ${[organizationLd(), websiteLd()].map((b) => `<script type="application/ld+json">${JSON.stringify(b)}</script>`).join("\n    ")}\n  </head>`),
+    page(
+      template,
+      {
+        title: `${brand} – Surplus Stock Marketplace in UAE | Buy Excess Building Materials`,
+        description:
+          "StockOut (stockoutme.com) is the UAE marketplace for surplus stock: buy and sell unused pipes, cables, steel, cement, tiles and other construction and MEP materials from verified sellers in Dubai, Abu Dhabi and Sharjah.",
+        path: "/",
+        jsonLd: [organizationLd(), websiteLd()],
+      },
+      shell(
+        `<h1>${brand} – Surplus Stock Marketplace in UAE</h1>` +
+          `<p>StockOut (stockoutme.com) is a B2B marketplace in Dubai where contractors, MEP and fit-out companies and material merchants buy and sell surplus, excess and idle construction materials.</p>` +
+          `<p>Every seller is verified. Buyers pay by card, sellers confirm each order, and StockOut delivers by freight across all seven emirates.</p>` +
+          `<ul><li><a href="/categories">Browse surplus materials by category</a></li><li><a href="/sell">Sell your surplus stock on StockOut</a></li><li><a href="/legal">Policies and terms</a></li></ul>`,
+      ),
+    ),
+  );
+  write(
+    "/sell",
+    page(
+      template,
+      { title: "Sell Surplus Stock in the UAE | StockOut", description: "Turn excess construction and industrial materials into cash. Verified UAE businesses list surplus stock on StockOut (stockoutme.com) and sell to contractors across the Emirates.", path: "/sell" },
+      shell(
+        `<h1>Sell your surplus stock on StockOut</h1><p>List unused pipes, cables, steel, tiles, HVAC and other materials left over from projects. Buyers across the UAE order and pay by card; StockOut handles freight delivery.</p>` +
+          `<p><a href="/register">Open a seller account</a> · <a href="/legal">Seller policies</a></p>`,
+      ),
+    ),
+  );
+  write(
+    "/legal",
+    page(
+      template,
+      { title: "Policies and Terms | StockOut", description: "Terms of use, privacy, cookie, prohibited items and marketplace policies for StockOut (stockoutme.com), the UAE surplus stock marketplace.", path: "/legal" },
+      shell(`<h1>StockOut policies</h1><p>Terms of use, privacy policy, cookie policy, prohibited items and the other rules that apply to buying and selling on StockOut.</p>`),
+    ),
   );
 
   const today = new Date().toISOString().slice(0, 10);
