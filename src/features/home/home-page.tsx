@@ -99,9 +99,9 @@ const PROMISES = [
 
 export default function HomePage() {
   useSeo({
-    title: "StockOut – Surplus Stock Marketplace in UAE | Buy Excess Building Materials",
+    title: "StockOut (Stockoutme) – Surplus Stock Marketplace in UAE | Buy Excess Building Materials",
     description:
-      "Find surplus stock in the UAE: pipes, cables, steel, cement, tiles and more from verified sellers in Dubai, Abu Dhabi and Sharjah. Buy unused excess inventory at below-market prices on StockOut.",
+      "Find surplus stock in the UAE: pipes, cables, steel, cement, tiles and more from verified sellers in Dubai, Abu Dhabi and Sharjah. Buy unused excess inventory at below-market prices on StockOut (stockoutme.com).",
     path: "/",
     jsonLd: [organizationLd(), websiteLd()],
   });

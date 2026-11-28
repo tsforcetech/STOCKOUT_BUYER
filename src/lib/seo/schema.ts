@@ -1,11 +1,20 @@
 import { SITE_NAME, SITE_URL, absoluteUrl } from "./site";
 
+/** Spellings people use for the brand (Google site name and knowledge panel). */
+export const BRAND_ALIASES = ["Stockoutme", "Stockoutme.com", "StockOut ME", "Stock Out"];
+/** Official profiles, so search engines connect them to the site. */
+export const BRAND_PROFILES = ["https://www.linkedin.com/company/stockout-me", "https://www.instagram.com/stockout.me/"];
+
 export const organizationLd = () => ({
   "@context": "https://schema.org",
   "@type": "Organization",
   name: SITE_NAME,
+  /** People search the domain name ("stockoutme"): tell Google these are the same brand. */
+  alternateName: BRAND_ALIASES,
   url: SITE_URL,
   logo: `${SITE_URL}/apple-touch-icon.png`,
+  sameAs: BRAND_PROFILES,
+  address: { "@type": "PostalAddress", addressLocality: "Dubai", addressCountry: "AE" },
   areaServed: { "@type": "Country", name: "United Arab Emirates" },
   description: "B2B marketplace for verified surplus stock, excess inventory and unused construction and industrial materials in the UAE.",
 });
@@ -14,6 +23,7 @@ export const websiteLd = () => ({
   "@context": "https://schema.org",
   "@type": "WebSite",
   name: SITE_NAME,
+  alternateName: BRAND_ALIASES,
   url: SITE_URL,
   potentialAction: { "@type": "SearchAction", target: `${SITE_URL}/search?q={search_term_string}`, "query-input": "required name=search_term_string" },
 });
