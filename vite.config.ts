@@ -15,10 +15,10 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       {
-        // Pre-launch: keep every page out of search engines until VITE_SEO_INDEXING=on (see src/lib/seo/site.ts).
+        // "off": every page noindex. "site"/"on": the shell is indexable and each page sets its own robots tag (src/lib/seo/site.ts).
         name: "seo-indexing-switch",
         transformIndexHtml: (html: string) =>
-          (env.VITE_SEO_INDEXING ?? "").toLowerCase() === "on" ? html : html.replace("</title>", '</title>\n    <meta name="robots" content="noindex, follow" />'),
+          ["on", "site"].includes((env.VITE_SEO_INDEXING ?? "").toLowerCase()) ? html : html.replace("</title>", '</title>\n    <meta name="robots" content="noindex, follow" />'),
       },
     ],
     resolve: {

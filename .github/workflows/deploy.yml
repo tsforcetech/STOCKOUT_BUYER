@@ -91,9 +91,10 @@ jobs:
       - name: Build Production Website
         env:
           VITE_API_BASE_URL: https://stockout.flowb.io
-          # SEO pre-launch switch: "off" = every page noindex, sitemap without listings (dummy data).
-          # Launch day: change to "on" here AND in "Generate SEO pages", push, then submit the sitemap in Search Console.
-          VITE_SEO_INDEXING: "off"
+          # SEO switch: "off" = every page noindex; "site" = only home, sell and policies indexed (listings are dummy
+          # data, kept noindex and out of the sitemap); "on" = everything incl. listings. Change here AND in
+          # "Generate SEO pages". "site" since 28 Nov 2026 (owner: StockOut should be found on Google before real stock).
+          VITE_SEO_INDEXING: "site"
           # "Launching soon" cover on the home page. Off since 27 Nov 2026 (owner decision): the home page shows directly.
           VITE_LAUNCH_COVER: "off"
           # Stripe TEST mode payment, order placement and order steps ON for everyone (owner decision 21 Nov 2026).
@@ -132,7 +133,7 @@ jobs:
       - name: Generate SEO pages
         env:
           SEO_API_BASE_URL: https://stockout.flowb.io
-          VITE_SEO_INDEXING: "off"
+          VITE_SEO_INDEXING: "site"
         run: |
           npm run seo:prerender
           $manifest = Join-Path $env:GITHUB_WORKSPACE "dist\prerender-manifest.json"

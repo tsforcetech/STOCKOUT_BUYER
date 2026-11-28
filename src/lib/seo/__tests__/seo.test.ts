@@ -69,3 +69,17 @@ describe("pre-launch indexing switch", () => {
     expect(document.head.querySelector('link[rel="canonical"]')?.getAttribute("href")).toBe("https://www.stockoutme.com/c/ppr-pipes-and-fittings-in-dubai");
   });
 });
+
+describe("site-only indexing (VITE_SEO_INDEXING=site)", () => {
+  it("indexes only StockOut's own pages and keeps listings, categories and search out", async () => {
+    vi.resetModules();
+    vi.stubEnv("VITE_SEO_INDEXING", "site");
+    const site = await import("../site");
+    expect(site.SEO_MODE).toBe("site");
+    expect(site.SEO_INDEXING).toBe(false);
+    for (const p of ["/", "/sell", "/legal", "/legal/terms-of-use", "/sell/"]) expect(site.pathIndexable(p)).toBe(true);
+    for (const p of ["/search", "/categories", "/c/ppr-pipes", "/listings/ppr-pipe-1d34d692-0000-4000-8000-000000000001", "/account"]) expect(site.pathIndexable(p)).toBe(false);
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+});

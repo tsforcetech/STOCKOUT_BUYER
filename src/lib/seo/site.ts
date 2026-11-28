@@ -7,10 +7,28 @@ export const SITE_HOST = new URL(SITE_URL).host;
 export const SITE_NAME = "StockOut";
 
 /**
- * Pre-launch switch. While the marketplace holds test/dummy data, every page is "noindex" and the sitemap lists no
- * listings. Launch = set VITE_SEO_INDEXING=on for the production build (deploy.yml) and redeploy.
+ * Search-engine switch (VITE_SEO_INDEXING in deploy.yml):
+ * - "off"  : every page noindex (pre-launch).
+ * - "site" : only StockOut's own pages (home, sell, policies) are indexed, so a search for StockOut finds the site;
+ *            listings, categories and search stay noindex and out of the sitemap while the catalogue is dummy data.
+ * - "on"   : everything public is indexed and every listing is in the sitemap (real catalogue).
  */
-export const SEO_INDEXING = (import.meta.env.VITE_SEO_INDEXING as string | undefined)?.toLowerCase() === "on";
+export const SEO_MODE: "off" | "site" | "on" = (() => {
+  const v = (import.meta.env.VITE_SEO_INDEXING as string | undefined)?.toLowerCase();
+  return v === "on" ? "on" : v === "site" ? "site" : "off";
+})();
+/** Full indexing (listings included). */
+export const SEO_INDEXING = SEO_MODE === "on";
+
+/** StockOut's own pages, indexed from "site" mode on. */
+export const SITE_PAGE_PATHS = ["/", "/sell", "/legal"];
+export const isSitePage = (path: string) => {
+  const p = path.split(/[?#]/)[0].replace(/\/+$/, "") || "/";
+  return SITE_PAGE_PATHS.includes(p) || p.startsWith("/legal/");
+};
+
+/** Whether a public page at this path may be indexed under the current mode. */
+export const pathIndexable = (path: string) => SEO_MODE === "on" || (SEO_MODE === "site" && isSitePage(path));
 
 /** Production host check (noindex everywhere else so copies don't compete with the real site). */
 export const isCanonicalHost = () => typeof location !== "undefined" && location.host === SITE_HOST;
